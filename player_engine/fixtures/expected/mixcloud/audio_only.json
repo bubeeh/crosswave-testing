@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0.0",
+  "canonical_id": "sha256:73f6219db89f3387e6c4051d6645121ce706b705ef24da3bc57b035dcf5af745",
+  "platform": "mixcloud",
+  "source_url": "https://www.mixcloud.com/mc-dj/audio_only/",
+  "title": "Fixture mixcloud audio_only",
+  "uploader": "MC DJ",
+  "duration": 3600.0,
+  "thumbnail": "https://thumbnail.mixcloud.com/w/300/h/300/1.jpg",
+  "description": "Mixcloud fixture.",
+  "media_type": "audio",
+  "tags": [
+    "dj-mix",
+    "house"
+  ],
+  "streams": [
+    {
+      "format_id": "aac",
+      "ext": "m4a",
+      "quality": "",
+      "url": "https://stream.mixcloud.com/audio_only.m4a",
+      "size_bytes": 120000000,
+      "abr": 128.0,
+      "vcodec": "",
+      "acodec": "aac",
+      "height": null
+    }
+  ],
+  "rights": {
+    "download_license": "unknown",
+    "terms_violation_risk": "low",
+    "watermark_required": true,
+    "license_note": "Mixcloud è streaming-only per policy della piattaforma: download non attivo.",
+    "license_source": "https://www.mixcloud.com/mc-dj/audio_only/"
+  },
+  "resolved_at": "2026-08-19T12:00:00+00:00",
+  "resolver_version": "yt-dlp/2026.03.17",
+  "cache_hit": false,
+  "is_collection": false,
+  "degraded": false,
+  "is_downloadable": false,
+  "can_stream": true
+}

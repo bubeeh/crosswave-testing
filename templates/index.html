@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CrossWave Player - Musica Unificata</title>
+    <!-- Google Fonts (non-bloccante: il CSS si applica appena arriva) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"></noscript>
+    <!-- FontAwesome Icons (non-bloccante) -->
+    <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260823_v3">
+
+    <link rel="icon" type="image/png" href="https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=32&auto=format&fit=crop&q=60">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Ambient Animated Background Gradients -->
+        <div class="ambient-glow bg-glow-1"></div>
+        <div class="ambient-glow bg-glow-2"></div>
+        <div class="ambient-glow bg-glow-3"></div>
+
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar glassmorphic">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fa-solid fa-compact-disc logo-icon spinner-slow"></i>
+                    <span class="logo-text">Cross<span>Wave</span></span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <span class="nav-section-title">Menu</span>
+                    <button class="nav-btn active" data-tab="home" id="nav-btn-home">
+                        <i class="fa-solid fa-house"></i>
+                        <span>Home</span>
+                    </button>
+                    <button class="nav-btn" data-tab="search" id="nav-btn-search">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <span>Ricerca</span>
+                    </button>
+                    <button class="nav-btn" data-tab="favorites" id="nav-btn-favorites">
+                        <i class="fa-solid fa-heart"></i>
+                        <span>Preferiti</span>
+                    </button>
+
+                    <button class="nav-btn" data-tab="watch-later" id="nav-btn-watch-later">
+                        <i class="fa-solid fa-clock"></i>
+                        <span>Guarda Dopo</span>
+                    </button>
+                    <button class="nav-btn" data-tab="downloads" id="nav-btn-downloads">
+                        <i class="fa-solid fa-cloud-arrow-down"></i>
+                        <span>Downloads</span>
+                    </button>
+                    <button class="nav-btn" data-tab="web-radio" id="nav-btn-web-radio">
+                        <i class="fa-solid fa-radio"></i>
+                        <span>Web Radio</span>
+                    </button>
+                    <button class="nav-btn" data-tab="mix-random" id="nav-btn-mix-random">
+                        <i class="fa-solid fa-shuffle"></i>
+                        <span>Mix Random</span>
+                    </button>
+                    <button class="nav-btn" data-tab="telegram" id="nav-btn-telegram">
+                        <i class="fa-brands fa-telegram" style="color: #0088cc;"></i>
+                        <span>Feed Telegram</span>
+                    </button>
+                    <button class="nav-btn" data-tab="queue-history">
+                        <i class="fa-solid fa-list-ol"></i>
+                        <span>Coda di Riproduzione</span>
+                    </button>
+
+                </div>
+
+                <div class="nav-section">
+                    <div class="playlist-header-row">
+                        <span class="nav-section-title">Le Tue Playlist</span>
+                        <button class="add-playlist-btn" id="open-create-playlist-btn" title="Crea Playlist">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                    </div>
+                    <div class="playlists-container" id="sidebar-playlists-list">
+                        <!-- Playlists list will be injected here -->
+                    </div>
+                </div>
+            </nav>
+
+            <!-- User Profile Sidebar Footer (app personale: nessun account) -->
+            <div class="sidebar-user-footer">
+                <div class="user-badge" title="Libreria Personale">
+                    <i class="fa-solid fa-circle-user user-icon"></i>
+                    <span class="user-name" id="sidebar-user-name">Libreria Personale</span>
+                </div>
+            </div>
+
+            <!-- Active Track Floating Mini-Card in Sidebar -->
+            <div class="sidebar-track-card glassmorphic-card hidden" id="sidebar-track-card">
+
+                <img src="" alt="Album Art" class="sidebar-track-art" id="sidebar-card-art">
+                <div class="sidebar-track-info">
+                    <div class="sidebar-track-title truncate" id="sidebar-card-title">Titolo brano</div>
+                    <div class="sidebar-track-artist truncate" id="sidebar-card-artist">Artista</div>
+                </div>
+                <div class="sidebar-track-source" id="sidebar-card-source">
+                    <!-- Icon will be injected here -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Home Dashboard Tab -->
+            <section class="tab-content active" id="tab-home">
+                <div class="home-dashboard-container">
+                    <!-- Top Search Bar on Home -->
+                    <div class="search-box-wrapper glassmorphic" style="margin-bottom: 16px;">
+                        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                        <input type="text" id="home-search-input" placeholder="Cerca canzoni, album, DJ set, artisti..." autocomplete="off">
+                        <button class="search-action-btn" id="home-search-btn">Cerca</button>
+                    </div>
+
+
+
+                    <!-- Web Radio Live Section on Home -->
+                    <div class="home-card-section glassmorphic" style="margin-top: 20px;">
+                        <div class="home-section-header" style="display: flex; justify-content: space-between; align-items: center;">
+                            <h3><i class="fa-solid fa-radio accent-cyan"></i> Web Radio in Diretta</h3>
+                            <button class="btn btn-secondary btn-sm" id="home-view-all-radios-btn" style="font-size: 0.8rem;"><i class="fa-solid fa-tower-broadcast"></i> Tutte le Radio</button>
+                        </div>
+                        <div class="home-horizontal-scroll" id="home-radios-list" style="display: flex; flex-direction: row; gap: 14px; overflow-x: auto; flex-wrap: nowrap; padding: 4px 4px 12px 4px; scrollbar-width: thin;">
+                            <div class="empty-state-text" style="font-size:12px; padding:12px;">Caricamento stazioni web radio...</div>
+                        </div>
+                    </div>
+
+                    <!-- Mix Random & Gruppo Ascolto Split Section on Home -->
+                    <div class="home-sections-grid" style="margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <!-- Mix Random (Left) -->
+                        <div class="home-card-section glassmorphic">
+                            <div class="home-section-header" style="display: flex; justify-content: space-between; align-items: center;">
+                                <h3><i class="fa-solid fa-shuffle accent-cyan"></i> Mix Random</h3>
+                                <button class="btn btn-secondary btn-sm" id="home-mix-random-btn" style="font-size: 0.8rem;"><i class="fa-solid fa-dice"></i> Altri Mix</button>
+                            </div>
+                            <div class="home-horizontal-scroll" id="home-mix-random-list">
+                                <div class="empty-state-text" style="font-size:12px; padding:12px;">Caricamento mix casuali...</div>
+                            </div>
+                        </div>
+
+                        <!-- Gruppo Ascolto (Right) -->
+                        <div class="home-card-section glassmorphic">
+                            <div class="home-section-header" style="display: flex; justify-content: space-between; align-items: center;">
+                                <h3><i class="fa-brands fa-telegram text-accent" style="color: #0088cc;"></i> Gruppo Ascolto</h3>
+                                <button class="btn btn-secondary btn-sm" id="home-view-all-telegram-btn" style="font-size: 0.8rem;"><i class="fa-solid fa-list"></i> Vedi Tutti</button>
+                            </div>
+                            <div class="home-horizontal-scroll" id="home-telegram-list" style="display: flex; flex-direction: row; gap: 14px; overflow-x: auto; flex-wrap: nowrap; padding: 4px 4px 12px 4px; scrollbar-width: thin;">
+                                <div class="empty-state-text" style="font-size:12px; padding:12px;">Caricamento consigli dagli amici...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Favorites & Watch Later Row -->
+                    <div class="home-sections-grid" style="margin-top: 20px;">
+                        <!-- Favorites Quick Access -->
+                        <div class="home-card-section glassmorphic">
+                            <div class="home-section-header">
+                                <h3><i class="fa-solid fa-heart accent-pink"></i> I Tuoi Preferiti</h3>
+                            </div>
+                            <div class="home-horizontal-scroll" id="home-favorites-list">
+                                <div class="empty-state-text" style="font-size:12px; padding:12px;">Nessun preferito salvato. Clicca sui brani!</div>
+                            </div>
+                        </div>
+
+                        <!-- Watch Later Quick Access -->
+                        <div class="home-card-section glassmorphic">
+                            <div class="home-section-header">
+                                <h3><i class="fa-solid fa-clock accent-cyan"></i> Guarda / Ascolta Dopo</h3>
+                            </div>
+                            <div class="home-horizontal-scroll" id="home-watch-later-list">
+                                <div class="empty-state-text" style="font-size:12px; padding:12px;">Nessun brano in coda. Clicca sui brani!</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Search Tab -->
+            <section class="tab-content" id="tab-search">
+
+                <div class="search-section-container">
+                    <div class="search-box-wrapper glassmorphic">
+                        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                        <input type="text" id="search-input" placeholder="Cerca canzoni, album, DJ set, artisti..." autocomplete="off">
+                        <button class="search-action-btn" id="search-btn">Cerca</button>
+                    </div>
+
+                    <!-- Platform Filters (Additive Selection) -->
+                    <div class="search-filters-row">
+                        <div class="filter-pills">
+                            <label class="filter-pill youtube" data-source="youtube">
+                                <input type="checkbox" id="chk-yt" hidden>
+                                <i class="fa-brands fa-youtube"></i> YouTube
+                            </label>
+                            <label class="filter-pill soundcloud" data-source="soundcloud">
+                                <input type="checkbox" id="chk-sc" hidden>
+                                <i class="fa-brands fa-soundcloud"></i> SoundCloud
+                            </label>
+                            <label class="filter-pill bandcamp" data-source="bandcamp">
+                                <input type="checkbox" id="chk-bc" hidden>
+                                <i class="fa-brands fa-bandcamp"></i> Bandcamp
+                            </label>
+                            <label class="filter-pill mixcloud" data-source="mixcloud">
+                                <input type="checkbox" id="chk-mc" hidden>
+                                <i class="fa-brands fa-mixcloud"></i> Mixcloud
+                            </label>
+                        </div>
+                    </div>
+
+
+                </div>
+
+                <!-- Search Results Section -->
+                <div class="search-results-wrapper">
+                    <div class="results-header hidden" id="results-meta-row">
+                        <h2 id="results-count-text">Risultati di ricerca</h2>
+                        <div class="loader-spinner hidden" id="search-loader">
+                            <div class="double-bounce1"></div>
+                            <div class="double-bounce2"></div>
+                        </div>
+                    </div>
+
+                    <!-- Search Loading State -->
+                    <div class="search-placeholder-state" id="search-placeholder">
+                        <i class="fa-solid fa-music placeholder-icon"></i>
+                        <p>Inserisci una parola chiave e seleziona le sorgenti per iniziare</p>
+                    </div>
+
+                    <div class="search-results-list" id="search-results-list">
+                        <!-- Results items will be dynamically loaded here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Web Radio Tab -->
+            <section class="tab-content" id="tab-web-radio">
+                <div class="queue-section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2>Web Radio & Live Stream</h2>
+                    <button class="btn btn-cyan btn-sm" id="open-add-radio-btn">
+                        <i class="fa-solid fa-plus"></i> Aggiungi Stazione Custom
+                    </button>
+                </div>
+
+                <div class="web-radios-grid" id="web-radios-grid" style="display: flex; flex-direction: column; gap: 12px;">
+                    <!-- Radio cards loaded dynamically -->
+                </div>
+            </section>
+
+
+
+            <!-- Queue & History Tab -->
+            <section class="tab-content" id="tab-queue-history">
+                <div class="queue-section-header">
+                    <h2>Coda di Riproduzione</h2>
+                    <div class="queue-controls">
+                        <button class="btn btn-secondary btn-sm" id="clear-queue-btn">
+                            <i class="fa-solid fa-trash-can"></i> Svuota Coda
+                        </button>
+                    </div>
+                </div>
+
+                <div class="queue-list-container glassmorphic" id="queue-tracks-list">
+                    <!-- Queue items will be injected here -->
+                </div>
+
+                <div class="history-section-header" style="margin-top: 40px;">
+                    <h2>Cronologia di Ascolto</h2>
+                    <div class="queue-controls">
+                        <button class="btn btn-secondary btn-sm" id="clear-history-btn">
+                            <i class="fa-solid fa-trash-can"></i> Svuota Cronologia
+                        </button>
+                    </div>
+                </div>
+
+                <div class="history-list-container glassmorphic" id="history-tracks-list">
+                    <!-- History items will be injected here -->
+                </div>
+            </section>
+
+            <!-- Playlist View Tab (Dynamic) -->
+            <section class="tab-content" id="tab-playlist-detail">
+                <div class="playlist-detail-header glassmorphic">
+                    <div class="playlist-cover-art">
+                        <i class="fa-solid fa-music"></i>
+                    </div>
+                    <div class="playlist-meta-info">
+                        <span class="playlist-badge">PLAYLIST</span>
+                        <h1 id="playlist-detail-title">Nome Playlist</h1>
+                        <p id="playlist-detail-meta">0 brani &bull; 0 min</p>
+                        <div class="playlist-detail-actions">
+                            <button class="btn btn-cyan btn-play-playlist" id="play-all-playlist-btn">
+                                <i class="fa-solid fa-play"></i> Riproduci Tutto
+                            </button>
+                            <button class="btn btn-secondary btn-delete-playlist" id="delete-playlist-btn">
+                                <i class="fa-solid fa-trash-can"></i> Elimina Playlist
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="playlist-songs-list glassmorphic" id="playlist-songs-list">
+                    <!-- Playlist tracks will be injected here -->
+                </div>
+            </section>
+
+            <!-- Favorites Tab -->
+            <section class="tab-content" id="tab-favorites">
+                <div class="section-header">
+                    <h2><i class="fa-solid fa-heart accent-pink"></i> I Tuoi Preferiti</h2>
+                    <span class="results-count" id="favorites-count-text">0 brani salvati</span>
+                </div>
+                <div class="search-results-list glassmorphic" id="favorites-tracks-list">
+                    <!-- Favorites injected here -->
+                </div>
+            </section>
+
+            <!-- Watch Later Tab -->
+            <section class="tab-content" id="tab-watch-later">
+                <div class="section-header">
+                    <h2><i class="fa-solid fa-clock accent-cyan"></i> Guarda / Ascolta Dopo</h2>
+                    <span class="results-count" id="watch-later-count-text">0 brani in coda</span>
+                </div>
+                <div class="search-results-list glassmorphic" id="watch-later-tracks-list">
+                    <!-- Watch later injected here -->
+                </div>
+            </section>
+
+            <!-- Modular Platform Views -->
+            {% include 'components/view_mix_random.html' %}
+            {% include 'components/view_telegram.html' %}
+            {% include 'components/view_downloads.html' %}
+            {% include 'components/view_bandcamp.html' %}
+            {% include 'components/view_youtube.html' %}
+            {% include 'components/view_soundcloud.html' %}
+            {% include 'components/view_mixcloud.html' %}
+
+
+        </main>
+
+
+
+
+
+
+        {% include 'components/player_bar.html' %}
+        {% include 'components/hidden_players.html' %}
+        {% include 'components/modals.html' %}
+
+    </div>
+
+    <!-- SDKs and API Wrappers (defer: scaricati senza bloccare il rendering) -->
+    <script src="https://w.soundcloud.com/player/api.js" defer></script>
+    <script src="https://widget.mixcloud.com/media/js/widgetApi.js" defer></script>
+
+    <!-- Modular ES SPA Application -->
+    <script type="module" src="{{ url_for('static', filename='js/app.js') }}?v=20260823_bandcamp_2col_futura"></script>
+
+</body>
+
+</html>
+
+

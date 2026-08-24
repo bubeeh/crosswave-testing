@@ -1,0 +1,66 @@
+{
+  "schema_version": "1.0.0",
+  "canonical_id": "sha256:c887f242597143c8c8e7e140c0c30da7e1322d152eae4af6576415e80b04380a",
+  "platform": "youtube",
+  "source_url": "https://www.youtube.com/watch?v=youtube_standard",
+  "title": "Fixture youtube_standard",
+  "uploader": "Fixture Channel",
+  "duration": 214.0,
+  "thumbnail": "https://i.ytimg.com/vi/x/maxresdefault.jpg",
+  "description": "Fixture congelata per test di regressione.",
+  "media_type": "video",
+  "tags": [
+    "fixture",
+    "test",
+    "Music"
+  ],
+  "streams": [
+    {
+      "format_id": "137",
+      "ext": "mp4",
+      "quality": "",
+      "url": "https://r1.yt.example/video/137",
+      "size_bytes": 18000000,
+      "abr": 0.0,
+      "vcodec": "avc1",
+      "acodec": "mp4a",
+      "height": 1080
+    },
+    {
+      "format_id": "18",
+      "ext": "mp4",
+      "quality": "",
+      "url": "https://r2.yt.example/video/18",
+      "size_bytes": 5000000,
+      "abr": 0.0,
+      "vcodec": "avc1",
+      "acodec": "mp4a",
+      "height": 360
+    },
+    {
+      "format_id": "140",
+      "ext": "m4a",
+      "quality": "",
+      "url": "https://r3.yt.example/audio/140",
+      "size_bytes": 4200000,
+      "abr": 129.0,
+      "vcodec": "",
+      "acodec": "mp4a",
+      "height": null
+    }
+  ],
+  "rights": {
+    "download_license": "creative_commons",
+    "terms_violation_risk": "low",
+    "watermark_required": true,
+    "license_note": "Creative Commons Attribution license (reuse allowed)",
+    "license_source": "https://www.youtube.com/watch?v=youtube_standard"
+  },
+  "resolved_at": "2026-08-19T12:00:00+00:00",
+  "resolver_version": "yt-dlp/2026.03.17",
+  "cache_hit": false,
+  "is_collection": false,
+  "degraded": false,
+  "is_downloadable": true,
+  "can_stream": true
+}

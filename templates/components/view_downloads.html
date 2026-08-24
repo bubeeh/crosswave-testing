@@ -1,0 +1,30 @@
+<!-- Dedicated Downloads Manager & Local Library View -->
+<section class="tab-content" id="tab-downloads">
+    <div class="downloads-view-container glassmorphic">
+        <div class="section-header">
+            <div>
+                <h2><i class="fa-solid fa-cloud-arrow-down accent-cyan"></i> Download Manager & Libreria Locale</h2>
+                <span class="results-count" id="downloads-dir-path">Cartella: crosswave_player/downloads/</span>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="btn-refresh-downloads">
+                <i class="fa-solid fa-rotate-right"></i> Aggiorna
+            </button>
+        </div>
+
+        <!-- Live Download Queue Section -->
+        <div class="download-section-box glassmorphic" style="margin-top: 20px;">
+            <h3 class="section-subtitle"><i class="fa-solid fa-spinner fa-spin accent-cyan hidden" id="dl-spinner-icon"></i> Coda Download in Tempo Reale</h3>
+            <div class="download-jobs-list" id="download-jobs-container">
+                <div class="empty-state-text" style="padding: 16px;">Nessun download attivo al momento. Clicca ️ su un brano per iniziare!</div>
+            </div>
+        </div>
+
+        <!-- Local Downloaded Files & Albums Section -->
+        <div class="download-section-box glassmorphic" style="margin-top: 24px;">
+            <h3 class="section-subtitle"><i class="fa-solid fa-folder-closed accent-pink"></i> File & Album Scaricati nel Server</h3>
+            <div class="search-results-list" id="local-downloads-list">
+                <!-- Local downloaded MP3 files injected here -->
+            </div>
+        </div>
+    </div>
+</section>

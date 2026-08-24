@@ -1,0 +1,38 @@
+{
+  "id": "track-audio_only",
+  "title": "Fixture bandcamp audio_only (single)",
+  "uploader": "Fixture Artist",
+  "artist": "Fixture Artist",
+  "album": "Fixture Album",
+  "duration": 247,
+  "track": "track-audio_only",
+  "thumbnail": "https://f4.bcbits.com/img/a123.jpg",
+  "description": "Bandcamp fixture.",
+  "genre": "Electronic",
+  "tags": [
+    "electronic",
+    "ambient"
+  ],
+  "availability": "public",
+  "webpage_url": "https://artist.bandcamp.com/track/audio_only",
+  "formats": [
+    {
+      "format_id": "0",
+      "ext": "mp3",
+      "url": "https://t4.bcbits.com/stream/audio_only/mp3",
+      "vcodec": "none",
+      "acodec": "mp3",
+      "filesize": 9000000,
+      "abr": 320
+    },
+    {
+      "format_id": "1",
+      "ext": "flac",
+      "url": "https://t4.bcbits.com/download/audio_only/flac",
+      "vcodec": "none",
+      "acodec": "flac",
+      "filesize": 28000000,
+      "abr": 0
+    }
+  ]
+}

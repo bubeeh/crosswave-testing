@@ -1,0 +1,54 @@
+{
+  "schema_version": "1.0.0",
+  "canonical_id": "sha256:6070bed3090320e53255eb299820fe84a7944e1a4dcf1b34a9e7c912385883aa",
+  "platform": "soundcloud",
+  "source_url": "https://soundcloud.com/sc-artist/standard",
+  "title": "Fixture soundcloud standard",
+  "uploader": "SC Artist",
+  "duration": 195.0,
+  "thumbnail": "https://i1.sndcdn.com/artwork-0001-large.jpg",
+  "description": "SoundCloud fixture.",
+  "media_type": "audio",
+  "tags": [
+    "hip-hop",
+    "beat"
+  ],
+  "streams": [
+    {
+      "format_id": "hls_opus",
+      "ext": "webm",
+      "quality": "",
+      "url": "https://cf-media.sndcdn.com/standard/opus",
+      "size_bytes": 6000000,
+      "abr": 128.0,
+      "vcodec": "",
+      "acodec": "opus",
+      "height": null
+    },
+    {
+      "format_id": "http_mp3",
+      "ext": "mp3",
+      "quality": "",
+      "url": "https://cf-media.sndcdn.com/standard/mp3",
+      "size_bytes": 7800000,
+      "abr": 128.0,
+      "vcodec": "",
+      "acodec": "mp3",
+      "height": null
+    }
+  ],
+  "rights": {
+    "download_license": "explicit_permission",
+    "terms_violation_risk": "low",
+    "watermark_required": true,
+    "license_note": "Traccia pubblica SoundCloud — uso personale con watermark.",
+    "license_source": "https://soundcloud.com/sc-artist/standard"
+  },
+  "resolved_at": "2026-08-19T12:00:00+00:00",
+  "resolver_version": "yt-dlp/2026.03.17",
+  "cache_hit": false,
+  "is_collection": false,
+  "degraded": false,
+  "is_downloadable": true,
+  "can_stream": true
+}

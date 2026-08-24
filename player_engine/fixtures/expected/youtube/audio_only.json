@@ -1,0 +1,55 @@
+{
+  "schema_version": "1.0.0",
+  "canonical_id": "sha256:15cec10baeadaa266534d4f96bcf011d364ba672f97d9ef7a94edbb3933476a2",
+  "platform": "youtube",
+  "source_url": "https://www.youtube.com/watch?v=youtube_audio",
+  "title": "Fixture youtube_audio (podcast)",
+  "uploader": "Fixture Channel",
+  "duration": 214.0,
+  "thumbnail": "https://i.ytimg.com/vi/x/maxresdefault.jpg",
+  "description": "Fixture congelata per test di regressione.",
+  "media_type": "audio",
+  "tags": [
+    "podcast",
+    "intervista",
+    "Music"
+  ],
+  "streams": [
+    {
+      "format_id": "251",
+      "ext": "webm",
+      "quality": "",
+      "url": "https://r4.yt.example/audio/251",
+      "size_bytes": 6900000,
+      "abr": 160.0,
+      "vcodec": "",
+      "acodec": "opus",
+      "height": null
+    },
+    {
+      "format_id": "140",
+      "ext": "m4a",
+      "quality": "",
+      "url": "https://r3.yt.example/audio/140",
+      "size_bytes": 5100000,
+      "abr": 129.0,
+      "vcodec": "",
+      "acodec": "mp4a",
+      "height": null
+    }
+  ],
+  "rights": {
+    "download_license": "explicit_permission",
+    "terms_violation_risk": "low",
+    "watermark_required": true,
+    "license_note": "Licenza standard YouTube — download consentito solo per uso personale, con watermark e log di conformità.",
+    "license_source": "https://www.youtube.com/watch?v=youtube_audio"
+  },
+  "resolved_at": "2026-08-19T12:00:00+00:00",
+  "resolver_version": "yt-dlp/2026.03.17",
+  "cache_hit": false,
+  "is_collection": false,
+  "degraded": false,
+  "is_downloadable": true,
+  "can_stream": true
+}

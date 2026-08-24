@@ -1,0 +1,38 @@
+{
+  "id": "track-restricted",
+  "title": "Fixture bandcamp restricted",
+  "uploader": "Fixture Artist",
+  "artist": "Fixture Artist",
+  "album": "Fixture Album",
+  "duration": 247,
+  "track": "track-restricted",
+  "thumbnail": "https://f4.bcbits.com/img/a123.jpg",
+  "description": "Bandcamp fixture.",
+  "genre": "Electronic",
+  "tags": [
+    "electronic",
+    "ambient"
+  ],
+  "availability": "private",
+  "webpage_url": "https://artist.bandcamp.com/track/restricted",
+  "formats": [
+    {
+      "format_id": "0",
+      "ext": "mp3",
+      "url": "https://t4.bcbits.com/stream/restricted/mp3",
+      "vcodec": "none",
+      "acodec": "mp3",
+      "filesize": 9000000,
+      "abr": 320
+    },
+    {
+      "format_id": "1",
+      "ext": "flac",
+      "url": "https://t4.bcbits.com/download/restricted/flac",
+      "vcodec": "none",
+      "acodec": "flac",
+      "filesize": 28000000,
+      "abr": 0
+    }
+  ]
+}

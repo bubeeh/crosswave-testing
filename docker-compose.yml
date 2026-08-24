@@ -1,0 +1,17 @@
+services:
+  crossplayer:
+    build: .
+    container_name: crosswave_player
+    ports:
+      - "5002:5002"
+    volumes:
+      # Persistenza dei DB (utenti, preferiti, playlist e cache resolver)
+      - ./crosswave.db:/app/crosswave.db
+      - ./resolver_cache.db:/app/resolver_cache.db
+      # Persistenza della cartella download con gli MP3 salvati
+      - ./downloads:/app/downloads
+    environment:
+      - PORT=5002
+      - FLASK_DEBUG=0
+      - SECRET_KEY=crosswave_hybrid_production_secret_2026
+    restart: unless-stopped

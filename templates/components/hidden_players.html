@@ -1,0 +1,17 @@
+<!-- Hidden Players Wrapper -->
+<div id="hidden-players-wrapper">
+    <!-- YouTube Iframe placeholder -->
+    <div id="yt-player-placeholder"></div>
+    
+    <!-- L'iframe SoundCloud è vuoto di proposito: il src viene impostato
+         da ensureSCPlayer() al primo play di una traccia SoundCloud
+         (niente caricamenti esterni al semplice caricamento della pagina) -->
+    <iframe id="sc-player-iframe" 
+            src="" 
+            allow="autoplay"
+            style="width: 100%; height: 100%; border: none;">
+    </iframe>
+
+    <!-- HTML5 Audio for Bandcamp -->
+    <audio id="bc-audio-player" style="display:none;"></audio>
+</div>

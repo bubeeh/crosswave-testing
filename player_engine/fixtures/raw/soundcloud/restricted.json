@@ -1,0 +1,35 @@
+{
+  "id": "restricted",
+  "title": "Fixture soundcloud restricted",
+  "uploader": "SC Artist",
+  "duration": 195,
+  "thumbnail": "https://i1.sndcdn.com/artwork-0001-large.jpg",
+  "description": "SoundCloud fixture.",
+  "genre": "Hip-Hop",
+  "tags": [
+    "hip-hop",
+    "beat"
+  ],
+  "availability": "private",
+  "webpage_url": "https://soundcloud.com/sc-artist/restricted",
+  "formats": [
+    {
+      "format_id": "hls_opus",
+      "ext": "webm",
+      "url": "https://cf-media.sndcdn.com/restricted/opus",
+      "vcodec": "none",
+      "acodec": "opus",
+      "filesize": 6000000,
+      "abr": 128
+    },
+    {
+      "format_id": "http_mp3",
+      "ext": "mp3",
+      "url": "https://cf-media.sndcdn.com/restricted/mp3",
+      "vcodec": "none",
+      "acodec": "mp3",
+      "filesize": 7800000,
+      "abr": 128
+    }
+  ]
+}

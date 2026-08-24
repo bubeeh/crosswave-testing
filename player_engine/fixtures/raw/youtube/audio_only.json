@@ -1,0 +1,40 @@
+{
+  "id": "youtube_audio",
+  "title": "Fixture youtube_audio (podcast)",
+  "uploader": "Fixture Channel",
+  "duration": 214,
+  "thumbnail": "https://i.ytimg.com/vi/x/maxresdefault.jpg",
+  "description": "Fixture congelata per test di regressione.",
+  "tags": [
+    "podcast",
+    "intervista"
+  ],
+  "categories": [
+    "Music"
+  ],
+  "availability": "public",
+  "license": "Standard YouTube License",
+  "age_limit": 0,
+  "live_status": "not_live",
+  "webpage_url": "https://www.youtube.com/watch?v=youtube_audio",
+  "formats": [
+    {
+      "format_id": "140",
+      "ext": "m4a",
+      "url": "https://r3.yt.example/audio/140",
+      "vcodec": "none",
+      "acodec": "mp4a",
+      "filesize": 5100000,
+      "abr": 129
+    },
+    {
+      "format_id": "251",
+      "ext": "webm",
+      "url": "https://r4.yt.example/audio/251",
+      "vcodec": "none",
+      "acodec": "opus",
+      "filesize": 6900000,
+      "abr": 160
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "id": "standard",
+  "title": "Fixture mixcloud standard",
+  "uploader": "MC DJ",
+  "duration": 3600,
+  "thumbnail": "https://thumbnail.mixcloud.com/w/300/h/300/1.jpg",
+  "description": "Mixcloud fixture.",
+  "tags": [
+    "dj-mix",
+    "house"
+  ],
+  "availability": "public",
+  "webpage_url": "https://www.mixcloud.com/mc-dj/standard/",
+  "formats": [
+    {
+      "format_id": "aac",
+      "ext": "m4a",
+      "url": "https://stream.mixcloud.com/standard.m4a",
+      "vcodec": "none",
+      "acodec": "aac",
+      "filesize": 120000000,
+      "abr": 128
+    }
+  ]
+}

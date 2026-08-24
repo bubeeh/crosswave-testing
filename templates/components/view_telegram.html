@@ -1,0 +1,57 @@
+<!-- Telegram Shared Feed Tab Component for CrossWave Hybrid -->
+<section class="tab-content" id="tab-telegram">
+    <div class="view-header flex-between mb-4">
+        <div>
+            <h1 class="view-title flex-align gap-3">
+                <i class="fa-brands fa-telegram text-accent" style="color: #0088cc;"></i>
+                Feed Telegram — Consigliati dagli Amici
+            </h1>
+            <p class="view-subtitle text-muted">
+                Tutte le novità ed i link condivisi nel tuo gruppo Telegram, estratti in modalità silenziosa.
+            </p>
+        </div>
+        <div class="flex-align gap-2">
+            <button class="btn btn-secondary btn-sm" id="btn-refresh-telegram">
+                <i class="fa-solid fa-arrows-rotate me-1"></i> Aggiorna Feed
+            </button>
+        </div>
+    </div>
+
+    <!-- Filtri & Barra di Ricerca -->
+    <div class="search-section-container mb-4">
+        <div class="search-box-wrapper flex-between bg-card p-2 rounded border border-color">
+            <div class="flex-align flex-1 gap-2">
+                <i class="fa-solid fa-magnifying-glass text-muted ms-2"></i>
+                <input type="text" id="telegram-filter-input" class="bg-transparent border-0 text-light w-100" placeholder="Filtra per artista, titolo, label o nome amico...">
+            </div>
+            <span class="badge bg-secondary px-3 py-2 text-uppercase font-mono" id="telegram-count-badge">0 Tracce</span>
+        </div>
+    </div>
+
+    <!-- Contenitore Tabella Feed Telegram -->
+    <div class="telegram-table-wrapper bg-card rounded p-3 border border-color shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle mb-0" id="telegram-feed-table">
+                <thead>
+                    <tr class="text-muted border-bottom border-secondary">
+                        <th style="width: 60px;">Copertina</th>
+                        <th>Titolo & Artista</th>
+                        <th>Label</th>
+                        <th style="width: 120px;">Data Uscita</th>
+                        <th style="width: 140px;">Condiviso da</th>
+                        <th style="width: 110px;">Data Invio</th>
+                        <th style="width: 180px;" class="text-end">Azioni</th>
+                    </tr>
+                </thead>
+                <tbody id="telegram-feed-tbody">
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-5">
+                            <i class="fa-solid fa-spinner fa-spin fa-2x mb-3 d-block"></i>
+                            Caricamento feed Telegram in corso...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>

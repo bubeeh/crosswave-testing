@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0.0",
+  "canonical_id": "sha256:581a27019e402a8feaeb97e718416584bc81716f0518a55160fd2bfad636a78a",
+  "platform": "youtube",
+  "source_url": "https://www.youtube.com/watch?v=youtube_restricted",
+  "title": "Fixture youtube_restricted",
+  "uploader": "Fixture Channel",
+  "duration": 214.0,
+  "thumbnail": "https://i.ytimg.com/vi/x/maxresdefault.jpg",
+  "description": "Fixture congelata per test di regressione.",
+  "media_type": "video",
+  "tags": [
+    "fixture",
+    "test",
+    "Music",
+    "live"
+  ],
+  "streams": [
+    {
+      "format_id": "18",
+      "ext": "mp4",
+      "quality": "",
+      "url": "https://r2.yt.example/video/18",
+      "size_bytes": 5000000,
+      "abr": null,
+      "vcodec": "avc1",
+      "acodec": "mp4a",
+      "height": 360
+    }
+  ],
+  "rights": {
+    "download_license": "explicit_permission",
+    "terms_violation_risk": "high",
+    "watermark_required": true,
+    "license_note": "Licenza standard YouTube — download consentito solo per uso personale, con watermark e log di conformità.",
+    "license_source": "https://www.youtube.com/watch?v=youtube_restricted"
+  },
+  "resolved_at": "2026-08-19T12:00:00+00:00",
+  "resolver_version": "yt-dlp/2026.03.17",
+  "cache_hit": false,
+  "is_collection": false,
+  "degraded": false,
+  "is_downloadable": false,
+  "can_stream": true
+}

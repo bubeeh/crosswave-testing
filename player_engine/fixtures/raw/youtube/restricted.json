@@ -1,0 +1,31 @@
+{
+  "id": "youtube_restricted",
+  "title": "Fixture youtube_restricted",
+  "uploader": "Fixture Channel",
+  "duration": 214,
+  "thumbnail": "https://i.ytimg.com/vi/x/maxresdefault.jpg",
+  "description": "Fixture congelata per test di regressione.",
+  "tags": [
+    "fixture",
+    "test"
+  ],
+  "categories": [
+    "Music"
+  ],
+  "availability": "members_only",
+  "license": "Standard YouTube License",
+  "age_limit": 0,
+  "live_status": "is_live",
+  "webpage_url": "https://www.youtube.com/watch?v=youtube_restricted",
+  "formats": [
+    {
+      "format_id": "18",
+      "ext": "mp4",
+      "url": "https://r2.yt.example/video/18",
+      "height": 360,
+      "vcodec": "avc1",
+      "acodec": "mp4a",
+      "filesize": 5000000
+    }
+  ]
+}

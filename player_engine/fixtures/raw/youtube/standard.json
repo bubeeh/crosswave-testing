@@ -1,0 +1,51 @@
+{
+  "id": "youtube_standard",
+  "title": "Fixture youtube_standard",
+  "uploader": "Fixture Channel",
+  "duration": 214,
+  "thumbnail": "https://i.ytimg.com/vi/x/maxresdefault.jpg",
+  "description": "Fixture congelata per test di regressione.",
+  "tags": [
+    "fixture",
+    "test"
+  ],
+  "categories": [
+    "Music"
+  ],
+  "availability": "public",
+  "license": "Creative Commons Attribution license (reuse allowed)",
+  "age_limit": 0,
+  "live_status": "not_live",
+  "webpage_url": "https://www.youtube.com/watch?v=youtube_standard",
+  "formats": [
+    {
+      "format_id": "137",
+      "ext": "mp4",
+      "url": "https://r1.yt.example/video/137",
+      "height": 1080,
+      "vcodec": "avc1",
+      "acodec": "mp4a",
+      "filesize": 18000000,
+      "abr": 0
+    },
+    {
+      "format_id": "18",
+      "ext": "mp4",
+      "url": "https://r2.yt.example/video/18",
+      "height": 360,
+      "vcodec": "avc1",
+      "acodec": "mp4a",
+      "filesize": 5000000,
+      "abr": 0
+    },
+    {
+      "format_id": "140",
+      "ext": "m4a",
+      "url": "https://r3.yt.example/audio/140",
+      "vcodec": "none",
+      "acodec": "mp4a",
+      "filesize": 4200000,
+      "abr": 129
+    }
+  ]
+}

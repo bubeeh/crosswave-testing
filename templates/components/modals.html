@@ -1,0 +1,131 @@
+<!-- Create Playlist Modal -->
+<div class="modal-overlay hidden" id="create-playlist-modal">
+    <div class="modal-content glassmorphic animate-zoom">
+        <div class="modal-header">
+            <h3>Crea Nuova Playlist</h3>
+            <button class="close-modal-btn" id="close-playlist-modal"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="input-field-group">
+                <label for="new-playlist-name">Nome della Playlist</label>
+                <input type="text" id="new-playlist-name" placeholder="Inserisci il nome..." autocomplete="off">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancel-playlist-btn">Annulla</button>
+            <button class="btn btn-cyan" id="save-playlist-btn">Crea</button>
+        </div>
+    </div>
+</div>
+
+<!-- Add to Playlist Selector Modal -->
+<div class="modal-overlay hidden" id="add-to-playlist-modal">
+    <div class="modal-content glassmorphic animate-zoom">
+        <div class="modal-header">
+            <h3>Aggiungi a Playlist</h3>
+            <button class="close-modal-btn" id="close-add-playlist-modal"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+            <p>Seleziona una playlist per aggiungere il brano:</p>
+            <div class="modal-playlists-list" id="modal-playlists-list">
+                <!-- Playlists options injected here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Album Tracks Modal (For Bandcamp Albums) -->
+<div class="modal-overlay hidden" id="album-tracks-modal">
+    <div class="modal-content glassmorphic album-modal animate-zoom">
+        <div class="modal-header">
+            <h3 id="album-modal-title">Tracce dell'Album</h3>
+            <button class="close-modal-btn" id="close-album-modal"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="album-details-row">
+                <img src="" alt="Album Cover" class="album-modal-cover" id="album-modal-cover">
+                <div class="album-modal-meta">
+                    <h2 id="album-modal-name">Nome Album</h2>
+                    <p id="album-modal-artist">Artista</p>
+                    <button class="btn btn-cyan btn-sm" id="album-modal-play-all">
+                        <i class="fa-solid fa-play"></i> Riproduci Album
+                    </button>
+                </div>
+            </div>
+            <div class="loader-spinner" id="album-modal-loader">
+                <div class="double-bounce1"></div>
+                <div class="double-bounce2"></div>
+            </div>
+            <div class="album-tracks-list" id="album-tracks-list-container">
+                <!-- Tracks injected here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Custom Web Radio Modal -->
+<div class="modal-overlay hidden" id="add-radio-modal">
+    <div class="modal-card glassmorphic-card" style="max-width: 440px;">
+        <div class="modal-header">
+            <h2><i class="fa-solid fa-radio accent-cyan"></i> Aggiungi Web Radio Custom</h2>
+            <button class="close-modal-btn" id="close-add-radio-modal"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="padding: 20px;">
+            <form id="add-radio-form" onsubmit="return false;">
+                <div style="margin-bottom: 12px;">
+                    <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 4px;">Nome Stazione</label>
+                    <input type="text" id="radio-name-input" class="search-input" style="width: 100%; border-radius: 8px; padding: 10px;" placeholder="es. Radio Subasio Live" required>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 4px;">URL Streaming (AAC / MP3 / Icecast)</label>
+                    <input type="url" id="radio-url-input" class="search-input" style="width: 100%; border-radius: 8px; padding: 10px;" placeholder="https://stream.example.com/radio.mp3" required>
+                </div>
+                <div style="margin-bottom: 18px;">
+                    <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 4px;">Genere Musicale</label>
+                    <input type="text" id="radio-genre-input" class="search-input" style="width: 100%; border-radius: 8px; padding: 10px;" placeholder="es. Pop / Jazz / Electronic">
+                </div>
+                <button class="btn btn-cyan" id="save-radio-btn" style="width: 100%;"><i class="fa-solid fa-plus"></i> Salva Stazione</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Radio Detail & Schedule Modal -->
+<div class="modal-overlay hidden" id="radio-detail-modal">
+    <div class="modal-card glassmorphic-card" style="max-width: 500px; width: 90%;">
+        <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3><i class="fa-solid fa-radio accent-cyan"></i> Dettagli Stazione & Palinsesto</h3>
+            <button class="modal-close-btn" id="close-radio-detail-modal"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+            <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px;">
+                <img id="radio-detail-logo" src="" alt="Logo" style="width: 70px; height: 70px; border-radius: 16px; object-fit: cover; border: 2px solid var(--accent-cyan);">
+                <div>
+                    <h4 id="radio-detail-name" style="font-size: 1.1rem; font-weight: 700; margin-bottom: 4px;">--</h4>
+                    <span id="radio-detail-genre" style="font-size: 0.85rem; color: var(--accent-cyan);">--</span>
+                </div>
+            </div>
+
+            <div style="background: var(--bg-glass); border-radius: 12px; padding: 14px; margin-bottom: 16px;">
+                <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">
+                    <i class="fa-solid fa-signal accent-cyan"></i> In Onda Ora (LIVE)
+                </div>
+                <div id="radio-detail-now-playing" style="font-weight: 600; font-size: 0.95rem;">Caricamento metadati live...</div>
+            </div>
+
+            <div style="background: var(--bg-glass); border-radius: 12px; padding: 14px; margin-bottom: 20px;">
+                <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;">
+                    <i class="fa-solid fa-calendar-days accent-cyan"></i> Palinsesto & Info
+                </div>
+                <div id="radio-detail-schedule-list" style="display: flex; flex-direction: column; gap: 10px;">
+                    <!-- Schedule items injected here -->
+                </div>
+            </div>
+
+            <button class="btn btn-cyan" id="radio-detail-play-btn" style="width: 100%;"><i class="fa-solid fa-play"></i> Ascolta Ora in Diretta</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Notifications System -->
+<div class="toast-container" id="toast-container"></div>

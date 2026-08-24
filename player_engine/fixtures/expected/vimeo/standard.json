@@ -1,0 +1,54 @@
+{
+  "schema_version": "1.0.0",
+  "canonical_id": "sha256:d051f6a79294fe38d378a81ca88ccf7be4581451113bee04d7e9026550e0efcd",
+  "platform": "vimeo",
+  "source_url": "https://vimeo.com/standard",
+  "title": "Fixture vimeo standard",
+  "uploader": "Vimeo Fixture Films",
+  "duration": 320.0,
+  "thumbnail": "https://i.vimeocdn.com/video/1_640x360.jpg",
+  "description": "Vimeo fixture.",
+  "media_type": "video",
+  "tags": [
+    "documentary",
+    "film"
+  ],
+  "streams": [
+    {
+      "format_id": "hd",
+      "ext": "mp4",
+      "quality": "",
+      "url": "https://player.vimeo.com/external/standard.mp4",
+      "size_bytes": 52000000,
+      "abr": 128.0,
+      "vcodec": "h264",
+      "acodec": "aac",
+      "height": 720
+    },
+    {
+      "format_id": "sd",
+      "ext": "mp4",
+      "quality": "",
+      "url": "https://player.vimeo.com/external/standard-sd.mp4",
+      "size_bytes": 21000000,
+      "abr": 128.0,
+      "vcodec": "h264",
+      "acodec": "aac",
+      "height": 480
+    }
+  ],
+  "rights": {
+    "download_license": "creative_commons",
+    "terms_violation_risk": "low",
+    "watermark_required": true,
+    "license_note": "Creative Commons Attribution",
+    "license_source": "https://vimeo.com/standard"
+  },
+  "resolved_at": "2026-08-19T12:00:00+00:00",
+  "resolver_version": "yt-dlp/2026.03.17",
+  "cache_hit": false,
+  "is_collection": false,
+  "degraded": false,
+  "is_downloadable": true,
+  "can_stream": true
+}

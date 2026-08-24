@@ -1,0 +1,56 @@
+{
+  "schema_version": "1.0.0",
+  "canonical_id": "sha256:0df084be69b5752ae11435123b98c2d7965c7f58be28cbdb359d36dc0122cf49",
+  "platform": "bandcamp",
+  "source_url": "https://artist.bandcamp.com/track/audio_only",
+  "title": "Fixture bandcamp audio_only (single)",
+  "uploader": "Fixture Artist",
+  "duration": 247.0,
+  "thumbnail": "https://f4.bcbits.com/img/a123.jpg",
+  "description": "Bandcamp fixture.",
+  "media_type": "audio",
+  "tags": [
+    "electronic",
+    "ambient",
+    "album:Fixture Album",
+    "artist:Fixture Artist"
+  ],
+  "streams": [
+    {
+      "format_id": "0",
+      "ext": "mp3",
+      "quality": "",
+      "url": "https://t4.bcbits.com/stream/audio_only/mp3",
+      "size_bytes": 9000000,
+      "abr": 320.0,
+      "vcodec": "",
+      "acodec": "mp3",
+      "height": null
+    },
+    {
+      "format_id": "1",
+      "ext": "flac",
+      "quality": "",
+      "url": "https://t4.bcbits.com/download/audio_only/flac",
+      "size_bytes": 28000000,
+      "abr": 0.0,
+      "vcodec": "",
+      "acodec": "flac",
+      "height": null
+    }
+  ],
+  "rights": {
+    "download_license": "explicit_permission",
+    "terms_violation_risk": "low",
+    "watermark_required": true,
+    "license_note": "Bandcamp: l'artista pubblica con intento di download; watermark attivo.",
+    "license_source": "https://artist.bandcamp.com/track/audio_only"
+  },
+  "resolved_at": "2026-08-19T12:00:00+00:00",
+  "resolver_version": "yt-dlp/2026.03.17",
+  "cache_hit": false,
+  "is_collection": false,
+  "degraded": false,
+  "is_downloadable": true,
+  "can_stream": true
+}

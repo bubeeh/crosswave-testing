@@ -1,0 +1,88 @@
+<!-- Bottom Playback Control Bar (Specular Layout with Centered Top Title) -->
+<footer class="player-bar glassmorphic" style="height: 94px; padding: 6px 24px;">
+    <!-- Left Action Group (Specular to Right side) -->
+    <div class="player-left-actions" style="display: flex; align-items: center; gap: 10px; width: 22%; justify-content: flex-start;">
+        <button class="utility-btn btn-fav" id="btn-player-fav" title="Aggiungi ai Preferiti">
+            <i class="fa-solid fa-heart"></i>
+        </button>
+        <button class="utility-btn btn-wl" id="btn-player-wl" title="Guarda / Ascolta Dopo">
+            <i class="fa-solid fa-clock"></i>
+        </button>
+        <button class="utility-btn btn-playlist" id="btn-player-playlist" title="Aggiungi a Playlist">
+            <i class="fa-solid fa-folder-plus"></i>
+        </button>
+        <button class="utility-btn btn-soundload" id="btn-player-soundload" title="Scarica brano corrente con Soundload">
+            <i class="fa-solid fa-cloud-arrow-down"></i>
+        </button>
+    </div>
+
+    <!-- Central Column (Track Info on TOP, Playback Controls in MIDDLE, Seekbar on BOTTOM) -->
+    <div class="player-center-column" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; flex: 1; max-width: 620px;">
+        <!-- Track info centered above controls -->
+        <div class="player-track-info-header" style="display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%;">
+            <div class="track-thumbnail-wrapper" style="width: 30px; height: 30px; flex-shrink: 0;">
+                <img src="https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=80&auto=format&fit=crop&q=60" alt="Album Cover" class="track-thumbnail" id="player-track-art" style="border-radius: 6px;">
+                <div class="track-glow-effect" id="player-track-art-glow"></div>
+            </div>
+            <div class="track-details-inline" style="display: flex; align-items: center; gap: 8px; overflow: hidden; max-width: 450px;">
+                <span class="track-title truncate" id="player-track-title" style="font-weight: 700; font-size: 0.85rem; color: var(--text-primary);">Nessun brano in riproduzione</span>
+                <span style="opacity: 0.4; font-size: 0.8rem;">&bull;</span>
+                <span class="track-artist truncate" id="player-track-artist" style="font-size: 0.78rem; color: var(--accent-cyan);">Scegli una canzone per iniziare</span>
+            </div>
+            <div class="track-badge hidden" id="player-track-badge">
+                <span class="badge-tag">YT</span>
+            </div>
+        </div>
+
+        <!-- Playback Controls -->
+        <div class="control-buttons" style="gap: 14px;">
+            <button class="control-btn" id="ctrl-shuffle" title="Casuale">
+                <i class="fa-solid fa-shuffle"></i>
+            </button>
+            <button class="control-btn" id="ctrl-prev" title="Precedente">
+                <i class="fa-solid fa-backward-step"></i>
+            </button>
+            <button class="control-btn play-pause-btn" id="ctrl-play-pause" title="Riproduci/Pausa">
+                <i class="fa-solid fa-play play-icon"></i>
+            </button>
+            <button class="control-btn" id="ctrl-next" title="Successivo">
+                <i class="fa-solid fa-forward-step"></i>
+            </button>
+            <button class="control-btn" id="ctrl-repeat" title="Ripeti">
+                <i class="fa-solid fa-repeat"></i>
+            </button>
+        </div>
+
+        <!-- Seek / Progress Bar -->
+        <div class="progress-bar-wrapper" style="max-width: 520px; width: 100%;">
+            <span class="time-label current-time" id="player-time-current">0:00</span>
+            <div class="slider-container" id="player-progress-container">
+                <div class="slider-track"></div>
+                <div class="slider-fill" id="player-progress-fill"></div>
+                <input type="range" id="player-progress-slider" min="0" max="100" value="0" step="0.1">
+            </div>
+            <span class="time-label total-time" id="player-time-total">0:00</span>
+        </div>
+    </div>
+
+    <!-- Right Action Group (Specular to Left side) -->
+    <div class="player-utilities" style="display: flex; align-items: center; gap: 10px; width: 22%; justify-content: flex-end;">
+        <button class="utility-btn" id="btn-toggle-video" title="Mostra/Nascondi Video Player">
+            <i class="fa-solid fa-tv"></i>
+        </button>
+        <button class="utility-btn" id="btn-toggle-queue" title="Coda di riproduzione">
+            <i class="fa-solid fa-list-ol"></i>
+        </button>
+
+        <div class="volume-control-group">
+            <button class="utility-btn" id="btn-mute" title="Disattiva Audio">
+                <i class="fa-solid fa-volume-high" id="volume-icon"></i>
+            </button>
+            <div class="volume-slider-container">
+                <div class="volume-slider-track"></div>
+                <div class="volume-slider-fill" id="player-volume-fill"></div>
+                <input type="range" id="player-volume-slider" min="0" max="100" value="80">
+            </div>
+        </div>
+    </div>
+</footer>

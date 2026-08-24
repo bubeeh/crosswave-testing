@@ -1,0 +1,29 @@
+{
+  "id": "audio_only",
+  "title": "Fixture vimeo audio_only (traccia)",
+  "uploader": "Vimeo Fixture Films",
+  "duration": 320,
+  "thumbnail": "https://i.vimeocdn.com/video/1_640x360.jpg",
+  "description": "Vimeo fixture.",
+  "tags": [
+    "documentary",
+    "film"
+  ],
+  "categories": [
+    "Film"
+  ],
+  "availability": "public",
+  "license": "",
+  "webpage_url": "https://vimeo.com/audio_only",
+  "formats": [
+    {
+      "format_id": "audio",
+      "ext": "m4a",
+      "url": "https://player.vimeo.com/external/audio.m4a",
+      "vcodec": "none",
+      "acodec": "aac",
+      "filesize": 8000000,
+      "abr": 192
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0.0",
+  "canonical_id": "sha256:adce8cda6b14041f0845555a355287975aef70b9894aefa86c431d5f7e028c57",
+  "platform": "vimeo",
+  "source_url": "https://vimeo.com/audio_only",
+  "title": "Fixture vimeo audio_only (traccia)",
+  "uploader": "Vimeo Fixture Films",
+  "duration": 320.0,
+  "thumbnail": "https://i.vimeocdn.com/video/1_640x360.jpg",
+  "description": "Vimeo fixture.",
+  "media_type": "audio",
+  "tags": [
+    "documentary",
+    "film"
+  ],
+  "streams": [
+    {
+      "format_id": "audio",
+      "ext": "m4a",
+      "quality": "",
+      "url": "https://player.vimeo.com/external/audio.m4a",
+      "size_bytes": 8000000,
+      "abr": 192.0,
+      "vcodec": "",
+      "acodec": "aac",
+      "height": null
+    }
+  ],
+  "rights": {
+    "download_license": "unknown",
+    "terms_violation_risk": "low",
+    "watermark_required": true,
+    "license_note": "Nessuna licenza di download esplicita rilevata (Vimeo spesso lo disabilita).",
+    "license_source": "https://vimeo.com/audio_only"
+  },
+  "resolved_at": "2026-08-19T12:00:00+00:00",
+  "resolver_version": "yt-dlp/2026.03.17",
+  "cache_hit": false,
+  "is_collection": false,
+  "degraded": false,
+  "is_downloadable": false,
+  "can_stream": true
+}
