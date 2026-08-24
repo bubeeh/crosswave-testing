@@ -67,7 +67,9 @@ def _ytdlp_cmd(args: list[str]) -> list[str]:
     bin_ = _ytdlp_bin()
     if bin_.endswith(".py"):
         return [sys.executable, bin_, *args]
-    return [bin_, *args]
+    if shutil.which(bin_):
+        return [bin_, *args]
+    return [sys.executable, "-m", "yt_dlp", *args]
 
 
 class Searcher:

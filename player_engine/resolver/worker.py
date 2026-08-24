@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -42,11 +43,12 @@ YTDLP_TIMEOUT = 40.0
 
 
 def _ytdlp_cmd(args: list[str]) -> list[str]:
-    """Comando yt-dlp: se il binario è uno script .py, invocalo con il python corrente
-    (necessario per i fake nei test)."""
+    """Comando yt-dlp: se il binario è uno script .py o non nel PATH, usa python -m yt_dlp."""
     if YTDLP_BIN.endswith(".py"):
         return [sys.executable, YTDLP_BIN, *args]
-    return [YTDLP_BIN, *args]
+    if shutil.which(YTDLP_BIN):
+        return [YTDLP_BIN, *args]
+    return [sys.executable, "-m", "yt_dlp", *args]
 
 
 @dataclass
