@@ -310,7 +310,7 @@ def _search_result_to_track(result):
     }
 
 
-def execute_platform_search(source: str, query: str, max_results: int = 25) -> dict:
+def execute_platform_search(source: str, query: str, max_results: int = 50) -> dict:
     """Esegue la ricerca su una singola piattaforma in isolamento.
 
     Ritorna un dict {results, error, message, retry_after} con error == None

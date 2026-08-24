@@ -41,7 +41,7 @@ SEARCHABLE_PLATFORMS: tuple[str, ...] = ("youtube", "soundcloud", "bandcamp", "m
 YTDLP_SEARCH_TIMEOUT = 25.0
 CHANNEL_FETCH_TIMEOUT = 30.0
 HTTP_TIMEOUT = 15.0
-RESULT_LIMIT = 20
+RESULT_LIMIT = 50
 # Solo mix/set lunghi nella sezione Mix Random: 20 min di soglia
 MIX_MIN_DURATION = 1200.0
 
