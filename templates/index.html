@@ -116,10 +116,15 @@
             <!-- Home Dashboard Tab -->
             <section class="tab-content active" id="tab-home">
                 <div class="home-dashboard-container">
-                    <!-- Home Top Bar with Customization Toggle -->
-                    <div class="home-greeting-bar" style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 16px;">
-                        <button class="btn btn-outline-cyan btn-sm" id="toggle-home-edit-btn" style="font-size: 0.85rem; padding: 6px 14px; border-radius: 8px;">
-                            <i class="fa-solid fa-sliders me-1"></i> Personalizza Home
+                    <!-- Top Search Bar & Customization Row on Home -->
+                    <div class="home-search-row" style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                        <div class="search-box-wrapper glassmorphic" style="flex: 1; margin-bottom: 0;">
+                            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                            <input type="text" id="home-search-input" placeholder="Cerca canzoni, album, DJ set, artisti..." autocomplete="off">
+                            <button class="search-action-btn" id="home-search-btn">Cerca</button>
+                        </div>
+                        <button class="btn btn-outline-cyan btn-sm" id="toggle-home-edit-btn" style="font-size: 0.82rem; padding: 8px 14px; border-radius: 10px; height: 42px; white-space: nowrap; flex-shrink: 0; display: flex; align-items: center; gap: 6px;">
+                            <i class="fa-solid fa-sliders"></i> Personalizza Home
                         </button>
                     </div>
 
@@ -137,13 +142,6 @@
                         <button class="btn btn-outline-light btn-sm ms-auto" id="home-done-edit-btn" style="font-size: 0.8rem; padding: 5px 10px;">
                             <i class="fa-solid fa-check me-1"></i> Fine Modifica
                         </button>
-                    </div>
-
-                    <!-- Top Search Bar on Home -->
-                    <div class="search-box-wrapper glassmorphic" style="margin-bottom: 16px;">
-                        <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                        <input type="text" id="home-search-input" placeholder="Cerca canzoni, album, DJ set, artisti..." autocomplete="off">
-                        <button class="search-action-btn" id="home-search-btn">Cerca</button>
                     </div>
 
                     <!-- Dynamic Modular Widgets Container -->
