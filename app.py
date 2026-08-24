@@ -228,19 +228,29 @@ def init_db():
         )
     ''')
 
-    cursor.execute("SELECT COUNT(*) as count FROM custom_channels")
-    if cursor.fetchone()['count'] == 0:
-        default_channels = [
-            ("youtube", "https://www.youtube.com/channel/UCGBpxWJr9FNOcFYA5GkKrMg", "Boiler Room"),
-            ("youtube", "https://www.youtube.com/channel/UCQdCIrTpkhEH5Z8KPsn7NvQ", "Mixmag Lab"),
-            ("mixcloud", "https://www.mixcloud.com/mixmag/", "Mixmag On Rotation"),
-            ("youtube", "https://www.youtube.com/@cercle", "Cercle"),
-            ("soundcloud", "https://soundcloud.com/cerclemusic", "Cercle SoundCloud")
-        ]
-        cursor.executemany(
-            "INSERT INTO custom_channels (platform, url, label) VALUES (?, ?, ?)",
-            default_channels
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS system_flags (
+            key TEXT PRIMARY KEY,
+            value TEXT
         )
+    ''')
+
+    cursor.execute("SELECT value FROM system_flags WHERE key = 'channels_seeded'")
+    if not cursor.fetchone():
+        cursor.execute("SELECT COUNT(*) as count FROM custom_channels")
+        if cursor.fetchone()['count'] == 0:
+            default_channels = [
+                ("youtube", "https://www.youtube.com/channel/UCGBpxWJr9FNOcFYA5GkKrMg", "Boiler Room"),
+                ("youtube", "https://www.youtube.com/channel/UCQdCIrTpkhEH5Z8KPsn7NvQ", "Mixmag Lab"),
+                ("mixcloud", "https://www.mixcloud.com/mixmag/", "Mixmag On Rotation"),
+                ("youtube", "https://www.youtube.com/@cercle/videos", "Cercle"),
+                ("soundcloud", "https://soundcloud.com/cerclemusic", "Cercle SoundCloud")
+            ]
+            cursor.executemany(
+                "INSERT INTO custom_channels (platform, url, label) VALUES (?, ?, ?)",
+                default_channels
+            )
+        cursor.execute("INSERT OR REPLACE INTO system_flags (key, value) VALUES ('channels_seeded', '1')")
 
     conn.commit()
     conn.close()
@@ -970,6 +980,17 @@ def api_radio_details(radio_id):
 # ------------------------------------------------------------------
 # Custom Channels & Random Mix REST API
 # ------------------------------------------------------------------
+def _normalize_channel_url(url, platform='youtube'):
+    url = url.strip()
+    if url.startswith('@'):
+        url = f"https://www.youtube.com/{url}"
+    if 'youtube.com/@' in url:
+        clean = url.rstrip('/')
+        if not any(clean.endswith(s) for s in ['/videos', '/shorts', '/streams', '/playlists', '/featured']):
+            url = f"{clean}/videos"
+    return url
+
+
 @app.route('/api/channels', methods=['GET', 'POST'])
 def api_channels():
     conn = get_db()
@@ -982,19 +1003,28 @@ def api_channels():
         return jsonify({'channels': channels})
 
     data = request.json or {}
-    url = data.get('url', '').strip()
+    raw_url = data.get('url', '').strip()
     label = data.get('label', '').strip()
     platform = data.get('platform', '').strip()
 
-    if not url:
+    if not raw_url:
         return jsonify({'error': 'URL o identificatore canale obbligatorio'}), 400
 
     if not platform:
-        platform = detect_platform(url) or 'youtube'
+        platform = detect_platform(raw_url) or 'youtube'
+
+    url = _normalize_channel_url(raw_url, platform)
 
     if not label:
         parts = [p for p in url.rstrip('/').split('/') if p]
-        label = parts[-1] if parts else 'Canale Personalizzato'
+        if parts:
+            last = parts[-1]
+            if last in ['videos', 'featured', 'playlists', 'streams', 'shorts'] and len(parts) > 1:
+                label = parts[-2]
+            else:
+                label = last
+        else:
+            label = 'Canale Personalizzato'
 
     try:
         cursor.execute(
@@ -1038,8 +1068,8 @@ def api_random_mix():
 
     # Estrazione causale canale
     selected_channel = random.choice(channels)
-    channel_url = selected_channel['url']
     platform = selected_channel['platform']
+    channel_url = _normalize_channel_url(selected_channel['url'], platform)
     label = selected_channel['label']
 
     try:
@@ -1051,6 +1081,13 @@ def api_random_mix():
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(channel_url, download=False)
+            entries = info.get('entries') if info else None
+
+            # Retrying with /videos suffix if handle URL returned empty entries
+            if not entries and platform == 'youtube' and not channel_url.endswith('/videos'):
+                retry_url = channel_url.rstrip('/') + '/videos'
+                info = ydl.extract_info(retry_url, download=False)
+                entries = info.get('entries') if info else None
 
         entries = info.get('entries') if info else None
         if not entries:
