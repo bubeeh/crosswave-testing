@@ -516,7 +516,7 @@ async function renderTelegramWidget(container) {
     }
 }
 
-async function renderFavoritesWidget(container) {
+export async function renderFavoritesWidget(container) {
     try {
         const res = await fetch('/api/favorites');
         const data = await res.json();
@@ -534,7 +534,7 @@ async function renderFavoritesWidget(container) {
     }
 }
 
-async function renderWatchLaterWidget(container) {
+export async function renderWatchLaterWidget(container) {
     try {
         const res = await fetch('/api/watch_later');
         const data = await res.json();
@@ -549,6 +549,22 @@ async function renderWatchLaterWidget(container) {
         }
     } catch (e) {
         container.innerHTML = '<div class="empty-state-text" style="font-size:12px; padding:12px;">Errore caricamento guarda dopo.</div>';
+    }
+}
+
+export function refreshHomeFavoritesWidget() {
+    const el = document.getElementById('home-widget-favorites');
+    if (el) {
+        const body = el.querySelector('.home-widget-body');
+        if (body) renderFavoritesWidget(body);
+    }
+}
+
+export function refreshHomeWatchLaterWidget() {
+    const el = document.getElementById('home-widget-watchlater');
+    if (el) {
+        const body = el.querySelector('.home-widget-body');
+        if (body) renderWatchLaterWidget(body);
     }
 }
 

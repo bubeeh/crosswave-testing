@@ -1,9 +1,9 @@
-// Library Module (Queue, History, Playlists, Favorites, Watch Later) for CrossWave Hybrid
 import { state } from '../core/state.js';
 import { showToast, formatTime, calculateTotalDuration, escapeHtml } from '../core/utils.js';
 import { switchTab } from '../core/router.js';
 import { playTrackImmediately, renderQueue, removeTrackFromQueue, clearQueue, addToQueue, addPlaylistTracksToQueue } from '../player/player.js';
 import { createResultRow } from './search.js';
+import { refreshHomeFavoritesWidget, refreshHomeWatchLaterWidget } from './home.js';
 
 // --- History Management ---
 export function addToHistory(track) {
@@ -399,6 +399,7 @@ export async function addFavoriteTrack(track) {
         if (res.ok) {
             showToast(data.message || 'Aggiunto ai Preferiti ❤️', 'success');
             loadFavorites();
+            refreshHomeFavoritesWidget();
         } else {
             showToast(data.error || 'Errore durante il salvataggio', 'error');
         }
@@ -417,6 +418,7 @@ export async function removeFavoriteTrack(trackId) {
         if (res.ok) {
             showToast(data.message || 'Rimosso dai preferiti', 'info');
             loadFavorites();
+            refreshHomeFavoritesWidget();
         } else {
             showToast(data.error || 'Errore durante la rimozione', 'error');
         }
@@ -467,6 +469,7 @@ export async function addWatchLaterTrack(track) {
         if (res.ok) {
             showToast(data.message || 'Aggiunto a Guarda Dopo 🕒', 'success');
             loadWatchLater();
+            refreshHomeWatchLaterWidget();
         } else {
             showToast(data.error || 'Errore durante il salvataggio', 'error');
         }
@@ -485,6 +488,7 @@ export async function removeWatchLaterTrack(trackId) {
         if (res.ok) {
             showToast(data.message || 'Rimosso da Guarda Dopo', 'info');
             loadWatchLater();
+            refreshHomeWatchLaterWidget();
         } else {
             showToast(data.error || 'Errore durante la rimozione', 'error');
         }
