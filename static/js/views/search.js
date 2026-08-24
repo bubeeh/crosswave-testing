@@ -100,11 +100,14 @@ export function createResultRow(track, index) {
     if (track.source === 'bandcamp') sourceIcon = 'fa-brands fa-bandcamp';
     if (track.source === 'mixcloud') sourceIcon = 'fa-brands fa-mixcloud';
 
-    const typeBadge = track.type === 'album' ? '<span class="card-type-badge">Album</span>' : '';
+    const webUrl = track.url || track.webpage_url || track.permalink_url;
 
-    // Bottone 🎬 per riprodurre con video: solo sorgenti YouTube (tracce singole)
-    const videoBtnHtml = (track.source === 'youtube' && track.type !== 'album')
-        ? '<button class="track-row-action-btn vd-s" title="Riproduci con video"><i class="fa-solid fa-tv"></i></button>'
+    const sourceBadgeHtml = webUrl
+        ? `<a href="${escapeHtml(webUrl)}" target="_blank" rel="noopener noreferrer" class="track-row-source-badge ${track.source}" title="Apri pagina web originale"><i class="${sourceIcon}"></i></a>`
+        : `<div class="track-row-source-badge ${track.source}"><i class="${sourceIcon}"></i></div>`;
+
+    const extLinkHtml = webUrl
+        ? `<a href="${escapeHtml(webUrl)}" target="_blank" rel="noopener noreferrer" class="track-row-action-btn ext-link" title="Apri pagina fonte"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>`
         : '';
 
     row.innerHTML = `
@@ -116,12 +119,11 @@ export function createResultRow(track, index) {
             <div class="track-row-title truncate">${escapeHtml(track.title)} ${typeBadge}</div>
             <div class="track-row-artist truncate">${escapeHtml(track.artist)}</div>
         </div>
-        <div class="track-row-source-badge ${track.source}">
-            <i class="${sourceIcon}"></i>
-        </div>
+        ${sourceBadgeHtml}
         <div class="track-row-duration">${track.duration > 0 ? formatTime(track.duration) : '--:--'}</div>
         <div class="track-row-actions">
             ${videoBtnHtml}
+            ${extLinkHtml}
             <button class="track-row-action-btn add-f" title="Aggiungi ai Preferiti"><i class="fa-solid fa-heart"></i></button>
             <button class="track-row-action-btn add-wl" title="Aggiungi a Guarda Dopo"><i class="fa-solid fa-clock"></i></button>
             <button class="track-row-action-btn add-q" title="Aggiungi alla coda"><i class="fa-solid fa-plus"></i></button>
@@ -131,7 +133,7 @@ export function createResultRow(track, index) {
     `;
 
     row.addEventListener('click', (e) => {
-        if (e.target.closest('.track-row-action-btn') || e.target.closest('.track-row-play-btn')) return;
+        if (e.target.closest('.track-row-action-btn') || e.target.closest('.track-row-play-btn') || e.target.closest('.track-row-source-badge')) return;
         handlePlayAction(track);
     });
 

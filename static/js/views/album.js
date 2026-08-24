@@ -75,6 +75,17 @@ export async function openBandcampAlbumDetailView(albumTrack) {
             };
         }
 
+        const btnExtSource = document.getElementById('btn-album-external-source');
+        if (btnExtSource) {
+            const extUrl = albumTrack.url || data.url;
+            if (extUrl) {
+                btnExtSource.href = extUrl;
+                btnExtSource.classList.remove('hidden');
+            } else {
+                btnExtSource.classList.add('hidden');
+            }
+        }
+
     } catch (err) {
         console.error('Failed to load Bandcamp album view', err);
         showToast('Errore nel caricamento dell\'album Bandcamp', 'error');
