@@ -90,7 +90,7 @@ export async function executeSearch() {
     }
 }
 
-export function createResultRow(track, index) {
+export function createResultRow(track, index, options = {}) {
     const row = document.createElement('div');
     row.className = 'track-row';
 
@@ -118,6 +118,14 @@ export function createResultRow(track, index) {
         ? `<a href="${escapeHtml(webUrl)}" target="_blank" rel="noopener noreferrer" class="track-row-action-btn ext-link" title="Apri pagina fonte"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>`
         : '';
 
+    const favBtnHtml = options.isFavorite
+        ? `<button class="track-row-action-btn remove-f text-danger" title="Rimuovi dai Preferiti"><i class="fa-solid fa-trash"></i></button>`
+        : `<button class="track-row-action-btn add-f" title="Aggiungi ai Preferiti"><i class="fa-solid fa-heart"></i></button>`;
+
+    const wlBtnHtml = options.isWatchLater
+        ? `<button class="track-row-action-btn remove-wl text-danger" title="Rimuovi da Guarda Dopo"><i class="fa-solid fa-trash"></i></button>`
+        : `<button class="track-row-action-btn add-wl" title="Aggiungi a Guarda Dopo"><i class="fa-solid fa-clock"></i></button>`;
+
     row.innerHTML = `
         <div class="track-row-index">
             <button class="track-row-play-btn" title="Riproduci"><i class="fa-solid fa-play"></i></button>
@@ -132,8 +140,8 @@ export function createResultRow(track, index) {
         <div class="track-row-actions">
             ${videoBtnHtml}
             ${extLinkHtml}
-            <button class="track-row-action-btn add-f" title="Aggiungi ai Preferiti"><i class="fa-solid fa-heart"></i></button>
-            <button class="track-row-action-btn add-wl" title="Aggiungi a Guarda Dopo"><i class="fa-solid fa-clock"></i></button>
+            ${favBtnHtml}
+            ${wlBtnHtml}
             <button class="track-row-action-btn add-q" title="Aggiungi alla coda"><i class="fa-solid fa-plus"></i></button>
             <button class="track-row-action-btn add-p" title="Aggiungi alla playlist"><i class="fa-solid fa-folder-plus"></i></button>
         </div>
@@ -159,11 +167,29 @@ export function createResultRow(track, index) {
         });
     }
 
-    const addF = row.querySelector('.add-f');
-    if (addF) addF.addEventListener('click', () => addFavoriteTrack(track));
+    const removeF = row.querySelector('.remove-f');
+    if (removeF) {
+        removeF.addEventListener('click', () => {
+            if (typeof options.onRemove === 'function') {
+                options.onRemove();
+            }
+        });
+    } else {
+        const addF = row.querySelector('.add-f');
+        if (addF) addF.addEventListener('click', () => addFavoriteTrack(track));
+    }
 
-    const addWl = row.querySelector('.add-wl');
-    if (addWl) addWl.addEventListener('click', () => addWatchLaterTrack(track));
+    const removeWl = row.querySelector('.remove-wl');
+    if (removeWl) {
+        removeWl.addEventListener('click', () => {
+            if (typeof options.onRemove === 'function') {
+                options.onRemove();
+            }
+        });
+    } else {
+        const addWl = row.querySelector('.add-wl');
+        if (addWl) addWl.addEventListener('click', () => addWatchLaterTrack(track));
+    }
 
     const addQ = row.querySelector('.add-q');
     if (addQ) {

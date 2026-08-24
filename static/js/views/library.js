@@ -407,6 +407,24 @@ export async function addFavoriteTrack(track) {
     }
 }
 
+export async function removeFavoriteTrack(trackId) {
+    if (!trackId) return;
+    try {
+        const res = await fetch(`/api/favorites/${encodeURIComponent(trackId)}`, {
+            method: 'DELETE'
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showToast(data.message || 'Rimosso dai preferiti', 'info');
+            loadFavorites();
+        } else {
+            showToast(data.error || 'Errore durante la rimozione', 'error');
+        }
+    } catch (e) {
+        showToast('Errore di connessione al server', 'error');
+    }
+}
+
 export async function loadFavorites() {
     const list = document.getElementById('favorites-tracks-list');
     const countText = document.getElementById('favorites-count-text');
@@ -426,7 +444,11 @@ export async function loadFavorites() {
         }
 
         tracks.forEach((track, index) => {
-            const row = createResultRow(track, index);
+            const trackId = track.track_id || track.id;
+            const row = createResultRow(track, index, {
+                isFavorite: true,
+                onRemove: () => removeFavoriteTrack(trackId)
+            });
             list.appendChild(row);
         });
     } catch (e) {
@@ -453,6 +475,24 @@ export async function addWatchLaterTrack(track) {
     }
 }
 
+export async function removeWatchLaterTrack(trackId) {
+    if (!trackId) return;
+    try {
+        const res = await fetch(`/api/watch_later/${encodeURIComponent(trackId)}`, {
+            method: 'DELETE'
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showToast(data.message || 'Rimosso da Guarda Dopo', 'info');
+            loadWatchLater();
+        } else {
+            showToast(data.error || 'Errore durante la rimozione', 'error');
+        }
+    } catch (e) {
+        showToast('Errore di connessione al server', 'error');
+    }
+}
+
 export async function loadWatchLater() {
     const list = document.getElementById('watch-later-tracks-list');
     const countText = document.getElementById('watch-later-count-text');
@@ -472,7 +512,11 @@ export async function loadWatchLater() {
         }
 
         tracks.forEach((track, index) => {
-            const row = createResultRow(track, index);
+            const trackId = track.track_id || track.id;
+            const row = createResultRow(track, index, {
+                isWatchLater: true,
+                onRemove: () => removeWatchLaterTrack(trackId)
+            });
             list.appendChild(row);
         });
     } catch (e) {
