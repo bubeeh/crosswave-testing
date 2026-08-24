@@ -9,6 +9,12 @@ export async function openBandcampAlbumDetailView(albumTrack) {
     switchTab('album-detail');
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
 
+    const albumUrl = (typeof albumTrack === 'string') ? albumTrack : (albumTrack?.url || albumTrack?.webpage_url || albumTrack?.permalink_url);
+    if (!albumUrl) {
+        showToast('URL dell\'album non trovato.', 'error');
+        return;
+    }
+
     const cover = document.getElementById('album-view-cover');
     const glow = document.getElementById('album-view-glow');
     const title = document.getElementById('album-view-title');
@@ -30,7 +36,7 @@ export async function openBandcampAlbumDetailView(albumTrack) {
     if (infoBox) infoBox.classList.add('hidden');
 
     try {
-        const response = await fetch(`/api/bandcamp/album?url=${encodeURIComponent(albumTrack.url)}`);
+        const response = await fetch(`/api/bandcamp/album?url=${encodeURIComponent(albumUrl)}`);
         const data = await response.json();
 
         if (data.error) {
@@ -77,13 +83,8 @@ export async function openBandcampAlbumDetailView(albumTrack) {
 
         const btnExtSource = document.getElementById('btn-album-external-source');
         if (btnExtSource) {
-            const extUrl = albumTrack.url || data.url;
-            if (extUrl) {
-                btnExtSource.href = extUrl;
-                btnExtSource.classList.remove('hidden');
-            } else {
-                btnExtSource.classList.add('hidden');
-            }
+            btnExtSource.href = albumUrl;
+            btnExtSource.classList.remove('hidden');
         }
 
     } catch (err) {
@@ -93,9 +94,15 @@ export async function openBandcampAlbumDetailView(albumTrack) {
 }
 
 export async function loadAndAddAlbumToQueue(albumTrack, playImmediately = false) {
+    const albumUrl = (typeof albumTrack === 'string') ? albumTrack : (albumTrack?.url || albumTrack?.webpage_url || albumTrack?.permalink_url);
+    if (!albumUrl) {
+        showToast('URL dell\'album non trovato.', 'error');
+        return;
+    }
+
     showToast('Caricamento dell\'album...');
     try {
-        const response = await fetch(`/api/bandcamp/album?url=${encodeURIComponent(albumTrack.url)}`);
+        const response = await fetch(`/api/bandcamp/album?url=${encodeURIComponent(albumUrl)}`);
         const data = await response.json();
         const tracks = data.tracks || [];
         if (tracks.length > 0) {
