@@ -240,11 +240,7 @@ def init_db():
         cursor.execute("SELECT COUNT(*) as count FROM custom_channels")
         if cursor.fetchone()['count'] == 0:
             default_channels = [
-                ("youtube", "https://www.youtube.com/channel/UCGBpxWJr9FNOcFYA5GkKrMg", "Boiler Room"),
-                ("youtube", "https://www.youtube.com/channel/UCQdCIrTpkhEH5Z8KPsn7NvQ", "Mixmag Lab"),
-                ("mixcloud", "https://www.mixcloud.com/mixmag/", "Mixmag On Rotation"),
-                ("youtube", "https://www.youtube.com/@cercle/videos", "Cercle"),
-                ("soundcloud", "https://soundcloud.com/cerclemusic", "Cercle SoundCloud")
+                ("youtube", "https://www.youtube.com/@gvonniai/videos", "gvonniai")
             ]
             cursor.executemany(
                 "INSERT INTO custom_channels (platform, url, label) VALUES (?, ?, ?)",
