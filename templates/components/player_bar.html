@@ -21,16 +21,16 @@
 
     <!-- Central Column (Track Info on TOP, Playback Controls in MIDDLE, Seekbar on BOTTOM) -->
     <div class="player-center-column" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; flex: 1; max-width: 620px;">
-        <!-- Track info centered above controls -->
-        <div class="player-track-info-header" style="display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%;">
+        <!-- Track info centered above controls (Hidden when no track is playing) -->
+        <div class="player-track-info-header hidden" id="player-track-info-header" style="display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%;">
             <div class="track-thumbnail-wrapper" style="width: 30px; height: 30px; flex-shrink: 0;">
-                <img src="https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=80&auto=format&fit=crop&q=60" alt="Album Cover" class="track-thumbnail" id="player-track-art" style="border-radius: 6px;">
+                <img src="" alt="Album Cover" class="track-thumbnail" id="player-track-art" style="border-radius: 6px;">
                 <div class="track-glow-effect" id="player-track-art-glow"></div>
             </div>
             <div class="track-details-inline" style="display: flex; align-items: center; gap: 8px; overflow: hidden; max-width: 450px;">
-                <span class="track-title truncate" id="player-track-title" style="font-weight: 700; font-size: 0.85rem; color: var(--text-primary);">Nessun brano in riproduzione</span>
+                <span class="track-title truncate" id="player-track-title" style="font-weight: 700; font-size: 0.85rem; color: var(--text-primary);"></span>
                 <span style="opacity: 0.4; font-size: 0.8rem;">&bull;</span>
-                <span class="track-artist truncate" id="player-track-artist" style="font-size: 0.78rem; color: var(--accent-cyan);">Scegli una canzone per iniziare</span>
+                <span class="track-artist truncate" id="player-track-artist" style="font-size: 0.78rem; color: var(--accent-cyan);"></span>
             </div>
             <div class="track-badge hidden" id="player-track-badge">
                 <span class="badge-tag">YT</span>

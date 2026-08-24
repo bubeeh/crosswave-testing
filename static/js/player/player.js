@@ -301,10 +301,12 @@ export function removeTrackFromQueue(index) {
         if (state.queue.length === 0) {
             state.currentIndex = -1;
             state.currentTrack = null;
-            document.getElementById('player-track-title').innerText = 'Nessun brano in riproduzione';
-            document.getElementById('player-track-artist').innerText = '';
-            document.getElementById('player-track-badge').classList.add('hidden');
-            document.getElementById('sidebar-track-card').classList.add('hidden');
+            const header = document.getElementById('player-track-info-header');
+            if (header) header.classList.add('hidden');
+            const badge = document.getElementById('player-track-badge');
+            if (badge) badge.classList.add('hidden');
+            const sidebarCard = document.getElementById('sidebar-track-card');
+            if (sidebarCard) sidebarCard.classList.add('hidden');
         } else {
             if (state.currentIndex >= state.queue.length) state.currentIndex = state.queue.length - 1;
             playTrack(state.queue[state.currentIndex]);
@@ -323,10 +325,12 @@ export function clearQueue() {
     state.queue = [];
     state.currentIndex = -1;
     state.currentTrack = null;
-    document.getElementById('player-track-title').innerText = 'Nessun brano in riproduzione';
-    document.getElementById('player-track-artist').innerText = '';
-    document.getElementById('player-track-badge').classList.add('hidden');
-    document.getElementById('sidebar-track-card').classList.add('hidden');
+    const header = document.getElementById('player-track-info-header');
+    if (header) header.classList.add('hidden');
+    const badge = document.getElementById('player-track-badge');
+    if (badge) badge.classList.add('hidden');
+    const sidebarCard = document.getElementById('sidebar-track-card');
+    if (sidebarCard) sidebarCard.classList.add('hidden');
     renderQueue();
     showToast('Coda svuotata');
 }
@@ -413,6 +417,9 @@ export async function playTrack(track) {
     state.currentTrack = track;
 
     // Update bottom player bar UI
+    const header = document.getElementById('player-track-info-header');
+    if (header) header.classList.remove('hidden');
+
     const title = document.getElementById('player-track-title');
     const artist = document.getElementById('player-track-artist');
     const art = document.getElementById('player-track-art');
