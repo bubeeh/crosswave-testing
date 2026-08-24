@@ -8,15 +8,14 @@ import { openRadioDetailModal } from './radios.js';
 import { openBandcampAlbumDetailView } from './album.js';
 import { playTrack } from '../player/player.js';
 
-const STORAGE_KEY = 'crosswave_home_layout_v1';
+const STORAGE_KEY = 'crosswave_home_layout_v2';
 
 const DEFAULT_WIDGET_LAYOUT = [
     { id: 'radios', width: 'full' },
     { id: 'mixrandom', width: 'half' },
     { id: 'telegram', width: 'half' },
     { id: 'favorites', width: 'half' },
-    { id: 'watchlater', width: 'half' },
-    { id: 'quick_actions', width: 'full' }
+    { id: 'watchlater', width: 'half' }
 ];
 
 let isEditMode = false;
@@ -64,13 +63,6 @@ const WIDGET_REGISTRY = {
         description: 'Coda di brani da ascoltare in seguito',
         actionBtn: { text: 'Vedi Tutti', icon: 'fa-solid fa-clock', target: 'watch-later' },
         renderContent: async (container) => renderWatchLaterWidget(container)
-    },
-    quick_actions: {
-        id: 'quick_actions',
-        title: 'Scorciatoie & Mood',
-        icon: 'fa-solid fa-bolt accent-cyan',
-        description: 'Pulsanti veloci per avviare playlist, radio e generi',
-        renderContent: async (container) => renderQuickActionsWidget(container)
     }
 };
 
@@ -80,7 +72,7 @@ function getSavedLayout() {
         if (data) {
             const parsed = JSON.parse(data);
             if (Array.isArray(parsed) && parsed.length > 0) {
-                return parsed;
+                return parsed.filter(item => item.id !== 'quick_actions');
             }
         }
     } catch (e) {
