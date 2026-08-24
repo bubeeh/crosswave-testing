@@ -23,6 +23,9 @@
     --sidebar-width: 230px;
     --player-height: 94px;
     
+    --font-heading: 'Playfair Display', Georgia, serif;
+    --font-body: 'Futura', 'Futura PT', 'Jost', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
     --transition-fast: 0.15s ease-out;
     --transition-normal: 0.25s ease-out;
 }
@@ -51,13 +54,25 @@
 }
 
 body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: var(--font-body);
     background-color: var(--bg-color);
     color: var(--text-primary);
     overflow: hidden;
     height: 100vh;
     width: 100vw;
     -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6,
+.logo-text,
+.section-header h2,
+.view-header h2,
+.album-view-title,
+.playlist-view-title,
+.modal-header h3,
+.hero-title {
+    font-family: var(--font-heading);
+    letter-spacing: -0.01em;
 }
 
 .app-container {
