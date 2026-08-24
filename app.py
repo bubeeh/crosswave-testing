@@ -1118,9 +1118,12 @@ def api_random_mix():
 
         duration = chosen.get('duration') or 0
 
+        native_id = chosen.get('id') or native_id_from_url(platform, track_url)
+        track_id = f"yt_{native_id}" if platform == 'youtube' and native_id else str(uuid.uuid4().hex)
+
         return jsonify({
             'track': {
-                'id': str(uuid.uuid4().hex),
+                'id': track_id,
                 'title': title,
                 'artist': uploader,
                 'uploader': uploader,
