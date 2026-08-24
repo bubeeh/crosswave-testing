@@ -13,5 +13,6 @@ services:
     environment:
       - PORT=5002
       - FLASK_DEBUG=0
+      - PYTHONUNBUFFERED=1
       - SECRET_KEY=crosswave_hybrid_production_secret_2026
     restart: unless-stopped

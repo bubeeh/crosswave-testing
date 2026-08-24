@@ -16,11 +16,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copia del codice sorgente
 COPY . .
 
-# Cartella di output e permessi
-RUN mkdir -p downloads
+# Cartella di output e file di DB per la prima inizializzazione
+RUN mkdir -p downloads && touch crosswave.db resolver_cache.db
 
 ENV PORT=5002
 ENV FLASK_DEBUG=0
+ENV PYTHONUNBUFFERED=1
 EXPOSE 5002
 
 CMD ["python", "app.py"]
