@@ -90,8 +90,8 @@ def _format_streams(raw: dict[str, Any]) -> list[StreamInfo]:
                     acodec="mp3",
                 )
             )
-    # Ordina: prima i video di qualità alta, poi gli audio-only
-    streams.sort(key=lambda s: (s.height or 0, s.abr or 0), reverse=True)
+    # Ordina: prima gli audio-only (con bitrate audio maggiore), poi i video
+    streams.sort(key=lambda s: (1 if s.is_audio_only else 0, s.abr or 0, s.height or 0), reverse=True)
     return streams
 
 

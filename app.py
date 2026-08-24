@@ -455,7 +455,9 @@ def api_proxy_audio():
                 m_obj = resolver_service.resolve(url)
                 if m_obj and m_obj.duration and m_obj.duration <= 45 and detect_platform(url) == 'soundcloud':
                     m_obj = resolver_service.resolve(url, refresh=True)
-                resolved = m_obj.streams[0].url if m_obj and m_obj.streams else None
+                if m_obj and m_obj.streams:
+                    audio_streams = [s for s in m_obj.streams if s.is_audio_only]
+                    resolved = audio_streams[0].url if audio_streams else m_obj.streams[0].url
                 if resolved:
                     with cache_lock:
                         audio_url_cache[url] = {'audio_url': resolved, 'timestamp': time.time()}
