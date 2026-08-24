@@ -75,6 +75,17 @@ h1, h2, h3, h4, h5, h6,
     letter-spacing: -0.01em;
 }
 
+/* Temporaneamente disabilitate le opzioni di download */
+.dl-s,
+.btn-dl-telegram,
+.btn-soundload,
+#btn-player-soundload,
+#btn-album-download-all,
+#btn-theater-download,
+#nav-btn-downloads {
+    display: none !important;
+}
+
 .app-container {
     position: relative;
     display: flex;

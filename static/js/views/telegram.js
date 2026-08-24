@@ -86,9 +86,6 @@ function renderTelegramTable(items) {
                         <button class="btn btn-outline-danger btn-fav-telegram" data-index="${idx}" title="Aggiungi ai Preferiti">
                             <i class="fa-solid fa-heart"></i>
                         </button>
-                        <button class="btn btn-outline-info btn-dl-telegram" data-index="${idx}" title="Scarica MP3">
-                            <i class="fa-solid fa-download"></i>
-                        </button>
                         <button class="btn btn-outline-dark text-muted btn-del-telegram" data-id="${share.id}" title="Rimuovi dal Feed">
                             <i class="fa-solid fa-trash"></i>
                         </button>

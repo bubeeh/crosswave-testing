@@ -136,7 +136,6 @@ export function createResultRow(track, index) {
             <button class="track-row-action-btn add-wl" title="Aggiungi a Guarda Dopo"><i class="fa-solid fa-clock"></i></button>
             <button class="track-row-action-btn add-q" title="Aggiungi alla coda"><i class="fa-solid fa-plus"></i></button>
             <button class="track-row-action-btn add-p" title="Aggiungi alla playlist"><i class="fa-solid fa-folder-plus"></i></button>
-            <button class="track-row-action-btn dl-s" title="Scarica con Soundload"><i class="fa-solid fa-cloud-arrow-down"></i></button>
         </div>
     `;
 
