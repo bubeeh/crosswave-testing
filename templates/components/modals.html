@@ -127,5 +127,22 @@
     </div>
 </div>
 
+<!-- Add Home Widget Modal -->
+<div class="modal-overlay hidden" id="add-home-widget-modal">
+    <div class="modal-card glassmorphic-card" style="max-width: 480px; width: 90%;">
+        <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="font-size: 1.1rem; font-weight: 700;"><i class="fa-solid fa-square-plus accent-cyan"></i> Personalizza Home - Aggiungi Widget</h3>
+            <button class="close-modal-btn" id="close-add-home-widget-modal"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 16px;">Seleziona i widget da aggiungere alla tua Home Dashboard:</p>
+            <div id="add-home-widget-list" style="display: flex; flex-direction: column; gap: 10px;">
+                <!-- Widget options injected dynamically -->
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Toast Notifications System -->
 <div class="toast-container" id="toast-container"></div>
+
