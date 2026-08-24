@@ -98,19 +98,7 @@ function saveLayout(layout) {
 }
 
 export async function loadHomeDashboard() {
-    updateGreeting();
     renderHomeGrid();
-}
-
-function updateGreeting() {
-    const hour = new Date().getHours();
-    let greeting = 'Buon ascolto 🎧';
-    if (hour >= 5 && hour < 12) greeting = 'Buongiorno ☀️';
-    else if (hour >= 12 && hour < 18) greeting = 'Buon pomeriggio 🎧';
-    else greeting = 'Buonasera 🌙';
-
-    const timeTag = document.getElementById('home-greeting-time');
-    if (timeTag) timeTag.innerText = greeting;
 }
 
 function renderHomeGrid() {
