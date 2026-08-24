@@ -254,7 +254,14 @@ class ResolverWorker:
         if native_id is None:
             return None
         cid = compute_canonical_id(platform, native_id, url)
-        return self.cache.get(cid)
+        cached = self.cache.get(cid)
+        if cached:
+            if platform == "soundcloud":
+                dur = float(cached.duration or 0.0)
+                is_preview_stream = any("preview" in str(s.url) for s in cached.streams) if cached.streams else False
+                if dur <= 45 or is_preview_stream:
+                    return None
+        return cached
 
     def _run_ytdlp(self, url: str) -> dict[str, Any] | ResolveOutcome:
         raw_info = None

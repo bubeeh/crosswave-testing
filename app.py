@@ -453,6 +453,8 @@ def api_proxy_audio():
         if not resolved:
             try:
                 m_obj = resolver_service.resolve(url)
+                if m_obj and m_obj.duration and m_obj.duration <= 45 and detect_platform(url) == 'soundcloud':
+                    m_obj = resolver_service.resolve(url, refresh=True)
                 resolved = m_obj.streams[0].url if m_obj and m_obj.streams else None
                 if resolved:
                     with cache_lock:
