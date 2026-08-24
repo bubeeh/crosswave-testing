@@ -108,11 +108,15 @@ class ResolverService:
 
     # ------------------------------------------------------------------
     def _request(self, payload: dict[str, Any], timeout: float = RESPONSE_TIMEOUT) -> dict[str, Any]:
+        # Ambienti serverless (Vercel) o processi senza worker daemon attivo
+        if os.environ.get("VERCEL") or (not self._proc or self._proc.poll() is not None):
+            with self._lock:
+                if not hasattr(self, "_inprocess_worker") or self._inprocess_worker is None:
+                    from .worker import ResolverWorker
+                    self._inprocess_worker = ResolverWorker(db_path=self.db_path)
+            return self._inprocess_worker.handle(payload)
+
         with self._lock:
-            if not self._proc or self._proc.poll() is not None:
-                raise ResolverUnavailableError(
-                    payload.get("url", ""), "processo Media Resolver non attivo"
-                )
             self._next_id += 1
             rid = self._next_id
             payload["id"] = rid
@@ -121,15 +125,21 @@ class ResolverService:
                 assert self._proc.stdin is not None
                 self._proc.stdin.write(json.dumps(payload, ensure_ascii=False) + "\n")
                 self._proc.stdin.flush()
-            except (BrokenPipeError, OSError) as exc:
+            except (BrokenPipeError, OSError, AttributeError):
                 self._events.pop(rid, None)
-                raise ResolverUnavailableError(
-                    payload.get("url", ""), f"pipe al resolver interrotta: {exc}"
-                )
+                with self._lock:
+                    if not hasattr(self, "_inprocess_worker") or self._inprocess_worker is None:
+                        from .worker import ResolverWorker
+                        self._inprocess_worker = ResolverWorker(db_path=self.db_path)
+                return self._inprocess_worker.handle(payload)
 
         try:
             if not self._events[rid].wait(timeout):
-                raise ResolveTimeoutError(payload.get("url", ""), "nessuna risposta dal resolver")
+                with self._lock:
+                    if not hasattr(self, "_inprocess_worker") or self._inprocess_worker is None:
+                        from .worker import ResolverWorker
+                        self._inprocess_worker = ResolverWorker(db_path=self.db_path)
+                return self._inprocess_worker.handle(payload)
             return self._responses.pop(rid)
         finally:
             self._events.pop(rid, None)
