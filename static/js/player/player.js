@@ -488,8 +488,28 @@ export async function playTrack(track) {
             // player bar o col bottone 🎬 sulla riga (playTrackWithVideo).
 
         } else if (track.source === 'soundcloud') {
-            showToast('Estrazione streaming SoundCloud...');
-            playBcStream(`/api/proxy_audio?url=${encodeURIComponent(track.url)}`);
+            showToast('Risoluzione streaming SoundCloud...');
+            try {
+                const res = await fetch(`/api/resolve_track?url=${encodeURIComponent(track.url)}`);
+                const data = await res.json();
+                if (data.yt_id) {
+                    showToast('Riproduzione traccia completa via YouTube...');
+                    track.source = 'youtube';
+                    track.id = `yt_${data.yt_id}`;
+                    if (data.duration) track.duration = data.duration;
+                    playTrack(track);
+                    return;
+                } else if (data.stream_url) {
+                    if (data.duration) updateProgressBar(0, data.duration);
+                    playBcStream(`/api/proxy_audio?url=${encodeURIComponent(track.url)}`);
+                } else {
+                    throw new Error(data.error || 'Impossibile estrarre lo stream');
+                }
+            } catch (e) {
+                console.error('SoundCloud resolve failed', e);
+                showToast('Errore di riproduzione audio.', 'error');
+                handleTrackFinished();
+            }
         } else if (track.source === 'mixcloud') {
             renderMixcloudView(track, setPlayingState);
         } else if (track.source === 'radio') {

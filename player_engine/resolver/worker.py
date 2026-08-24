@@ -328,15 +328,22 @@ class ResolverWorker:
                             yt_search = ydl.extract_info(f"ytsearch1:{query}", download=False)
                             if yt_search and yt_search.get("entries"):
                                 yt_entry = yt_search["entries"][0]
-                                yt_url = yt_entry.get("webpage_url") or yt_entry.get("url") or f"https://www.youtube.com/watch?v={yt_entry.get('id', '')}"
+                                yt_id = yt_entry.get("id") or ""
+                                yt_url = yt_entry.get("webpage_url") or yt_entry.get("url") or f"https://www.youtube.com/watch?v={yt_id}"
                                 with yt_dlp.YoutubeDL({'extract_flat': False, 'quiet': True, 'no_warnings': True, 'skip_download': True}) as ydl_full:
                                     yt_full = ydl_full.extract_info(yt_url, download=False)
                                     if yt_full and isinstance(yt_full, dict):
+                                        tags = yt_full.get("tags") or []
+                                        if yt_id:
+                                            tags.append(f"yt_fallback:{yt_id}")
+                                        yt_full["tags"] = tags
+
                                         if raw_info:
                                             raw_info["formats"] = yt_full.get("formats")
                                             raw_info["url"] = yt_full.get("url")
                                             raw_info["duration"] = yt_full.get("duration") or raw_info.get("duration")
                                             raw_info["is_preview"] = False
+                                            raw_info["tags"] = (raw_info.get("tags") or []) + [f"yt_fallback:{yt_id}"]
                                         else:
                                             raw_info = yt_full
                                             raw_info["webpage_url"] = url

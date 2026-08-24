@@ -428,6 +428,38 @@ def _is_direct_audio_url(url):
     )
 
 
+@app.route('/api/resolve_track')
+def api_resolve_track():
+    url = request.args.get('url', '').strip()
+    if not url:
+        return jsonify({'error': 'URL mancante'}), 400
+    try:
+        media = resolver_service.resolve(url)
+        yt_id = None
+        for tag in media.tags:
+            if tag.startswith('yt_fallback:'):
+                yt_id = tag.split('yt_fallback:')[-1]
+                break
+
+        if not yt_id and media.platform == 'youtube':
+            yt_id = native_id_from_url('youtube', media.source_url)
+
+        audio_streams = [s for s in media.streams if s.is_audio_only]
+        stream_url = audio_streams[0].url if audio_streams else (media.streams[0].url if media.streams else None)
+
+        return jsonify({
+            'title': media.title,
+            'artist': media.uploader,
+            'duration': media.duration,
+            'platform': media.platform,
+            'yt_id': yt_id,
+            'stream_url': stream_url,
+            'is_fallback': bool(yt_id)
+        })
+    except Exception as exc:
+        return jsonify({'error': str(exc)}), 500
+
+
 @app.route('/api/proxy_audio')
 def api_proxy_audio():
     """Proxy di STREAMING per l'audio (usato come src da <audio>).
