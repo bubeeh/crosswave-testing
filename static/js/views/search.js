@@ -53,7 +53,7 @@ export async function executeSearch() {
             if (Array.isArray(entry.results)) {
                 results = results.concat(entry.results);
             }
-            if (entry.error) {
+            if (entry.error && entry.error !== 'no_results') {
                 errors.push(entry.message || `Errore durante la ricerca su ${src}`);
             }
         });
@@ -85,8 +85,8 @@ export async function executeSearch() {
     } catch (err) {
         console.error(err);
         if (loader) loader.classList.add('hidden');
-        if (countText) countText.innerText = 'Errore durante la ricerca.';
-        showToast('Errore nel contattare il server.', 'error');
+        if (countText) countText.innerText = 'Ricerca interrotta o timeout.';
+        showToast('La ricerca ha impiegato troppo tempo o la connessione è stata interrotta. Riprova con meno sorgenti spuntate.', 'error');
     }
 }
 
@@ -99,6 +99,14 @@ export function createResultRow(track, index) {
     if (track.source === 'soundcloud') sourceIcon = 'fa-brands fa-soundcloud';
     if (track.source === 'bandcamp') sourceIcon = 'fa-brands fa-bandcamp';
     if (track.source === 'mixcloud') sourceIcon = 'fa-brands fa-mixcloud';
+
+    const typeBadge = (track.type === 'album')
+        ? `<span class="badge-album" title="Album / Raccolta"><i class="fa-solid fa-compact-disc"></i> ALBUM</span>`
+        : '';
+
+    const videoBtnHtml = (track.source === 'youtube')
+        ? `<button class="track-row-action-btn vd-s" title="Riproduci con Video"><i class="fa-solid fa-film"></i></button>`
+        : '';
 
     const webUrl = track.url || track.webpage_url || track.permalink_url;
 
@@ -203,6 +211,29 @@ export function initSearchView() {
     if (searchInput) {
         searchInput.addEventListener('keyup', (e) => {
             if (e.key === 'Enter') executeSearch();
+        });
+    }
+
+    // Bind Home Page Top Search Bar
+    const homeSearchBtn = document.getElementById('home-search-btn');
+    const homeSearchInput = document.getElementById('home-search-input');
+
+    const handleHomeSearch = () => {
+        if (!homeSearchInput) return;
+        const val = homeSearchInput.value.trim();
+        if (!val) return;
+        if (searchInput) searchInput.value = val;
+        switchTab('search');
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        const navSearch = document.getElementById('nav-btn-search');
+        if (navSearch) navSearch.classList.add('active');
+        executeSearch();
+    };
+
+    if (homeSearchBtn) homeSearchBtn.addEventListener('click', handleHomeSearch);
+    if (homeSearchInput) {
+        homeSearchInput.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') handleHomeSearch();
         });
     }
 

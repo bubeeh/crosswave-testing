@@ -342,7 +342,7 @@ def execute_platform_search(source, query, max_results=10):
                 'retry_after': 0}
 
     if not results:
-        return {'results': [], 'error': 'no_results',
+        return {'results': [], 'error': None,
                 'message': f'Nessun risultato per "{query}" su {label}.',
                 'retry_after': 0}
     return {'results': [_search_result_to_track(r) for r in results[:max_results]],
