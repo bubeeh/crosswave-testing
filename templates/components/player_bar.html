@@ -1,19 +1,22 @@
-<!-- Bottom Playback Control Bar (Specular Layout with Centered Top Title) -->
+<!-- Bottom Playback Control Bar (Specular Layout with Ergonomic Centered Controls & Glass Pills) -->
 <footer class="player-bar glassmorphic" style="height: 94px; padding: 6px 24px;">
-    <!-- Left Action Group (Specular to Right side) -->
-    <div class="player-left-actions" style="display: flex; align-items: center; gap: 10px; width: 22%; justify-content: flex-start;">
-        <button class="utility-btn btn-fav" id="btn-player-fav" title="Aggiungi ai Preferiti">
-            <i class="fa-solid fa-heart"></i>
-        </button>
-        <button class="utility-btn btn-wl" id="btn-player-wl" title="Guarda / Ascolta Dopo">
-            <i class="fa-solid fa-clock"></i>
-        </button>
-        <button class="utility-btn btn-playlist" id="btn-player-playlist" title="Aggiungi a Playlist">
-            <i class="fa-solid fa-folder-plus"></i>
-        </button>
-        <button class="utility-btn btn-soundload" id="btn-player-soundload" title="Scarica brano corrente con Soundload">
-            <i class="fa-solid fa-cloud-arrow-down"></i>
-        </button>
+
+    <!-- Left Action Group (Glassmorphic Pill Container) -->
+    <div class="player-left-actions" style="display: flex; align-items: center; width: 22%; justify-content: flex-start;">
+        <div class="glass-pill-group">
+            <button class="utility-btn btn-fav" id="btn-player-fav" title="Aggiungi ai Preferiti">
+                <i class="fa-solid fa-heart"></i>
+            </button>
+            <button class="utility-btn btn-wl" id="btn-player-wl" title="Guarda / Ascolta Dopo">
+                <i class="fa-solid fa-clock"></i>
+            </button>
+            <button class="utility-btn btn-playlist" id="btn-player-playlist" title="Aggiungi a Playlist">
+                <i class="fa-solid fa-folder-plus"></i>
+            </button>
+            <button class="utility-btn btn-soundload" id="btn-player-soundload" title="Scarica brano corrente con Soundload">
+                <i class="fa-solid fa-cloud-arrow-down"></i>
+            </button>
+        </div>
     </div>
 
     <!-- Central Column (Track Info on TOP, Playback Controls in MIDDLE, Seekbar on BOTTOM) -->
@@ -35,7 +38,7 @@
         </div>
 
         <!-- Playback Controls -->
-        <div class="control-buttons" style="gap: 14px;">
+        <div class="control-buttons" style="gap: 16px; display: flex; align-items: center;">
             <button class="control-btn" id="ctrl-shuffle" title="Casuale">
                 <i class="fa-solid fa-shuffle"></i>
             </button>
@@ -65,17 +68,19 @@
         </div>
     </div>
 
-    <!-- Right Action Group (Specular to Left side) -->
+    <!-- Right Action Group (Glassmorphic Pill Container + Volume) -->
     <div class="player-utilities" style="display: flex; align-items: center; gap: 10px; width: 22%; justify-content: flex-end;">
-        <button class="utility-btn" id="btn-toggle-video" title="Mostra/Nascondi Video Player">
-            <i class="fa-solid fa-tv"></i>
-        </button>
-        <button class="utility-btn" id="btn-toggle-queue" title="Coda di riproduzione">
-            <i class="fa-solid fa-list-ol"></i>
-        </button>
+        <div class="glass-pill-group">
+            <button class="utility-btn" id="btn-toggle-video" title="Mostra/Nascondi Video Player">
+                <i class="fa-solid fa-tv"></i>
+            </button>
+            <button class="utility-btn" id="btn-toggle-queue" title="Coda di riproduzione">
+                <i class="fa-solid fa-list-ol"></i>
+            </button>
+        </div>
 
-        <div class="volume-control-group">
-            <button class="utility-btn" id="btn-mute" title="Disattiva Audio">
+        <div class="volume-control-group" style="display: flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.035); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 999px; padding: 4px 10px;">
+            <button class="utility-btn" id="btn-mute" title="Disattiva Audio" style="width: 24px; height: 24px;">
                 <i class="fa-solid fa-volume-high" id="volume-icon"></i>
             </button>
             <div class="volume-slider-container">

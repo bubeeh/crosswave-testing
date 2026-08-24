@@ -834,22 +834,74 @@ body {
     color: var(--accent-cyan);
 }
 
+/* Glassmorphic Pill Group Container for Utility Buttons */
+.glass-pill-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(12px);
+    border-radius: 999px;
+    padding: 3px 6px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.glass-pill-group .utility-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.glass-pill-group .utility-btn:hover {
+    background: rgba(0, 229, 255, 0.15);
+    color: var(--accent-cyan);
+    transform: scale(1.12);
+}
+
+.glass-pill-group .utility-btn.active {
+    background: rgba(0, 229, 255, 0.2);
+    color: var(--accent-cyan);
+    box-shadow: 0 0 8px rgba(0, 229, 255, 0.4);
+}
+
 .play-pause-btn {
-    width: 34px;
-    height: 34px;
-    background: var(--text-primary);
-    color: var(--bg-color);
-    font-size: 12px;
+    width: 42px;
+    height: 42px;
+    background: linear-gradient(135deg, var(--accent-cyan), #00b4d8);
+    color: #07070a;
+    font-size: 1rem;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 0 16px rgba(0, 229, 255, 0.45);
+    transition: all 0.2s ease;
 }
 
 .play-pause-btn:hover {
-    transform: scale(1.05);
-    background: #ffffff;
+    transform: scale(1.08);
+    background: linear-gradient(135deg, #00f2fe, var(--accent-cyan));
+    box-shadow: 0 0 24px rgba(0, 229, 255, 0.7);
+    color: #000;
 }
 
 .play-pause-btn.playing {
-    background: var(--text-primary);
-    color: var(--bg-color);
+    background: linear-gradient(135deg, var(--accent-cyan), #00b4d8);
+    color: #07070a;
+    animation: cyanPulse 2s infinite ease-in-out;
+}
+
+@keyframes cyanPulse {
+    0% { box-shadow: 0 0 14px rgba(0, 229, 255, 0.4); }
+    50% { box-shadow: 0 0 24px rgba(0, 229, 255, 0.75); }
+    100% { box-shadow: 0 0 14px rgba(0, 229, 255, 0.4); }
 }
 
 /* Thin Seek Bar */
