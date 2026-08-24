@@ -257,33 +257,89 @@ class ResolverWorker:
         return self.cache.get(cid)
 
     def _run_ytdlp(self, url: str) -> dict[str, Any] | ResolveOutcome:
-        try:
-            # NB: niente --no-playlist: per le raccolte (album/playlist) yt-dlp
-            # restituisce gli entries e la tracklist arriva in un colpo solo.
-            proc = subprocess.run(
-                _ytdlp_cmd(["-J", "--no-warnings", url]),
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                timeout=YTDLP_TIMEOUT,
-            )
-        except subprocess.TimeoutExpired:
-            return ResolveOutcome(error_kind="timeout", message=f"Timeout risoluzione: {url}")
-        except FileNotFoundError:
-            return ResolveOutcome(
-                error_kind="resolver_unavailable",
-                message=f"Binario yt-dlp non trovato ('{YTDLP_BIN}'). Verifica l'installazione.",
-            )
+        raw_info = None
 
-        if proc.returncode != 0:
-            return self._error_from_ytdlp(proc.stderr, url)
+        # 1) Direct Python API in-process (fastest & Vercel compatible)
         try:
-            return json.loads(proc.stdout)
-        except json.JSONDecodeError:
-            return ResolveOutcome(
-                error_kind="parse", message=f"Output yt-dlp non valido per {url}"
-            )
+            import yt_dlp
+            opts = {
+                'extract_flat': False,
+                'quiet': True,
+                'no_warnings': True,
+                'skip_download': True
+            }
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+                if info and isinstance(info, dict):
+                    raw_info = info
+        except Exception:
+            pass
+
+        # 2) Subprocess execution fallback
+        if not raw_info:
+            try:
+                proc = subprocess.run(
+                    _ytdlp_cmd(["-J", "--no-warnings", url]),
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    timeout=YTDLP_TIMEOUT,
+                )
+                if proc.returncode == 0 and proc.stdout:
+                    raw_info = json.loads(proc.stdout)
+            except Exception:
+                pass
+
+        # Check SoundCloud 30s preview snippet or 404 fallback to YouTube full track
+        is_soundcloud = "soundcloud.com" in url or (raw_info and raw_info.get("extractor_key") == "Soundcloud")
+        if is_soundcloud:
+            is_preview = False
+            if raw_info:
+                formats = raw_info.get("formats") or []
+                is_preview_fmt = any("preview" in str(f.get("format_id", "")) for f in formats)
+                duration = float(raw_info.get("duration") or 0.0)
+                if raw_info.get("is_preview") or is_preview_fmt or (0 < duration <= 45 and not raw_info.get("entries")):
+                    is_preview = True
+
+            if is_preview or not raw_info:
+                query = ""
+                if raw_info:
+                    title = raw_info.get("title") or ""
+                    artist = raw_info.get("uploader") or raw_info.get("artist") or ""
+                    query = f"{artist} {title}".strip()
+                if not query:
+                    parts = [p for p in url.rstrip("/").split("/") if p]
+                    if len(parts) >= 2:
+                        query = f"{parts[-2]} {parts[-1]}".replace("-", " ").replace("_", " ")
+
+                if query:
+                    try:
+                        import yt_dlp
+                        opts = {'extract_flat': 'in_playlist', 'quiet': True, 'no_warnings': True}
+                        with yt_dlp.YoutubeDL(opts) as ydl:
+                            yt_search = ydl.extract_info(f"ytsearch1:{query}", download=False)
+                            if yt_search and yt_search.get("entries"):
+                                yt_entry = yt_search["entries"][0]
+                                yt_url = yt_entry.get("webpage_url") or yt_entry.get("url") or f"https://www.youtube.com/watch?v={yt_entry.get('id', '')}"
+                                with yt_dlp.YoutubeDL({'extract_flat': False, 'quiet': True, 'no_warnings': True, 'skip_download': True}) as ydl_full:
+                                    yt_full = ydl_full.extract_info(yt_url, download=False)
+                                    if yt_full and isinstance(yt_full, dict):
+                                        if raw_info:
+                                            raw_info["formats"] = yt_full.get("formats")
+                                            raw_info["url"] = yt_full.get("url")
+                                            raw_info["duration"] = yt_full.get("duration") or raw_info.get("duration")
+                                            raw_info["is_preview"] = False
+                                        else:
+                                            raw_info = yt_full
+                                            raw_info["webpage_url"] = url
+                    except Exception:
+                        pass
+
+        if raw_info:
+            return raw_info
+
+        return ResolveOutcome(error_kind="ytdlp", message=f"Impossibile estrarre metadati per {url}")
 
     @staticmethod
     def _error_from_ytdlp(stderr: str, url: str) -> ResolveOutcome:
