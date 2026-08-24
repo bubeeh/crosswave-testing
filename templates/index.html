@@ -184,8 +184,11 @@
 
                 <!-- Search Results Section -->
                 <div class="search-results-wrapper">
-                    <div class="results-header hidden" id="results-meta-row">
-                        <h2 id="results-count-text">Risultati di ricerca</h2>
+                    <div class="results-header hidden" id="results-meta-row" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                        <h2 id="results-count-text" style="margin: 0; font-size: 0.95rem; font-weight: 600; color: var(--text-secondary);">Risultati di ricerca</h2>
+                        <div class="search-pagination-controls hidden" id="search-pagination-controls" style="display: flex; align-items: center; gap: 6px;">
+                            <!-- Dynamic page navigation buttons injected here -->
+                        </div>
                         <div class="loader-spinner hidden" id="search-loader">
                             <div class="double-bounce1"></div>
                             <div class="double-bounce2"></div>

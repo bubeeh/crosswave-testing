@@ -310,8 +310,8 @@ def _search_result_to_track(result):
     }
 
 
-def execute_platform_search(source, query, max_results=10):
-    """Ricerca su una piattaforma DELEGATA al worker isolato.
+def execute_platform_search(source: str, query: str, max_results: int = 25) -> dict:
+    """Esegue la ricerca su una singola piattaforma in isolamento.
 
     Ritorna un dict {results, error, message, retry_after} con error == None
     in caso di successo. Gli errori sono tipizzati e arrivano alla UI invece

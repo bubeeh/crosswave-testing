@@ -5,6 +5,10 @@ import { addFavoriteTrack, addWatchLaterTrack, openAddToPlaylistModal } from './
 import { loadAndAddAlbumToQueue, openBandcampAlbumDetailView } from './album.js';
 import { sendToSoundload } from './soundload.js';
 
+let currentSearchResults = [];
+let currentPage = 1;
+const RESULTS_PER_PAGE = 10;
+
 export async function executeSearch() {
     const queryEl = document.getElementById('search-input');
     if (!queryEl) return;
@@ -15,10 +19,12 @@ export async function executeSearch() {
     const loader = document.getElementById('search-loader');
     const metaRow = document.getElementById('results-meta-row');
     const countText = document.getElementById('results-count-text');
+    const paginationControls = document.getElementById('search-pagination-controls');
 
     if (placeholder) placeholder.classList.add('hidden');
     if (loader) loader.classList.remove('hidden');
     if (metaRow) metaRow.classList.remove('hidden');
+    if (paginationControls) paginationControls.classList.add('hidden');
     if (countText) countText.innerText = `Ricerca in corso per "${query}"...`;
 
     const list = document.getElementById('search-results-list');
@@ -58,6 +64,8 @@ export async function executeSearch() {
             }
         });
 
+        currentSearchResults = results;
+
         if (countText) {
             if (errors.length > 0) {
                 countText.innerText = `${results.length} risultati trovati per "${query}" — ${errors.length} sorgente/i con problemi`;
@@ -74,13 +82,11 @@ export async function executeSearch() {
                 ? 'Nessun risultato disponibile. Controlla i messaggi di errore delle singole sorgenti.'
                 : 'Nessun risultato trovato. Prova con altre parole chiave.';
             list.innerHTML = `<div class="search-placeholder-state"><i class="fa-solid fa-face-frown placeholder-icon"></i><p>${noResultMsg}</p></div>`;
+            renderPaginationControls(0, 0);
             return;
         }
 
-        results.forEach((track, index) => {
-            const row = createResultRow(track, index);
-            list.appendChild(row);
-        });
+        renderSearchResultsPage(1);
 
     } catch (err) {
         console.error(err);
@@ -88,6 +94,93 @@ export async function executeSearch() {
         if (countText) countText.innerText = 'Ricerca interrotta o timeout.';
         showToast('La ricerca ha impiegato troppo tempo o la connessione è stata interrotta. Riprova con meno sorgenti spuntate.', 'error');
     }
+}
+
+export function renderSearchResultsPage(page = 1) {
+    currentPage = page;
+    const list = document.getElementById('search-results-list');
+    if (!list) return;
+
+    list.innerHTML = '';
+    const totalResults = currentSearchResults.length;
+    const totalPages = Math.ceil(totalResults / RESULTS_PER_PAGE);
+
+    if (totalResults === 0) {
+        renderPaginationControls(0, 0);
+        return;
+    }
+
+    const startIndex = (page - 1) * RESULTS_PER_PAGE;
+    const pageTracks = currentSearchResults.slice(startIndex, startIndex + RESULTS_PER_PAGE);
+
+    pageTracks.forEach((track, idx) => {
+        const globalIndex = startIndex + idx;
+        const row = createResultRow(track, globalIndex);
+        list.appendChild(row);
+    });
+
+    renderPaginationControls(page, totalPages);
+}
+
+function renderPaginationControls(page, totalPages) {
+    const controlsContainer = document.getElementById('search-pagination-controls');
+    if (!controlsContainer) return;
+
+    if (totalPages <= 1) {
+        controlsContainer.classList.add('hidden');
+        controlsContainer.innerHTML = '';
+        return;
+    }
+
+    controlsContainer.classList.remove('hidden');
+    controlsContainer.innerHTML = '';
+
+    // Bottone Precedente <
+    const prevBtn = document.createElement('button');
+    prevBtn.className = 'page-btn';
+    prevBtn.innerHTML = '<i class="fa-solid fa-chevron-left"></i>';
+    if (page === 1) {
+        prevBtn.style.opacity = '0.4';
+        prevBtn.style.cursor = 'default';
+    } else {
+        prevBtn.addEventListener('click', () => {
+            renderSearchResultsPage(page - 1);
+            scrollToSearchResults();
+        });
+    }
+    controlsContainer.appendChild(prevBtn);
+
+    // Bottoni numeri di pagina (1, 2, 3...)
+    for (let p = 1; p <= totalPages; p++) {
+        const pageBtn = document.createElement('button');
+        pageBtn.className = `page-btn ${p === page ? 'active' : ''}`;
+        pageBtn.innerText = p;
+        pageBtn.addEventListener('click', () => {
+            renderSearchResultsPage(p);
+            scrollToSearchResults();
+        });
+        controlsContainer.appendChild(pageBtn);
+    }
+
+    // Bottone Successivo >
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'page-btn';
+    nextBtn.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
+    if (page === totalPages) {
+        nextBtn.style.opacity = '0.4';
+        nextBtn.style.cursor = 'default';
+    } else {
+        nextBtn.addEventListener('click', () => {
+            renderSearchResultsPage(page + 1);
+            scrollToSearchResults();
+        });
+    }
+    controlsContainer.appendChild(nextBtn);
+}
+
+function scrollToSearchResults() {
+    const metaRow = document.getElementById('results-meta-row');
+    if (metaRow) metaRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 export function createResultRow(track, index, options = {}) {
