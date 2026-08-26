@@ -3,7 +3,7 @@ import { showToast, formatTime, calculateTotalDuration, escapeHtml } from '../co
 import { switchTab } from '../core/router.js';
 import { playTrackImmediately, renderQueue, removeTrackFromQueue, clearQueue, addToQueue, addPlaylistTracksToQueue } from '../player/player.js';
 import { createResultRow } from './search.js';
-import { loadPlaylistsCard, refreshHomeFavoritesWidget } from './home.js';
+import { refreshHomeFavoritesWidget } from './home.js';
 
 // --- History Management ---
 export function addToHistory(track) {

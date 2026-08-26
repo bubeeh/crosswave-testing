@@ -50,6 +50,10 @@
                     <i class="fa-solid fa-heart"></i>
                     <span>Preferiti</span>
                 </button>
+                <button class="nav-btn" data-tab="watch-later" id="nav-btn-watch-later">
+                    <i class="fa-solid fa-clock"></i>
+                    <span>Guarda Dopo</span>
+                </button>
                 <button class="nav-btn" data-tab="mix-random" id="nav-btn-mix-random">
                     <i class="fa-solid fa-shuffle"></i>
                     <span>Mixtapes</span>
@@ -61,6 +65,10 @@
                 <button class="nav-btn" data-tab="telegram" id="nav-btn-telegram">
                     <i class="fa-brands fa-telegram" style="color: #0088cc;"></i>
                     <span>Telegram</span>
+                </button>
+                <button class="nav-btn" data-tab="downloads" id="nav-btn-downloads">
+                    <i class="fa-solid fa-cloud-arrow-down"></i>
+                    <span>Downloads</span>
                 </button>
                 <button class="nav-btn" data-tab="queue-history" id="nav-btn-queue-history">
                     <i class="fa-solid fa-list-ol"></i>
@@ -197,6 +205,46 @@
                             </div>
                         </div>
 
+                        <!-- CARD 5: Downloads Manager -->
+                        <div class="nav-link-card glassmorphic-card link-card-downloads" data-target="downloads">
+                            <div class="link-card-glow-bg"></div>
+                            <div class="link-card-content">
+                                <div class="link-card-icon-badge">
+                                    <i class="fa-solid fa-cloud-arrow-down"></i>
+                                </div>
+                                <div class="link-card-text">
+                                    <div class="link-card-top-row">
+                                        <h2 class="link-card-title">Downloads</h2>
+                                        <span class="tag-pill">Libreria Locale</span>
+                                    </div>
+                                    <p class="link-card-desc">File MP3 scaricati, coda download in corso e archivio offline</p>
+                                </div>
+                                <div class="link-card-arrow">
+                                    <span>Vedi File</span> <i class="fa-solid fa-arrow-right"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- CARD 6: Telegram -->
+                        <div class="nav-link-card glassmorphic-card link-card-telegram" data-target="telegram">
+                            <div class="link-card-glow-bg"></div>
+                            <div class="link-card-content">
+                                <div class="link-card-icon-badge">
+                                    <i class="fa-brands fa-telegram" style="color: #0088cc;"></i>
+                                </div>
+                                <div class="link-card-text">
+                                    <div class="link-card-top-row">
+                                        <h2 class="link-card-title">Telegram</h2>
+                                        <span class="tag-pill">Bot & Canali</span>
+                                    </div>
+                                    <p class="link-card-desc">Brani inviati al bot Telegram e feed audio integrato</p>
+                                </div>
+                                <div class="link-card-arrow">
+                                    <span>Apri Feed</span> <i class="fa-solid fa-arrow-right"></i>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </section>
@@ -214,20 +262,20 @@
                     <!-- Platform Filters (Additive Selection) -->
                     <div class="search-filters-row">
                         <div class="filter-pills">
-                            <label class="filter-pill youtube" data-source="youtube">
-                                <input type="checkbox" id="chk-yt" hidden>
+                            <label class="filter-pill youtube checked" data-source="youtube">
+                                <input type="checkbox" id="chk-yt" checked hidden>
                                 <i class="fa-brands fa-youtube"></i> YouTube
                             </label>
-                            <label class="filter-pill soundcloud" data-source="soundcloud">
-                                <input type="checkbox" id="chk-sc" hidden>
+                            <label class="filter-pill soundcloud checked" data-source="soundcloud">
+                                <input type="checkbox" id="chk-sc" checked hidden>
                                 <i class="fa-brands fa-soundcloud"></i> SoundCloud
                             </label>
-                            <label class="filter-pill bandcamp" data-source="bandcamp">
-                                <input type="checkbox" id="chk-bc" hidden>
+                            <label class="filter-pill bandcamp checked" data-source="bandcamp">
+                                <input type="checkbox" id="chk-bc" checked hidden>
                                 <i class="fa-brands fa-bandcamp"></i> Bandcamp
                             </label>
-                            <label class="filter-pill mixcloud" data-source="mixcloud">
-                                <input type="checkbox" id="chk-mc" hidden>
+                            <label class="filter-pill mixcloud checked" data-source="mixcloud">
+                                <input type="checkbox" id="chk-mc" checked hidden>
                                 <i class="fa-brands fa-mixcloud"></i> Mixcloud
                             </label>
                         </div>

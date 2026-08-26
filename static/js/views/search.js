@@ -332,30 +332,7 @@ export function initSearchView() {
         });
     }
 
-    // Bind Home Page Top Search Bar
-    const homeSearchBtn = document.getElementById('home-search-btn');
-    const homeSearchInput = document.getElementById('home-search-input');
-
-    const handleHomeSearch = () => {
-        if (!homeSearchInput) return;
-        const val = homeSearchInput.value.trim();
-        if (!val) return;
-        if (searchInput) searchInput.value = val;
-        switchTab('search');
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-        const navSearch = document.getElementById('nav-btn-search');
-        if (navSearch) navSearch.classList.add('active');
-        executeSearch();
-    };
-
-    if (homeSearchBtn) homeSearchBtn.addEventListener('click', handleHomeSearch);
-    if (homeSearchInput) {
-        homeSearchInput.addEventListener('keyup', (e) => {
-            if (e.key === 'Enter') handleHomeSearch();
-        });
-    }
-
-    document.querySelectorAll('.filter-pill').forEach(pill => {
+    document.querySelectorAll('.search-filters-row .filter-pill').forEach(pill => {
         pill.addEventListener('click', () => {
             const chk = pill.querySelector('input[type="checkbox"]');
             if (chk) {
