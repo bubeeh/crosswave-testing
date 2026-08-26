@@ -1119,34 +1119,54 @@ def api_random_mix():
         channels = [dict(r) for r in cursor.fetchall()]
     conn.close()
 
-    if not channels:
-        return jsonify({'error': 'Nessun canale salvato per i Mix Random'}), 404
+    results = []
+    selected_label = "Mix Casuale"
+    selected_channel = None
 
-    # Estrazione casuale canale
-    selected_channel = random.choice(channels)
-    platform = selected_channel['platform']
-    channel_url = _normalize_channel_url(selected_channel['url'], platform)
-    label = selected_channel['label']
+    if channels:
+        shuffled_custom = list(channels)
+        random.shuffle(shuffled_custom)
+        for ch in shuffled_custom:
+            platform = ch['platform']
+            channel_url = _normalize_channel_url(ch['url'], platform)
+            try:
+                res = resolver_service.channel(platform, channel_url)
+                if not res and platform == 'youtube' and not channel_url.endswith('/videos'):
+                    res = resolver_service.channel(platform, channel_url.rstrip('/') + '/videos')
+                if res:
+                    results = res
+                    selected_label = ch['label']
+                    selected_channel = ch
+                    break
+            except Exception:
+                continue
 
-    try:
-        # Delegato al MediaResolver worker isolato (cache 30 min in resolver_cache.db)
-        results = resolver_service.channel(platform, channel_url)
-        if not results and platform == 'youtube' and not channel_url.endswith('/videos'):
-            results = resolver_service.channel(platform, channel_url.rstrip('/') + '/videos')
+    # Fallback ai canali curati di default se nessun canale custom presente o funzionante
+    if not results and CHANNELS:
+        shuffled_curated = list(CHANNELS)
+        random.shuffle(shuffled_curated)
+        for cur in shuffled_curated:
+            try:
+                res = resolver_service.channel(cur['platform'], cur['id'])
+                if res:
+                    results = res
+                    selected_label = cur['label']
+                    selected_channel = {'id': 0, 'label': cur['label'], 'platform': cur['platform'], 'url': cur['id']}
+                    break
+            except Exception:
+                continue
 
-        if not results:
-            return jsonify({'error': f"Nessun brano trovato su '{label}'"}), 404
+    if not results:
+        return jsonify({'error': 'Impossibile estrarre mix al momento. Riprova tra poco.'}), 503
 
-        chosen_res = random.choice(results)
-        track = _search_result_to_track(chosen_res)
-        track['channel_label'] = label
+    chosen_res = random.choice(results)
+    track = _search_result_to_track(chosen_res)
+    track['channel_label'] = selected_label
 
-        return jsonify({
-            'track': track,
-            'channel': selected_channel
-        })
-    except Exception as exc:
-        return jsonify({'error': f"Errore estrazione da {label}: {exc}"}), 500
+    return jsonify({
+        'track': track,
+        'channel': selected_channel
+    })
 
 
 # ------------------------------------------------------------------
