@@ -106,8 +106,8 @@ AUDIO_CACHE_SIZE = 500
 audio_url_cache = OrderedDict()
 cache_lock = threading.Lock()
 
-# Background download executor
-soundload_executor = ThreadPoolExecutor(max_workers=3)
+# Background download executor (concurrency limit = 2 for CPU safety)
+soundload_executor = ThreadPoolExecutor(max_workers=2)
 soundload_jobs = {}
 soundload_jobs_lock = threading.Lock()
 
@@ -116,8 +116,10 @@ soundload_jobs_lock = threading.Lock()
 # Database Layer
 # ------------------------------------------------------------------
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=10)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA busy_timeout=5000")
     return conn
 
 def init_db():
@@ -858,8 +860,28 @@ def api_delete_radio(radio_id):
     conn.close()
     return jsonify({'message': 'Stazione radio rimossa'})
 
-# Helper function to fetch real-time ICY stream titles & show metadata
+# Web Radio ICY Metadata TTL Cache (45 seconds)
+_RADIO_META_CACHE = {}
+_RADIO_META_LOCK = threading.Lock()
+_RADIO_META_TTL = 45.0  # seconds
+
 def fetch_real_radio_metadata(url, station_name=None):
+    cache_key = f"{url}||{station_name or ''}"
+    now_ts = time.time()
+    with _RADIO_META_LOCK:
+        cached = _RADIO_META_CACHE.get(cache_key)
+        if cached and (now_ts - cached['ts'] < _RADIO_META_TTL):
+            return cached['title']
+
+    result = _fetch_real_radio_metadata_uncached(url, station_name)
+
+    if result:
+        with _RADIO_META_LOCK:
+            _RADIO_META_CACHE[cache_key] = {'title': result, 'ts': now_ts}
+
+    return result
+
+def _fetch_real_radio_metadata_uncached(url, station_name=None):
     # 1. Special handling for NTS Live API
     if (station_name and 'NTS' in station_name) or ('ntslive' in url):
         try:
@@ -1098,75 +1120,27 @@ def api_random_mix():
     if not channels:
         return jsonify({'error': 'Nessun canale salvato per i Mix Random'}), 404
 
-    # Estrazione causale canale
+    # Estrazione casuale canale
     selected_channel = random.choice(channels)
     platform = selected_channel['platform']
     channel_url = _normalize_channel_url(selected_channel['url'], platform)
     label = selected_channel['label']
 
     try:
-        ydl_opts = {
-            'extract_flat': 'in_playlist',
-            'playlistend': 40,
-            'quiet': True,
-            'no_warnings': True
-        }
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(channel_url, download=False)
-            entries = info.get('entries') if info else None
+        # Delegato al MediaResolver worker isolato (cache 30 min in resolver_cache.db)
+        results = resolver_service.channel(platform, channel_url)
+        if not results and platform == 'youtube' and not channel_url.endswith('/videos'):
+            results = resolver_service.channel(platform, channel_url.rstrip('/') + '/videos')
 
-            # Retrying with /videos suffix if handle URL returned empty entries
-            if not entries and platform == 'youtube' and not channel_url.endswith('/videos'):
-                retry_url = channel_url.rstrip('/') + '/videos'
-                info = ydl.extract_info(retry_url, download=False)
-                entries = info.get('entries') if info else None
+        if not results:
+            return jsonify({'error': f"Nessun brano trovato su '{label}'"}), 404
 
-        entries = info.get('entries') if info else None
-        if not entries:
-            return jsonify({'error': f"Impossibile leggere contenuti da '{label}'"}), 404
-
-        valid_entries = [e for e in entries if e and (e.get('url') or e.get('id'))]
-        if not valid_entries:
-            return jsonify({'error': f"Nessun brano valido trovato su '{label}'"}), 404
-
-        chosen = random.choice(valid_entries)
-
-        raw_id_or_url = chosen.get('url') or chosen.get('id')
-        if not str(raw_id_or_url).startswith('http'):
-            if platform == 'youtube':
-                track_url = f"https://www.youtube.com/watch?v={raw_id_or_url}"
-            else:
-                track_url = str(raw_id_or_url)
-        else:
-            track_url = str(raw_id_or_url)
-
-        title = chosen.get('title') or 'Mix Random'
-        uploader = chosen.get('uploader') or chosen.get('channel') or label
-        thumbnail = chosen.get('thumbnail') or ''
-        if not thumbnail and chosen.get('thumbnails'):
-            thumbnail = chosen.get('thumbnails')[-1].get('url', '')
-        if not thumbnail:
-            thumbnail = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500'
-
-        duration = chosen.get('duration') or 0
-
-        native_id = chosen.get('id') or native_id_from_url(platform, track_url)
-        track_id = f"yt_{native_id}" if platform == 'youtube' and native_id else str(uuid.uuid4().hex)
+        chosen_res = random.choice(results)
+        track = _search_result_to_track(chosen_res)
+        track['channel_label'] = label
 
         return jsonify({
-            'track': {
-                'id': track_id,
-                'title': title,
-                'artist': uploader,
-                'uploader': uploader,
-                'channel_label': label,
-                'source': platform,
-                'url': track_url,
-                'thumbnail': thumbnail,
-                'duration': duration,
-                'duration_string': f"{int(duration // 60)}:{int(duration % 60):02d}" if duration else "N/D",
-                'type': 'track'
-            },
+            'track': track,
             'channel': selected_channel
         })
     except Exception as exc:
