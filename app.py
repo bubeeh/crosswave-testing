@@ -1157,7 +1157,8 @@ def run_hybrid_download(job_id, url, title, artist):
             soundload_jobs[job_id]['status'] = 'downloading'
             soundload_jobs[job_id]['message'] = 'Estrazione audio in corso con normalizzazione loudnorm...'
 
-        output_filename = f"{re.sub(r'[\w\s-]', '', title).strip()}.mp3"
+        clean_title = re.sub(r'[^\w\s-]', '', title).strip() or f"track_{int(time.time())}"
+        output_filename = f"{clean_title}.mp3"
         target_path = DOWNLOAD_DIR / output_filename
 
         ydl_opts = {
