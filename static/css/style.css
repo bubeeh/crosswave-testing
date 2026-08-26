@@ -11,9 +11,9 @@
     --text-secondary: #8e8e93;
     --text-muted: #555555;
     
-    --accent-cyan: #00e5ff;
-    --accent-cyan-rgb: 0, 229, 255;
-    --accent-purple: #9d4edd;
+    --accent-cyan: #ff2a5f;
+    --accent-cyan-rgb: 255, 42, 95;
+    --accent-purple: #ff2a5f;
     
     --yt-color: #ff3333;
     --sc-color: #ff6600;
@@ -2724,9 +2724,9 @@ body, .app-container {
 }
 
 .header-nav .nav-btn.active {
-    background: #181818 !important;
-    border-color: #00e5ff !important;
-    color: #00e5ff !important;
+    background: #1c1014 !important;
+    border-color: #ff2a5f !important;
+    color: #ff2a5f !important;
     box-shadow: none !important;
 }
 
@@ -2750,11 +2750,17 @@ body, .app-container {
 }
 
 .home-search-box .search-action-btn, .search-action-btn {
-    background: #00e5ff !important;
-    color: #000000 !important;
+    background: #ff2a5f !important;
+    color: #ffffff !important;
     font-weight: 700 !important;
     border: none !important;
     box-shadow: none !important;
+}
+
+.filter-pill.active, .filter-pill.checked {
+    background: #261217 !important;
+    border-color: #ff2a5f !important;
+    color: #ff2a5f !important;
 }
 
 .nav-link-card {
