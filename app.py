@@ -1119,45 +1119,42 @@ def api_random_mix():
         channels = [dict(r) for r in cursor.fetchall()]
     conn.close()
 
+    if not channels:
+        return jsonify({
+            'track': None,
+            'channel': None,
+            'empty': True,
+            'message': 'Nessun canale salvato. Aggiungi un canale per iniziare!'
+        }), 200
+
+    shuffled_custom = list(channels)
+    random.shuffle(shuffled_custom)
     results = []
-    selected_label = "Mix Casuale"
+    selected_label = ""
     selected_channel = None
 
-    if channels:
-        shuffled_custom = list(channels)
-        random.shuffle(shuffled_custom)
-        for ch in shuffled_custom:
-            platform = ch['platform']
-            channel_url = _normalize_channel_url(ch['url'], platform)
-            try:
-                res = resolver_service.channel(platform, channel_url)
-                if not res and platform == 'youtube' and not channel_url.endswith('/videos'):
-                    res = resolver_service.channel(platform, channel_url.rstrip('/') + '/videos')
-                if res:
-                    results = res
-                    selected_label = ch['label']
-                    selected_channel = ch
-                    break
-            except Exception:
-                continue
-
-    # Fallback ai canali curati di default se nessun canale custom presente o funzionante
-    if not results and CHANNELS:
-        shuffled_curated = list(CHANNELS)
-        random.shuffle(shuffled_curated)
-        for cur in shuffled_curated:
-            try:
-                res = resolver_service.channel(cur['platform'], cur['id'])
-                if res:
-                    results = res
-                    selected_label = cur['label']
-                    selected_channel = {'id': 0, 'label': cur['label'], 'platform': cur['platform'], 'url': cur['id']}
-                    break
-            except Exception:
-                continue
+    for ch in shuffled_custom:
+        platform = ch['platform']
+        channel_url = _normalize_channel_url(ch['url'], platform)
+        try:
+            res = resolver_service.channel(platform, channel_url)
+            if not res and platform == 'youtube' and not channel_url.endswith('/videos'):
+                res = resolver_service.channel(platform, channel_url.rstrip('/') + '/videos')
+            if res:
+                results = res
+                selected_label = ch['label']
+                selected_channel = ch
+                break
+        except Exception:
+            continue
 
     if not results:
-        return jsonify({'error': 'Impossibile estrarre mix al momento. Riprova tra poco.'}), 503
+        return jsonify({
+            'track': None,
+            'channel': None,
+            'empty': False,
+            'message': 'Impossibile estrarre mix dai canali salvati al momento.'
+        }), 200
 
     chosen_res = random.choice(results)
     track = _search_result_to_track(chosen_res)

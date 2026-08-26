@@ -16,20 +16,26 @@ export async function fetchRandomMix(channelId = null) {
 
         if (spinner) spinner.classList.add('hidden');
 
-        if (data.error) {
-            showToast(data.error, 'error');
+        const title = document.getElementById('random-mix-title');
+        const artist = document.getElementById('random-mix-artist');
+        const duration = document.getElementById('random-mix-duration');
+        const channelTag = document.getElementById('random-mix-channel-tag');
+        const badge = document.getElementById('random-mix-badge');
+        const cover = document.getElementById('random-mix-cover');
+
+        if (!data.track) {
+            state.currentRandomMixTrack = null;
+            if (title) title.innerText = data.empty ? 'Nessun canale salvato' : 'Nessun mix trovato';
+            if (artist) artist.innerText = data.message || 'Aggiungi il tuo primo canale nel modulo in basso per iniziare ad ascoltare i mix.';
+            if (duration) duration.innerText = '--:--';
+            if (channelTag) channelTag.innerHTML = `<i class="fa-solid fa-tv"></i> Canali Personalizzati`;
+            if (badge) badge.innerHTML = `<i class="fa-solid fa-shuffle"></i> MIXTAPE`;
+            if (cover) cover.src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500';
             return null;
         }
 
         const track = data.track;
         state.currentRandomMixTrack = track;
-
-        const cover = document.getElementById('random-mix-cover');
-        const badge = document.getElementById('random-mix-badge');
-        const title = document.getElementById('random-mix-title');
-        const artist = document.getElementById('random-mix-artist');
-        const duration = document.getElementById('random-mix-duration');
-        const channelTag = document.getElementById('random-mix-channel-tag');
 
         if (cover) cover.src = track.thumbnail || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500';
         if (title) title.innerText = track.title;
@@ -53,7 +59,6 @@ export async function fetchRandomMix(channelId = null) {
     } catch (err) {
         if (spinner) spinner.classList.add('hidden');
         console.error('Failed to fetch random mix:', err);
-        showToast('Errore durante l\'estrazione del Mix Random', 'error');
         return null;
     }
 }
