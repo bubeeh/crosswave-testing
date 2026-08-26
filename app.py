@@ -1219,6 +1219,9 @@ def api_soundload_enqueue():
 
     with soundload_jobs_lock:
         soundload_jobs[job_id] = job_data
+        if len(soundload_jobs) > 100:
+            oldest_key = min(soundload_jobs.keys(), key=lambda k: soundload_jobs[k].get('created_at', 0))
+            soundload_jobs.pop(oldest_key, None)
 
     soundload_executor.submit(run_hybrid_download, job_id, url, title, artist)
     return jsonify({"status": "success", "job_id": job_id, "message": f"Download di '{title}' avviato nel motore ibrido "})
