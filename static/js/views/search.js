@@ -337,10 +337,11 @@ export function initSearchView() {
             const chk = pill.querySelector('input[type="checkbox"]');
             if (chk) {
                 chk.checked = !chk.checked;
-                if (chk.checked) {
-                    pill.classList.add('checked');
-                } else {
-                    pill.classList.remove('checked');
+                pill.classList.toggle('checked', chk.checked);
+                const source = pill.getAttribute('data-source');
+                const homePill = document.querySelector(`.home-search-filters .filter-pill[data-source="${source}"]`);
+                if (homePill) {
+                    homePill.classList.toggle('active', chk.checked);
                 }
             }
 

@@ -56,8 +56,13 @@ function initHomeSearch() {
                 mixcloud: 'chk-mc'
             };
             const targetChk = document.getElementById(targetChkMap[source]);
+            const isSelected = pill.classList.contains('active');
             if (targetChk) {
-                targetChk.checked = pill.classList.contains('active');
+                targetChk.checked = isSelected;
+            }
+            const searchTabPill = document.querySelector(`.search-filters-row .filter-pill[data-source="${source}"]`);
+            if (searchTabPill) {
+                searchTabPill.classList.toggle('checked', isSelected);
             }
         });
     });
