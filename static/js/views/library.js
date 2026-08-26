@@ -3,7 +3,7 @@ import { showToast, formatTime, calculateTotalDuration, escapeHtml } from '../co
 import { switchTab } from '../core/router.js';
 import { playTrackImmediately, renderQueue, removeTrackFromQueue, clearQueue, addToQueue, addPlaylistTracksToQueue } from '../player/player.js';
 import { createResultRow } from './search.js';
-import { refreshHomeFavoritesWidget, refreshHomeWatchLaterWidget } from './home.js';
+import { loadPlaylistsCard, refreshHomeFavoritesWidget } from './home.js';
 
 // --- History Management ---
 export function addToHistory(track) {
@@ -144,39 +144,66 @@ export function createNewPlaylist() {
 }
 
 export function renderPlaylists() {
-    const sidebarList = document.getElementById('sidebar-playlists-list');
-    if (!sidebarList) return;
-    sidebarList.innerHTML = '';
+    const mainGrid = document.getElementById('main-playlists-grid');
+    if (mainGrid) {
+        mainGrid.innerHTML = '';
+        const playlistNames = Object.keys(state.playlists);
+        if (playlistNames.length === 0) {
+            mainGrid.innerHTML = `
+                <div class="empty-card-placeholder p-5 w-100">
+                    <i class="fa-solid fa-compact-disc placeholder-icon" style="font-size: 2.5rem;"></i>
+                    <p style="font-size: 1.1rem; font-weight: 700; margin-top: 10px;">Nessuna playlist creata</p>
+                    <p class="text-secondary" style="font-size: 0.88rem;">Crea la tua prima playlist personale per raccogliere i tuoi brani preferiti.</p>
+                </div>
+            `;
+        } else {
+            playlistNames.forEach(name => {
+                const tracks = state.playlists[name] || [];
+                const card = document.createElement('div');
+                card.className = 'glassmorphic-card p-4 rounded-4 d-flex align-items-center justify-content-between gap-3';
+                card.style.cssText = 'background: rgba(18, 18, 26, 0.65); border: 1px solid rgba(255,255,255,0.08); cursor: pointer; transition: all 0.2s ease;';
 
-    const playlistNames = Object.keys(state.playlists);
-    if (playlistNames.length === 0) {
-        sidebarList.innerHTML = '<div class="empty-state-text" style="font-size:11px; padding:8px 12px;">Nessuna playlist creata.</div>';
-        return;
+                const coverArt = tracks.length > 0 && tracks[0].thumbnail 
+                    ? tracks[0].thumbnail 
+                    : 'https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=150';
+
+                card.innerHTML = `
+                    <div class="d-flex align-items-center gap-3" style="min-width: 0;">
+                        <img src="${coverArt}" alt="${escapeHtml(name)}" style="width: 56px; height: 56px; border-radius: 12px; object-fit: cover; border: 1px solid var(--accent-purple); flex-shrink: 0;">
+                        <div style="min-width: 0;">
+                            <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 2px;" class="truncate">${escapeHtml(name)}</h3>
+                            <span style="font-size: 0.8rem; color: var(--text-secondary);">${tracks.length} brani &bull; ${calculateTotalDuration(tracks)}</span>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2" style="flex-shrink: 0;">
+                        <button class="btn btn-cyan btn-sm btn-play-pl" title="Riproduci Playlist" style="padding: 6px 14px; font-size: 0.8rem;">
+                            <i class="fa-solid fa-play me-1"></i> Ascolta
+                        </button>
+                        <button class="btn btn-secondary btn-sm btn-del-pl" title="Elimina Playlist" style="padding: 6px 10px; font-size: 0.8rem;">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                `;
+
+                card.addEventListener('click', (e) => {
+                    if (e.target.closest('button')) return;
+                    openPlaylistDetail(name);
+                });
+
+                card.querySelector('.btn-play-pl').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    openPlaylistDetail(name);
+                });
+
+                card.querySelector('.btn-del-pl').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deletePlaylist(name);
+                });
+
+                mainGrid.appendChild(card);
+            });
+        }
     }
-
-    playlistNames.forEach(name => {
-        const item = document.createElement('div');
-        item.className = 'playlist-item';
-
-        item.innerHTML = `
-            <div class="playlist-item-name">
-                <i class="fa-solid fa-music"></i>
-                <span>${escapeHtml(name)}</span>
-            </div>
-            <button class="playlist-item-del-btn" title="Elimina playlist"><i class="fa-solid fa-trash"></i></button>
-        `;
-
-        item.addEventListener('click', () => {
-            openPlaylistDetail(name);
-        });
-
-        item.querySelector('.playlist-item-del-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
-            deletePlaylist(name);
-        });
-
-        sidebarList.appendChild(item);
-    });
 }
 
 export function deletePlaylist(name) {
@@ -537,6 +564,16 @@ export function initLibraryView() {
 
     const clearHBtn = document.getElementById('clear-history-btn');
     if (clearHBtn) clearHBtn.addEventListener('click', clearHistory);
+
+    const openCreateBtnMain = document.getElementById('open-create-playlist-btn-main');
+    if (openCreateBtnMain) {
+        openCreateBtnMain.addEventListener('click', () => {
+            const input = document.getElementById('new-playlist-name');
+            if (input) input.value = '';
+            const modal = document.getElementById('create-playlist-modal');
+            if (modal) modal.classList.remove('hidden');
+        });
+    }
 
     const openCreateBtn = document.getElementById('open-create-playlist-btn');
     if (openCreateBtn) {

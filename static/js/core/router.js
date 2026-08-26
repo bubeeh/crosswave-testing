@@ -14,6 +14,7 @@ const HASH_MAP = {
     'downloads': '#/downloads',
     'web-radio': '#/web-radio',
     'mix-random': '#/mix-random',
+    'playlists': '#/playlists',
     'telegram': '#/telegram',
     'queue-history': '#/queue-history',
 };
@@ -94,6 +95,11 @@ export function initRouter() {
             }
         });
     });
+
+    const headerLogo = document.getElementById('header-logo-home');
+    if (headerLogo) {
+        headerLogo.addEventListener('click', () => navigate('home'));
+    }
 
     window.addEventListener('hashchange', () => {
         const hash = window.location.hash;

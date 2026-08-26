@@ -13,7 +13,7 @@ import './player/soundcloud.js';
 import './player/radio.js';
 import { loadHomeDashboard } from './views/home.js';
 import './views/search.js';
-import { loadFavorites, loadWatchLater, renderHistory, addFavoriteTrack, addWatchLaterTrack, openAddToPlaylistModal } from './views/library.js';
+import { loadFavorites, loadWatchLater, renderHistory, addFavoriteTrack, addWatchLaterTrack, openAddToPlaylistModal, renderPlaylists } from './views/library.js';
 import './views/album.js';
 import { loadWebRadios } from './views/radios.js';
 import { loadRandomMixIfNeeded } from './views/mixrandom.js';
@@ -37,6 +37,7 @@ onDOMReady(() => {
     registerTab('watch-later', { onEnter: loadWatchLater });
     registerTab('web-radio', { onEnter: loadWebRadios });
     registerTab('mix-random', { onEnter: loadRandomMixIfNeeded });
+    registerTab('playlists', { onEnter: renderPlaylists });
     registerTab('telegram', { onEnter: loadTelegramFeed });
     registerTab('queue-history', {
         onEnter: () => {

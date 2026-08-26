@@ -24,125 +24,179 @@
         <div class="ambient-glow bg-glow-2"></div>
         <div class="ambient-glow bg-glow-3"></div>
 
-        <!-- Sidebar Navigation -->
-        <aside class="sidebar glassmorphic">
-            <div class="sidebar-header">
-                <div class="logo">
+        <!-- App Top Header Navigation (no left tab sidebar) -->
+        <header class="app-header glassmorphic">
+            <div class="header-left">
+                <div class="logo" id="header-logo-home" style="cursor: pointer;" title="Torna alla Dashboard Home">
                     <i class="fa-solid fa-compact-disc logo-icon spinner-slow"></i>
                     <span class="logo-text">Cross<span>Wave</span></span>
                 </div>
             </div>
 
-            <nav class="sidebar-nav">
-                <div class="nav-section">
-                    <span class="nav-section-title">Menu</span>
-                    <button class="nav-btn active" data-tab="home" id="nav-btn-home">
-                        <i class="fa-solid fa-house"></i>
-                        <span>Home</span>
-                    </button>
-                    <button class="nav-btn" data-tab="search" id="nav-btn-search">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                        <span>Ricerca</span>
-                    </button>
-                    <button class="nav-btn" data-tab="favorites" id="nav-btn-favorites">
-                        <i class="fa-solid fa-heart"></i>
-                        <span>Preferiti</span>
-                    </button>
-
-                    <button class="nav-btn" data-tab="watch-later" id="nav-btn-watch-later">
-                        <i class="fa-solid fa-clock"></i>
-                        <span>Guarda Dopo</span>
-                    </button>
-                    <button class="nav-btn" data-tab="web-radio" id="nav-btn-web-radio">
-                        <i class="fa-solid fa-radio"></i>
-                        <span>Web Radio</span>
-                    </button>
-                    <button class="nav-btn" data-tab="mix-random" id="nav-btn-mix-random">
-                        <i class="fa-solid fa-shuffle"></i>
-                        <span>Mix Random</span>
-                    </button>
-                    <button class="nav-btn" data-tab="telegram" id="nav-btn-telegram">
-                        <i class="fa-brands fa-telegram" style="color: #0088cc;"></i>
-                        <span>Feed Telegram</span>
-                    </button>
-                    <button class="nav-btn" data-tab="queue-history">
-                        <i class="fa-solid fa-list-ol"></i>
-                        <span>Coda di Riproduzione</span>
-                    </button>
-
-                </div>
-
-                <div class="nav-section">
-                    <div class="playlist-header-row">
-                        <span class="nav-section-title">Le Tue Playlist</span>
-                        <button class="add-playlist-btn" id="open-create-playlist-btn" title="Crea Playlist">
-                            <i class="fa-solid fa-plus"></i>
-                        </button>
-                    </div>
-                    <div class="playlists-container" id="sidebar-playlists-list">
-                        <!-- Playlists list will be injected here -->
-                    </div>
-                </div>
+            <nav class="header-nav">
+                <button class="nav-btn active" data-tab="home" id="nav-btn-home">
+                    <i class="fa-solid fa-house"></i>
+                    <span>Home</span>
+                </button>
+                <button class="nav-btn" data-tab="search" id="nav-btn-search">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <span>Ricerca</span>
+                </button>
+                <button class="nav-btn" data-tab="web-radio" id="nav-btn-web-radio">
+                    <i class="fa-solid fa-radio"></i>
+                    <span>Web Radio</span>
+                </button>
+                <button class="nav-btn" data-tab="favorites" id="nav-btn-favorites">
+                    <i class="fa-solid fa-heart"></i>
+                    <span>Preferiti</span>
+                </button>
+                <button class="nav-btn" data-tab="mix-random" id="nav-btn-mix-random">
+                    <i class="fa-solid fa-shuffle"></i>
+                    <span>Mixtapes</span>
+                </button>
+                <button class="nav-btn" data-tab="playlists" id="nav-btn-playlists">
+                    <i class="fa-solid fa-compact-disc"></i>
+                    <span>Playlist</span>
+                </button>
+                <button class="nav-btn" data-tab="telegram" id="nav-btn-telegram">
+                    <i class="fa-brands fa-telegram" style="color: #0088cc;"></i>
+                    <span>Telegram</span>
+                </button>
+                <button class="nav-btn" data-tab="queue-history" id="nav-btn-queue-history">
+                    <i class="fa-solid fa-list-ol"></i>
+                    <span>Coda</span>
+                </button>
             </nav>
 
-            <!-- User Profile Sidebar Footer (app personale: nessun account) -->
-            <div class="sidebar-user-footer">
+            <div class="header-right">
                 <div class="user-badge" title="Libreria Personale">
                     <i class="fa-solid fa-circle-user user-icon"></i>
-                    <span class="user-name" id="sidebar-user-name">Libreria Personale</span>
+                    <span class="user-name">Libreria Personale</span>
                 </div>
             </div>
-
-            <!-- Active Track Floating Mini-Card in Sidebar -->
-            <div class="sidebar-track-card glassmorphic-card hidden" id="sidebar-track-card">
-
-                <img src="" alt="Album Art" class="sidebar-track-art" id="sidebar-card-art">
-                <div class="sidebar-track-info">
-                    <div class="sidebar-track-title truncate" id="sidebar-card-title">Titolo brano</div>
-                    <div class="sidebar-track-artist truncate" id="sidebar-card-artist">Artista</div>
-                </div>
-                <div class="sidebar-track-source" id="sidebar-card-source">
-                    <!-- Icon will be injected here -->
-                </div>
-            </div>
-        </aside>
+        </header>
 
         <!-- Main Content Area -->
         <main class="main-content">
             <!-- Home Dashboard Tab -->
             <section class="tab-content active" id="tab-home">
                 <div class="home-dashboard-container">
-                    <!-- Top Search Bar & Customization Row on Home -->
-                    <div class="home-search-row" style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-                        <div class="search-box-wrapper glassmorphic" style="flex: 1; margin-bottom: 0;">
-                            <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                            <input type="text" id="home-search-input" placeholder="Cerca..." autocomplete="off">
-                            <button class="search-action-btn" id="home-search-btn">Cerca</button>
+                    
+                    <!-- Top Search Section on Home Dashboard -->
+                    <div class="home-hero-search-section">
+                        <div class="home-hero-header">
+                            <h1 class="home-hero-title">Cosa vuoi ascoltare oggi?</h1>
+                            <p class="home-hero-subtitle">Cerca tracce unificate da YouTube, SoundCloud, Bandcamp e Mixcloud</p>
                         </div>
-                        <button class="btn btn-outline-cyan btn-sm" id="toggle-home-edit-btn" style="font-size: 0.82rem; padding: 8px 16px; border-radius: 999px; height: 42px; white-space: nowrap; flex-shrink: 0; display: flex; align-items: center; gap: 6px;">
-                            <i class="fa-solid fa-sliders"></i> Personalizza Home
-                        </button>
+                        
+                        <div class="search-box-wrapper glassmorphic home-search-box">
+                            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                            <input type="text" id="home-search-input" placeholder="Cerca artisti, brani, DJ set o genere..." autocomplete="off">
+                            <button class="search-action-btn" id="home-search-btn">
+                                <i class="fa-solid fa-magnifying-glass me-1"></i> Cerca
+                            </button>
+                        </div>
+
+                        <!-- Platform Filters Chips -->
+                        <div class="home-search-filters">
+                            <label class="filter-pill youtube active" data-source="youtube">
+                                <i class="fa-brands fa-youtube"></i> YouTube
+                            </label>
+                            <label class="filter-pill soundcloud active" data-source="soundcloud">
+                                <i class="fa-brands fa-soundcloud"></i> SoundCloud
+                            </label>
+                            <label class="filter-pill bandcamp active" data-source="bandcamp">
+                                <i class="fa-brands fa-bandcamp"></i> Bandcamp
+                            </label>
+                            <label class="filter-pill mixcloud active" data-source="mixcloud">
+                                <i class="fa-brands fa-mixcloud"></i> Mixcloud
+                            </label>
+                        </div>
                     </div>
 
-                    <!-- Home Edit Toolbar (Visible only in Edit Mode) -->
-                    <div class="home-edit-toolbar hidden" id="home-edit-toolbar" style="display: flex; align-items: center; gap: 10px; background: rgba(0, 229, 255, 0.08); border: 1px dashed var(--accent-cyan); border-radius: 12px; padding: 10px 16px; margin-bottom: 16px; flex-wrap: wrap;">
-                        <span style="font-size: 0.85rem; font-weight: 600; color: var(--accent-cyan); display: flex; align-items: center; gap: 6px;">
-                            <i class="fa-solid fa-pen-to-square"></i> Modalità Modifica Layout:
-                        </span>
-                        <button class="btn btn-cyan btn-sm" id="home-add-widget-btn" style="font-size: 0.8rem; padding: 5px 10px;">
-                            <i class="fa-solid fa-plus me-1"></i> Aggiungi Widget
-                        </button>
-                        <button class="btn btn-secondary btn-sm" id="home-reset-layout-btn" style="font-size: 0.8rem; padding: 5px 10px;">
-                            <i class="fa-solid fa-rotate-left me-1"></i> Ripristina Default
-                        </button>
-                        <button class="btn btn-outline-light btn-sm ms-auto" id="home-done-edit-btn" style="font-size: 0.8rem; padding: 5px 10px;">
-                            <i class="fa-solid fa-check me-1"></i> Fine Modifica
-                        </button>
-                    </div>
+                    <!-- 4 Section Navigation Link Cards Grid -->
+                    <div class="dashboard-link-cards-grid">
+                        
+                        <!-- CARD 1: Web Radio -->
+                        <div class="nav-link-card glassmorphic-card link-card-radio" data-target="web-radio">
+                            <div class="link-card-glow-bg"></div>
+                            <div class="link-card-content">
+                                <div class="link-card-icon-badge">
+                                    <i class="fa-solid fa-radio"></i>
+                                </div>
+                                <div class="link-card-text">
+                                    <div class="link-card-top-row">
+                                        <h2 class="link-card-title">Web Radio</h2>
+                                        <span class="live-pill"><i class="fa-solid fa-circle blink"></i> LIVE</span>
+                                    </div>
+                                    <p class="link-card-desc">Stazioni radio in streaming live in alta qualità dal mondo</p>
+                                </div>
+                                <div class="link-card-arrow">
+                                    <span>Ascolta</span> <i class="fa-solid fa-arrow-right"></i>
+                                </div>
+                            </div>
+                        </div>
 
-                    <!-- Dynamic Modular Widgets Container -->
-                    <div id="home-widgets-container" class="home-widgets-grid">
-                        <div class="empty-state-text" style="font-size: 13px; padding: 20px;">Caricamento home dashboard modulare...</div>
+                        <!-- CARD 2: Preferiti -->
+                        <div class="nav-link-card glassmorphic-card link-card-favorites" data-target="favorites">
+                            <div class="link-card-glow-bg"></div>
+                            <div class="link-card-content">
+                                <div class="link-card-icon-badge">
+                                    <i class="fa-solid fa-heart"></i>
+                                </div>
+                                <div class="link-card-text">
+                                    <div class="link-card-top-row">
+                                        <h2 class="link-card-title">Preferiti</h2>
+                                        <span class="count-pill" id="home-fav-count-pill">0 brani</span>
+                                    </div>
+                                    <p class="link-card-desc">I tuoi brani, dischi e tracce preferite salvate nella libreria</p>
+                                </div>
+                                <div class="link-card-arrow">
+                                    <span>Apri</span> <i class="fa-solid fa-arrow-right"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- CARD 3: Mixtapes -->
+                        <div class="nav-link-card glassmorphic-card link-card-mixtapes" data-target="mix-random">
+                            <div class="link-card-glow-bg"></div>
+                            <div class="link-card-content">
+                                <div class="link-card-icon-badge">
+                                    <i class="fa-solid fa-shuffle"></i>
+                                </div>
+                                <div class="link-card-text">
+                                    <div class="link-card-top-row">
+                                        <h2 class="link-card-title">Mixtapes</h2>
+                                        <span class="tag-pill">Mix Casual</span>
+                                    </div>
+                                    <p class="link-card-desc">Mix casuali, DJ set e selezioni musicali estratte dai tuoi canali</p>
+                                </div>
+                                <div class="link-card-arrow">
+                                    <span>Esplora</span> <i class="fa-solid fa-arrow-right"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- CARD 4: Playlist -->
+                        <div class="nav-link-card glassmorphic-card link-card-playlists" data-target="playlists">
+                            <div class="link-card-glow-bg"></div>
+                            <div class="link-card-content">
+                                <div class="link-card-icon-badge">
+                                    <i class="fa-solid fa-compact-disc"></i>
+                                </div>
+                                <div class="link-card-text">
+                                    <div class="link-card-top-row">
+                                        <h2 class="link-card-title">Playlist</h2>
+                                        <span class="count-pill" id="home-playlist-count-pill">0 raccolte</span>
+                                    </div>
+                                    <p class="link-card-desc">Le tue raccolte personalizzate, selezioni e compilation musicali</p>
+                                </div>
+                                <div class="link-card-arrow">
+                                    <span>Gestisci</span> <i class="fa-solid fa-arrow-right"></i>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </section>
@@ -204,6 +258,20 @@
                     <div class="search-results-list" id="search-results-list">
                         <!-- Results items will be dynamically loaded here -->
                     </div>
+                </div>
+            </section>
+
+            <!-- Playlists Overview Tab -->
+            <section class="tab-content" id="tab-playlists">
+                <div class="queue-section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <h2><i class="fa-solid fa-compact-disc accent-purple me-2"></i> Le Tue Playlist</h2>
+                    <button class="btn btn-cyan btn-sm" id="open-create-playlist-btn-main">
+                        <i class="fa-solid fa-plus me-1"></i> Crea Nuova Playlist
+                    </button>
+                </div>
+
+                <div class="main-playlists-grid" id="main-playlists-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;">
+                    <!-- Playlists cards dynamically loaded here -->
                 </div>
             </section>
 
