@@ -477,12 +477,12 @@ def api_proxy_audio():
         return jsonify({'error': 'URL mancante'}), 400
 
     # 1) URL di piattaforma → risolvi lo stream diretto (cache resolver 72h
-    #    + LRU locale 12h per evitare roundtrip ripetuti)
+    #    + LRU locale 2h per evitare token CDN scaduti)
     if not _is_direct_audio_url(url):
         resolved = None
         with cache_lock:
             entry = audio_url_cache.get(url)
-            if entry and time.time() - entry['timestamp'] < 43200:
+            if entry and time.time() - entry['timestamp'] < 7200:
                 resolved = entry['audio_url']
         if not resolved:
             try:
@@ -520,7 +520,7 @@ def api_proxy_audio():
     upstream = None
     for attempt in range(2):
         try:
-            upstream = requests.get(candidate, headers=headers, stream=True, timeout=30)
+            upstream = requests.get(candidate, headers=headers, stream=True, timeout=12)
         except requests.RequestException as exc:
             return jsonify({'error': f'Impossibile contattare lo stream: {exc}'}), 502
         if upstream.status_code < 400:
@@ -685,7 +685,9 @@ def api_favorites():
     cursor = conn.cursor()
 
     if request.method == 'GET':
-        cursor.execute("SELECT * FROM favorites WHERE user_id = ? ORDER BY added_at DESC", (user_id,))
+        limit = min(request.args.get('limit', default=100, type=int), 500)
+        offset = request.args.get('offset', default=0, type=int)
+        cursor.execute("SELECT * FROM favorites WHERE user_id = ? ORDER BY added_at DESC LIMIT ? OFFSET ?", (user_id, limit, offset))
         rows = [dict(r) for r in cursor.fetchall()]
         conn.close()
         return jsonify({'favorites': rows})
