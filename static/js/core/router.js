@@ -9,8 +9,6 @@ export function registerTab(tabId, handlers) {
 const HASH_MAP = {
     'home': '#/home',
     'search': '#/search',
-    'favorites': '#/favorites',
-    'watch-later': '#/watch-later',
     'downloads': '#/downloads',
     'web-radio': '#/web-radio',
     'mix-random': '#/mix-random',
@@ -87,19 +85,35 @@ if (typeof window !== 'undefined') {
 }
 
 export function initRouter() {
-    document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const tabId = btn.getAttribute('data-tab');
+    // Unica delegazione globale per nav-btn, data-target e logo
+    document.addEventListener('click', (e) => {
+        const navBtn = e.target.closest('.nav-btn');
+        if (navBtn) {
+            const tabId = navBtn.getAttribute('data-tab');
             if (tabId) {
+                e.preventDefault();
                 navigate(tabId);
+                return;
             }
-        });
-    });
+        }
 
-    const headerLogo = document.getElementById('header-logo-home');
-    if (headerLogo) {
-        headerLogo.addEventListener('click', () => navigate('home'));
-    }
+        const linkCard = e.target.closest('[data-target]');
+        if (linkCard) {
+            const targetTab = linkCard.getAttribute('data-target');
+            if (targetTab) {
+                e.preventDefault();
+                navigate(targetTab);
+                return;
+            }
+        }
+
+        const headerLogo = e.target.closest('#header-logo-home');
+        if (headerLogo) {
+            e.preventDefault();
+            navigate('home');
+            return;
+        }
+    });
 
     window.addEventListener('hashchange', () => {
         const hash = window.location.hash;

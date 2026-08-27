@@ -13,7 +13,7 @@ import './player/soundcloud.js';
 import './player/radio.js';
 import { loadHomeDashboard } from './views/home.js';
 import './views/search.js';
-import { loadFavorites, loadWatchLater, renderHistory, addFavoriteTrack, addWatchLaterTrack, openAddToPlaylistModal, renderPlaylists } from './views/library.js';
+import { openAddToPlaylistModal, renderPlaylists, renderHistory } from './views/library.js';
 import './views/album.js';
 import { loadWebRadios } from './views/radios.js';
 import { loadRandomMixIfNeeded } from './views/mixrandom.js';
@@ -33,8 +33,6 @@ onDOMReady(() => {
     // 1. Register Tab Lifecycle Handlers in Router
     registerTab('home', { onEnter: loadHomeDashboard });
     registerTab('downloads', { onEnter: startDownloadsPolling, onLeave: stopDownloadsPolling });
-    registerTab('favorites', { onEnter: loadFavorites });
-    registerTab('watch-later', { onEnter: loadWatchLater });
     registerTab('web-radio', { onEnter: loadWebRadios });
     registerTab('mix-random', { onEnter: loadRandomMixIfNeeded });
     registerTab('playlists', { onEnter: renderPlaylists });
@@ -117,28 +115,6 @@ onDOMReady(() => {
     if (toggleQueueBtn) {
         toggleQueueBtn.addEventListener('click', () => {
             navigate('queue-history');
-        });
-    }
-
-    const btnPlayerFav = document.getElementById('btn-player-fav');
-    if (btnPlayerFav) {
-        btnPlayerFav.addEventListener('click', () => {
-            if (!state.currentTrack) {
-                showToast('Nessun brano in riproduzione da aggiungere ai Preferiti.', 'error');
-                return;
-            }
-            addFavoriteTrack(state.currentTrack);
-        });
-    }
-
-    const btnPlayerWl = document.getElementById('btn-player-wl');
-    if (btnPlayerWl) {
-        btnPlayerWl.addEventListener('click', () => {
-            if (!state.currentTrack) {
-                showToast('Nessun brano in riproduzione da aggiungere a Guarda Dopo.', 'error');
-                return;
-            }
-            addWatchLaterTrack(state.currentTrack);
         });
     }
 

@@ -1,6 +1,5 @@
 import { showToast, escapeHtml } from '../core/utils.js';
-import { playTrackImmediately, addToQueue } from '../player/player.js';
-import { addFavoriteTrack } from './library.js';
+import { addToQueue } from '../player/player.js';
 import { openBandcampAlbumDetailView } from './album.js';
 import { sendToSoundload } from './soundload.js';
 
@@ -83,9 +82,6 @@ function renderTelegramTable(items) {
                         <button class="btn btn-outline-secondary btn-queue-telegram" data-index="${idx}" title="Aggiungi alla Coda">
                             <i class="fa-solid fa-plus"></i>
                         </button>
-                        <button class="btn btn-outline-danger btn-fav-telegram" data-index="${idx}" title="Aggiungi ai Preferiti">
-                            <i class="fa-solid fa-heart"></i>
-                        </button>
                         <button class="btn btn-outline-dark text-muted btn-del-telegram" data-id="${share.id}" title="Rimuovi dal Feed">
                             <i class="fa-solid fa-trash"></i>
                         </button>
@@ -125,23 +121,6 @@ function renderTelegramTable(items) {
                 duration: 0
             });
             showToast(`"${share.title}" aggiunto alla coda`);
-        });
-    });
-
-    tbody.querySelectorAll('.btn-fav-telegram').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const idx = parseInt(e.currentTarget.getAttribute('data-index'));
-            const share = items[idx];
-            if (!share) return;
-            addFavoriteTrack({
-                id: `tg_${share.id}`,
-                title: share.title,
-                artist: share.artist,
-                source: share.platform || 'bandcamp',
-                url: share.url,
-                thumbnail: share.thumbnail,
-                duration: 0
-            });
         });
     });
 

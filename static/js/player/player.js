@@ -113,7 +113,7 @@ export function seekToPercent(percent) {
         duration = state.ytPlayer.getDuration() || 0;
         const targetSeconds = (percent / 100) * duration;
         state.ytPlayer.seekTo(targetSeconds, true);
-    } else if (state.activePlayer === 'soundcloud' && state.bcAudio) {
+    } else if ((state.activePlayer === 'bandcamp' || state.activePlayer === 'soundcloud' || state.activePlayer === 'radio' || state.activePlayer === 'local') && state.bcAudio) {
         duration = state.bcAudio.duration || 0;
         const targetSeconds = (percent / 100) * duration;
         seekBc(targetSeconds);
@@ -122,10 +122,6 @@ export function seekToPercent(percent) {
             const targetSeconds = (percent / 100) * dur;
             seekMc(targetSeconds);
         });
-    } else if (state.activePlayer === 'bandcamp' && state.bcAudio) {
-        duration = state.bcAudio.duration || 0;
-        const targetSeconds = (percent / 100) * duration;
-        seekBc(targetSeconds);
     }
 }
 
@@ -468,7 +464,8 @@ export async function playTrack(track) {
 
     try {
         if (track.source === 'youtube') {
-            const videoId = track.id.replace('yt_', '');
+            const rawId = String(track.track_id || track.id || '');
+            const videoId = rawId.replace('yt_', '');
 
             const mainIframe = document.getElementById('main-yt-iframe');
             const placeholder = document.getElementById('video-placeholder');

@@ -125,59 +125,39 @@ def get_db():
 def init_db():
     conn = get_db()
     cursor = conn.cursor()
-    
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS favorites (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            track_id TEXT NOT NULL,
-            title TEXT NOT NULL,
-            artist TEXT,
-            source TEXT NOT NULL,
-            url TEXT NOT NULL,
-            thumbnail TEXT,
-            duration INTEGER DEFAULT 0,
-            added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id),
-            UNIQUE(user_id, track_id)
-        )
-    ''')
-    
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS watch_later (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            track_id TEXT NOT NULL,
-            title TEXT NOT NULL,
-            artist TEXT,
-            source TEXT NOT NULL,
-            url TEXT NOT NULL,
-            thumbnail TEXT,
-            duration INTEGER DEFAULT 0,
-            added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id),
-            UNIQUE(user_id, track_id)
-        )
-    ''')
 
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS playlists (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            name TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        )
-    ''')
+    # Rimuovi le vecchie tabelle non più utilizzate
+    cursor.execute("DROP TABLE IF EXISTS users")
+    cursor.execute("DROP TABLE IF EXISTS favorites")
+    cursor.execute("DROP TABLE IF EXISTS favorites_new")
+    cursor.execute("DROP TABLE IF EXISTS watch_later")
+    cursor.execute("DROP TABLE IF EXISTS watch_later_new")
+
+    # Migrazione/creazione tabella playlists senza user_id
+    cursor.execute("PRAGMA table_info(playlists)")
+    cols = [col[1] for col in cursor.fetchall()]
+    if 'user_id' in cols:
+        cursor.execute('''
+            CREATE TABLE playlists_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        cursor.execute('''
+            INSERT INTO playlists_new (id, name, created_at)
+            SELECT id, name, created_at FROM playlists
+        ''')
+        cursor.execute("DROP TABLE playlists")
+        cursor.execute("ALTER TABLE playlists_new RENAME TO playlists")
+    elif not cols:
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS playlists (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS playlist_tracks (
@@ -256,12 +236,6 @@ def init_db():
 
 
 init_db()
-
-
-def get_current_user_id():
-    """App personale senza profili: tutti i dati (preferiti, playlist, guarda
-    dopo) appartengono all'unico utente locale (id 1)."""
-    return 1
 
 
 # ------------------------------------------------------------------
@@ -678,52 +652,6 @@ def api_bandcamp_track():
 # ------------------------------------------------------------------
 # Favorites & Playlists REST API
 # ------------------------------------------------------------------
-@app.route('/api/favorites', methods=['GET', 'POST'])
-def api_favorites():
-    user_id = get_current_user_id()
-    conn = get_db()
-    cursor = conn.cursor()
-
-    if request.method == 'GET':
-        limit = min(request.args.get('limit', default=100, type=int), 500)
-        offset = request.args.get('offset', default=0, type=int)
-        cursor.execute("SELECT * FROM favorites WHERE user_id = ? ORDER BY added_at DESC LIMIT ? OFFSET ?", (user_id, limit, offset))
-        rows = [dict(r) for r in cursor.fetchall()]
-        conn.close()
-        return jsonify({'favorites': rows})
-
-    data = request.json or {}
-    track_id = str(data.get('track_id') or data.get('id') or uuid.uuid4().hex)
-    title = data.get('title', 'Senza Titolo')
-    artist = data.get('artist', '')
-    source = data.get('source', 'youtube')
-    url = data.get('url', '')
-    thumbnail = data.get('thumbnail', '')
-    duration = data.get('duration', 0)
-
-    try:
-        cursor.execute('''
-            INSERT INTO favorites (user_id, track_id, title, artist, source, url, thumbnail, duration)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (user_id, track_id, title, artist, source, url, thumbnail, duration))
-        conn.commit()
-        return jsonify({'message': 'Aggiunto ai preferiti ️'})
-    except sqlite3.IntegrityError:
-        return jsonify({'message': 'Brano già presente nei preferiti'})
-    finally:
-        conn.close()
-
-@app.route('/api/favorites/<track_id>', methods=['DELETE'])
-def api_delete_favorite(track_id):
-    user_id = get_current_user_id()
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM favorites WHERE user_id = ? AND track_id = ?", (user_id, track_id))
-    conn.commit()
-    conn.close()
-    return jsonify({'message': 'Rimosso dai preferiti'})
-
-
 # ------------------------------------------------------------------
 # Telegram Shared Music Feed REST API
 # ------------------------------------------------------------------
@@ -746,58 +674,13 @@ def api_delete_telegram_share(share_id):
     return jsonify({'message': 'Elemento rimosso dal feed Telegram'})
 
 
-@app.route('/api/watch_later', methods=['GET', 'POST'])
-def api_watch_later():
-    user_id = get_current_user_id()
-    conn = get_db()
-    cursor = conn.cursor()
-
-    if request.method == 'GET':
-        cursor.execute("SELECT * FROM watch_later WHERE user_id = ? ORDER BY added_at DESC", (user_id,))
-        rows = [dict(r) for r in cursor.fetchall()]
-        conn.close()
-        return jsonify({'watch_later': rows})
-
-    data = request.json or {}
-    track_id = str(data.get('track_id') or data.get('id') or uuid.uuid4().hex)
-    title = data.get('title', 'Senza Titolo')
-    artist = data.get('artist', '')
-    source = data.get('source', 'youtube')
-    url = data.get('url', '')
-    thumbnail = data.get('thumbnail', '')
-    duration = data.get('duration', 0)
-
-    try:
-        cursor.execute('''
-            INSERT INTO watch_later (user_id, track_id, title, artist, source, url, thumbnail, duration)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (user_id, track_id, title, artist, source, url, thumbnail, duration))
-        conn.commit()
-        return jsonify({'message': 'Aggiunto a Guarda Dopo '})
-    except sqlite3.IntegrityError:
-        return jsonify({'message': 'Brano già presente in Guarda Dopo'})
-    finally:
-        conn.close()
-
-@app.route('/api/watch_later/<track_id>', methods=['DELETE'])
-def api_delete_watch_later(track_id):
-    user_id = get_current_user_id()
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM watch_later WHERE user_id = ? AND track_id = ?", (user_id, track_id))
-    conn.commit()
-    conn.close()
-    return jsonify({'message': 'Rimosso da Guarda Dopo'})
-
-
 @app.route('/api/playlists', methods=['GET', 'POST'])
 def api_playlists():
-    user_id = get_current_user_id()
     conn = get_db()
     cursor = conn.cursor()
 
     if request.method == 'GET':
-        cursor.execute("SELECT * FROM playlists WHERE user_id = ? ORDER BY created_at DESC", (user_id,))
+        cursor.execute("SELECT * FROM playlists ORDER BY created_at DESC")
         playlists = [dict(p) for p in cursor.fetchall()]
         for p in playlists:
             cursor.execute("SELECT COUNT(*) as count FROM playlist_tracks WHERE playlist_id = ?", (p['id'],))
@@ -810,7 +693,7 @@ def api_playlists():
     if not name:
         return jsonify({'error': 'Nome playlist obbligatorio'}), 400
 
-    cursor.execute("INSERT INTO playlists (user_id, name) VALUES (?, ?)", (user_id, name))
+    cursor.execute("INSERT INTO playlists (name) VALUES (?)", (name,))
     playlist_id = cursor.lastrowid
     conn.commit()
     conn.close()

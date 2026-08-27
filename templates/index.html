@@ -38,14 +38,6 @@
                     <i class="fa-solid fa-radio"></i>
                     <span>Web Radio</span>
                 </button>
-                <button class="nav-btn" data-tab="favorites" id="nav-btn-favorites">
-                    <i class="fa-solid fa-heart"></i>
-                    <span>Preferiti</span>
-                </button>
-                <button class="nav-btn" data-tab="watch-later" id="nav-btn-watch-later">
-                    <i class="fa-solid fa-clock"></i>
-                    <span>Guarda Dopo</span>
-                </button>
                 <button class="nav-btn" data-tab="mix-random" id="nav-btn-mix-random">
                     <i class="fa-solid fa-shuffle"></i>
                     <span>Mixtapes</span>
@@ -133,25 +125,6 @@
                             </div>
                         </div>
 
-                        <!-- CARD 2: Preferiti -->
-                        <div class="nav-link-card glassmorphic-card link-card-favorites" data-target="favorites">
-                            <div class="link-card-glow-bg"></div>
-                            <div class="link-card-content">
-                                <div class="link-card-icon-badge">
-                                    <i class="fa-solid fa-heart"></i>
-                                </div>
-                                <div class="link-card-text">
-                                    <div class="link-card-top-row">
-                                        <h2 class="link-card-title">Preferiti</h2>
-                                        <span class="count-pill" id="home-fav-count-pill">0 brani</span>
-                                    </div>
-                                    <p class="link-card-desc">I tuoi brani, dischi e tracce preferite salvate nella libreria</p>
-                                </div>
-                                <div class="link-card-arrow">
-                                    <span>Apri</span> <i class="fa-solid fa-arrow-right"></i>
-                                </div>
-                            </div>
-                        </div>
 
                         <!-- CARD 3: Mixtapes -->
                         <div class="nav-link-card glassmorphic-card link-card-mixtapes" data-target="mix-random">
@@ -382,27 +355,6 @@
                 </div>
             </section>
 
-            <!-- Favorites Tab -->
-            <section class="tab-content" id="tab-favorites">
-                <div class="section-header">
-                    <h2><i class="fa-solid fa-heart accent-pink"></i> I Tuoi Preferiti</h2>
-                    <span class="results-count" id="favorites-count-text">0 brani salvati</span>
-                </div>
-                <div class="search-results-list glassmorphic" id="favorites-tracks-list">
-                    <!-- Favorites injected here -->
-                </div>
-            </section>
-
-            <!-- Watch Later Tab -->
-            <section class="tab-content" id="tab-watch-later">
-                <div class="section-header">
-                    <h2><i class="fa-solid fa-clock accent-cyan"></i> Guarda / Ascolta Dopo</h2>
-                    <span class="results-count" id="watch-later-count-text">0 brani in coda</span>
-                </div>
-                <div class="search-results-list glassmorphic" id="watch-later-tracks-list">
-                    <!-- Watch later injected here -->
-                </div>
-            </section>
 
             <!-- Modular Platform Views -->
             {% include 'components/view_mix_random.html' %}
@@ -432,7 +384,7 @@
     <script src="https://widget.mixcloud.com/media/js/widgetApi.js" defer></script>
 
     <!-- Modular ES SPA Application -->
-    <script type="module" src="{{ url_for('static', filename='js/app.js') }}?v=20260823_bandcamp_2col_futura"></script>
+    <script type="module" src="{{ url_for('static', filename='js/app.js') }}?v=20260826_v5"></script>
 
 </body>
 

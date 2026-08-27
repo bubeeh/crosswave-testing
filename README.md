@@ -8,7 +8,7 @@
 
 - 🎨 **UX/UI CrossWave**:
   - Interfaccia web moderna con barra di riproduzione persistente, coda dinamica e copertine.
-  - Autenticazione Utenti (Login / Registrazione con hash password in SQLite `crosswave.db`).
+  - App mono-utente locale (nessun login o registrazione richiesta, dati salvati in SQLite `crosswave.db`).
   - Gestione di Preferiti ❤️, "Guarda Dopo" 🕒 e Playlist personalizzate 🎶.
   - Navigatore e riproduttore di file scaricati nella libreria locale.
 

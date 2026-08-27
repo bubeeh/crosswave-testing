@@ -3,11 +3,13 @@ import { state } from '../core/state.js';
 import { showToast, escapeHtml } from '../core/utils.js';
 import { navigate } from '../core/router.js';
 import { executeSearch } from './search.js';
+import { loadHomeMixRandom } from './mixrandom.js';
 
 export async function loadHomeDashboard() {
     initHomeSearch();
     bindNavLinkCards();
     updateHomeBadges();
+    loadHomeMixRandom();
 }
 
 // --- Top Home Search Bar Handler ---
@@ -85,31 +87,10 @@ function bindNavLinkCards() {
 
 // --- Update Badge Counts on Cards ---
 async function updateHomeBadges() {
-    // 1. Favorites count badge
-    const favPill = document.getElementById('home-fav-count-pill');
-    if (favPill) {
-        try {
-            const res = await fetch('/api/favorites');
-            const data = await res.json();
-            const count = (data.favorites || []).length;
-            favPill.innerText = `${count} brani`;
-        } catch (e) {
-            console.error('Failed to fetch favorites count for badge', e);
-        }
-    }
-
-    // 2. Playlists count badge
+    // Playlists count badge
     const playlistPill = document.getElementById('home-playlist-count-pill');
     if (playlistPill) {
         const count = Object.keys(state.playlists || {}).length;
         playlistPill.innerText = `${count} raccolte`;
     }
-}
-
-export function refreshHomeFavoritesWidget() {
-    updateHomeBadges();
-}
-
-export function refreshHomeWatchLaterWidget() {
-    // legacy stub
 }

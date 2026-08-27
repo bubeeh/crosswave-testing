@@ -2,7 +2,6 @@
 import { state } from '../core/state.js';
 import { showToast, formatTime, escapeHtml } from '../core/utils.js';
 import { playTrack, addToQueue } from '../player/player.js';
-import { addFavoriteTrack } from './library.js';
 import { switchTab } from '../core/router.js';
 
 export async function fetchRandomMix(channelId = null) {
@@ -238,15 +237,6 @@ export function initMixRandomView() {
             if (state.currentRandomMixTrack) {
                 addToQueue(state.currentRandomMixTrack);
                 showToast(`Aggiunto in coda: ${state.currentRandomMixTrack.title}`);
-            }
-        });
-    }
-
-    const btnFavRandom = document.getElementById('btn-fav-random-mix');
-    if (btnFavRandom) {
-        btnFavRandom.addEventListener('click', () => {
-            if (state.currentRandomMixTrack) {
-                addFavoriteTrack(state.currentRandomMixTrack);
             }
         });
     }
