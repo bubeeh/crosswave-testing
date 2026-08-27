@@ -29,7 +29,48 @@ from pathlib import Path
 from urllib.parse import quote
 
 BASE_DIR = Path(__file__).parent.resolve()
-DB_PATH = BASE_DIR / "crosswave.db"
+IS_VERCEL = bool(os.environ.get("VERCEL") or os.environ.get("VERCEL_ENV") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"))
+DATA_DIR = Path("/tmp") if IS_VERCEL else BASE_DIR
+DB_PATH = DATA_DIR / "crosswave.db"
+
+def get_db():
+    conn = sqlite3.connect(DB_PATH, timeout=10)
+    conn.row_factory = sqlite3.Row
+    try:
+        conn.execute("PRAGMA journal_mode=WAL")
+    except sqlite3.Error:
+        pass
+    try:
+        conn.execute("PRAGMA busy_timeout=5000")
+    except sqlite3.Error:
+        pass
+    return conn
+
+
+def init_telegram_db():
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS telegram_shares (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                url TEXT UNIQUE,
+                title TEXT,
+                artist TEXT,
+                label TEXT,
+                release_date TEXT,
+                platform TEXT,
+                thumbnail TEXT,
+                sender_name TEXT,
+                sender_username TEXT,
+                chat_id TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Warning: init_telegram_db encountered exception: {e}")
 
 
 # ---------------------------------------------------------------------------
@@ -518,6 +559,9 @@ def telegram_bot_poll_loop():
 
 def start_telegram_bot_thread():
     """Avvia il worker in un thread daemon (chiamato da app.py)."""
+    if IS_VERCEL:
+        _log("Ambiente Serverless (Vercel): thread polling Telegram disattivato.")
+        return None
     if not TELEGRAM_TOKEN:
         _log(f"[ATTENZIONE] TELEGRAM_TOKEN non configurato: bot DISATTIVATO. "
               "Crea il file .env (vedi .env.example) con il token di @BotFather.")

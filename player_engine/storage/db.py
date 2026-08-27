@@ -26,15 +26,27 @@ RETENTION_COMPLIANCE_DAYS = 730
 def connect(db_path: str | Path) -> sqlite3.Connection:
     """Apre una connessione SQLite in WAL mode con le PRAGMA e le migrazioni applicate."""
     db_path = Path(db_path)
-    db_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        pass
     try:
         conn = sqlite3.connect(str(db_path), timeout=30, check_same_thread=False)
         conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("PRAGMA foreign_keys=ON")
-        conn.execute("PRAGMA busy_timeout=30000")
-        conn.execute("PRAGMA synchronous=NORMAL")
-        migrate(conn)
+        try:
+            conn.execute("PRAGMA journal_mode=WAL")
+        except sqlite3.Error:
+            pass
+        try:
+            conn.execute("PRAGMA foreign_keys=ON")
+            conn.execute("PRAGMA busy_timeout=30000")
+            conn.execute("PRAGMA synchronous=NORMAL")
+        except sqlite3.Error:
+            pass
+        try:
+            migrate(conn)
+        except Exception:
+            pass
         return conn
     except sqlite3.Error as exc:  # pragma: no cover
         raise StorageError(f"apertura database fallita: {exc}") from exc

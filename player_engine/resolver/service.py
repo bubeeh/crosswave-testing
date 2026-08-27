@@ -54,12 +54,16 @@ class ResolverService:
         self._reader: threading.Thread | None = None
         self._next_id = 0
         self.resolver_version = "yt-dlp/unknown"
+        if os.environ.get("VERCEL") or os.environ.get("VERCEL_ENV") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+            autostart = False
         if autostart:
             self.start()
 
     # ------------------------------------------------------------------
     def start(self) -> None:
         """Avvia (o riavvia) il processo worker."""
+        if os.environ.get("VERCEL") or os.environ.get("VERCEL_ENV") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+            return
         with self._lock:
             if self._proc and self._proc.poll() is None:
                 return

@@ -94,12 +94,33 @@ def add_perf_headers(response):
                 response.headers['Vary'] = 'Accept-Encoding'
     return response
 
-DB_PATH = BASE_DIR / "crosswave.db"
-DOWNLOAD_DIR = BASE_DIR / "downloads"
-DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
+IS_VERCEL = bool(os.environ.get("VERCEL") or os.environ.get("VERCEL_ENV") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"))
 
-# Initialize Isolated Subprocess Media Resolver Engine
-resolver_service = ResolverService(db_path=str(BASE_DIR / "resolver_cache.db"), autostart=True)
+if IS_VERCEL:
+    DATA_DIR = Path("/tmp")
+    import shutil
+    for db_name in ["crosswave.db", "resolver_cache.db"]:
+        src_db = BASE_DIR / db_name
+        dst_db = DATA_DIR / db_name
+        if src_db.exists() and not dst_db.exists():
+            try:
+                shutil.copy2(src_db, dst_db)
+            except Exception as e:
+                print(f"Failed copying {db_name} to /tmp: {e}")
+else:
+    DATA_DIR = BASE_DIR
+
+DB_PATH = DATA_DIR / "crosswave.db"
+RESOLVER_DB_PATH = DATA_DIR / "resolver_cache.db"
+DOWNLOAD_DIR = DATA_DIR / "downloads"
+
+try:
+    DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
+except Exception as e:
+    print(f"Warning creating DOWNLOAD_DIR: {e}")
+
+# Initialize Isolated Subprocess Media Resolver Engine (in-process for Vercel)
+resolver_service = ResolverService(db_path=str(RESOLVER_DB_PATH), autostart=not IS_VERCEL)
 
 # Audio Streaming Cache (LRU)
 AUDIO_CACHE_SIZE = 500
@@ -118,121 +139,130 @@ soundload_jobs_lock = threading.Lock()
 def get_db():
     conn = sqlite3.connect(DB_PATH, timeout=10)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA busy_timeout=5000")
+    try:
+        conn.execute("PRAGMA journal_mode=WAL")
+    except sqlite3.Error:
+        pass
+    try:
+        conn.execute("PRAGMA busy_timeout=5000")
+    except sqlite3.Error:
+        pass
     return conn
 
 def init_db():
-    conn = get_db()
-    cursor = conn.cursor()
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
 
-    # Rimuovi le vecchie tabelle non più utilizzate
-    cursor.execute("DROP TABLE IF EXISTS users")
-    cursor.execute("DROP TABLE IF EXISTS favorites")
-    cursor.execute("DROP TABLE IF EXISTS favorites_new")
-    cursor.execute("DROP TABLE IF EXISTS watch_later")
-    cursor.execute("DROP TABLE IF EXISTS watch_later_new")
+        # Rimuovi le vecchie tabelle non più utilizzate
+        cursor.execute("DROP TABLE IF EXISTS users")
+        cursor.execute("DROP TABLE IF EXISTS favorites")
+        cursor.execute("DROP TABLE IF EXISTS favorites_new")
+        cursor.execute("DROP TABLE IF EXISTS watch_later")
+        cursor.execute("DROP TABLE IF EXISTS watch_later_new")
 
-    # Migrazione/creazione tabella playlists senza user_id
-    cursor.execute("PRAGMA table_info(playlists)")
-    cols = [col[1] for col in cursor.fetchall()]
-    if 'user_id' in cols:
+        # Migrazione/creazione tabella playlists senza user_id
+        cursor.execute("PRAGMA table_info(playlists)")
+        cols = [col[1] for col in cursor.fetchall()]
+        if 'user_id' in cols:
+            cursor.execute('''
+                CREATE TABLE playlists_new (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            cursor.execute('''
+                INSERT INTO playlists_new (id, name, created_at)
+                SELECT id, name, created_at FROM playlists
+            ''')
+            cursor.execute("DROP TABLE playlists")
+            cursor.execute("ALTER TABLE playlists_new RENAME TO playlists")
+        elif not cols:
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS playlists (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+
         cursor.execute('''
-            CREATE TABLE playlists_new (
+            CREATE TABLE IF NOT EXISTS playlist_tracks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                playlist_id INTEGER NOT NULL,
+                track_id TEXT NOT NULL,
+                title TEXT NOT NULL,
+                artist TEXT,
+                source TEXT NOT NULL,
+                url TEXT NOT NULL,
+                thumbnail TEXT,
+                duration INTEGER DEFAULT 0,
+                added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE
+            )
+        ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS web_radios (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
+                stream_url TEXT NOT NULL UNIQUE,
+                genre TEXT,
+                logo TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-        cursor.execute('''
-            INSERT INTO playlists_new (id, name, created_at)
-            SELECT id, name, created_at FROM playlists
-        ''')
-        cursor.execute("DROP TABLE playlists")
-        cursor.execute("ALTER TABLE playlists_new RENAME TO playlists")
-    elif not cols:
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS playlists (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
 
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS playlist_tracks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            playlist_id INTEGER NOT NULL,
-            track_id TEXT NOT NULL,
-            title TEXT NOT NULL,
-            artist TEXT,
-            source TEXT NOT NULL,
-            url TEXT NOT NULL,
-            thumbnail TEXT,
-            duration INTEGER DEFAULT 0,
-            added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE
-        )
-    ''')
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS web_radios (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            stream_url TEXT NOT NULL UNIQUE,
-            genre TEXT,
-            logo TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-
-    cursor.execute("SELECT COUNT(*) as count FROM web_radios")
-    if cursor.fetchone()['count'] == 0:
-        default_radios = [
-            ("NTS Radio 1 (London)", "https://stream-relay-geo.ntslive.net/stream", "Underground & Experimental", "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=150"),
-            ("Fango Radio", "https://pantano.ovh:8444/pantano", "Experimental & Independent", "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150"),
-            ("Oolong Radio (Berlin)", "https://stream.oolongradio.com:8443/live", "Experimental & Sound Art", "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=150"),
-            ("Noods Radio (Bristol)", "https://noods-radio.radiocult.fm/stream", "Underground & Experimental", "https://noodsradio.com/images/og-meta-default-image.jpg"),
-            ("Radio Firenze Viola", "https://stream.tmwradio.com/rfviola.aac", "Sport & News ACF Fiorentina", "https://www.radiofirenzeviola.it/template/radiofirenzeviola.it/img/1280x720.jpg")
-        ]
-        cursor.executemany(
-            "INSERT INTO web_radios (name, stream_url, genre, logo) VALUES (?, ?, ?, ?)",
-            default_radios
-        )
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS custom_channels (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            platform TEXT NOT NULL,
-            url TEXT NOT NULL UNIQUE,
-            label TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS system_flags (
-            key TEXT PRIMARY KEY,
-            value TEXT
-        )
-    ''')
-
-    cursor.execute("SELECT value FROM system_flags WHERE key = 'channels_seeded'")
-    if not cursor.fetchone():
-        cursor.execute("SELECT COUNT(*) as count FROM custom_channels")
+        cursor.execute("SELECT COUNT(*) as count FROM web_radios")
         if cursor.fetchone()['count'] == 0:
-            default_channels = [
-                ("youtube", "https://www.youtube.com/@gvonniai/videos", "gvonniai")
+            default_radios = [
+                ("NTS Radio 1 (London)", "https://stream-relay-geo.ntslive.net/stream", "Underground & Experimental", "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=150"),
+                ("Fango Radio", "https://pantano.ovh:8444/pantano", "Experimental & Independent", "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150"),
+                ("Oolong Radio (Berlin)", "https://stream.oolongradio.com:8443/live", "Experimental & Sound Art", "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=150"),
+                ("Noods Radio (Bristol)", "https://noods-radio.radiocult.fm/stream", "Underground & Experimental", "https://noodsradio.com/images/og-meta-default-image.jpg"),
+                ("Radio Firenze Viola", "https://stream.tmwradio.com/rfviola.aac", "Sport & News ACF Fiorentina", "https://www.radiofirenzeviola.it/template/radiofirenzeviola.it/img/1280x720.jpg")
             ]
             cursor.executemany(
-                "INSERT INTO custom_channels (platform, url, label) VALUES (?, ?, ?)",
-                default_channels
+                "INSERT INTO web_radios (name, stream_url, genre, logo) VALUES (?, ?, ?, ?)",
+                default_radios
             )
-        cursor.execute("INSERT OR REPLACE INTO system_flags (key, value) VALUES ('channels_seeded', '1')")
 
-    conn.commit()
-    conn.close()
-    init_telegram_db()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS custom_channels (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                platform TEXT NOT NULL,
+                url TEXT NOT NULL UNIQUE,
+                label TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS system_flags (
+                key TEXT PRIMARY KEY,
+                value TEXT
+            )
+        ''')
+
+        cursor.execute("SELECT value FROM system_flags WHERE key = 'channels_seeded'")
+        if not cursor.fetchone():
+            cursor.execute("SELECT COUNT(*) as count FROM custom_channels")
+            if cursor.fetchone()['count'] == 0:
+                default_channels = [
+                    ("youtube", "https://www.youtube.com/@gvonniai/videos", "gvonniai")
+                ]
+                cursor.executemany(
+                    "INSERT INTO custom_channels (platform, url, label) VALUES (?, ?, ?)",
+                    default_channels
+                )
+            cursor.execute("INSERT OR REPLACE INTO system_flags (key, value) VALUES ('channels_seeded', '1')")
+
+        conn.commit()
+        conn.close()
+        init_telegram_db()
+    except Exception as e:
+        print(f"Warning: init_db encountered an exception (likely Vercel read-only DB): {e}")
 
 
 init_db()
