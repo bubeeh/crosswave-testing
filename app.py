@@ -1204,6 +1204,15 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/sw.js')
+def service_worker():
+    # Servito dalla root per permettere al Service Worker di controllare l'intero origin.
+    resp = app.send_static_file('sw.js')
+    resp.headers['Service-Worker-Allowed'] = '/'
+    resp.headers['Cache-Control'] = 'no-cache'
+    return resp
+
+
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5002))
     debug = os.environ.get("FLASK_DEBUG", "1") != "0"

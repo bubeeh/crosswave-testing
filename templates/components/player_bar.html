@@ -1,6 +1,11 @@
 <!-- Bottom Playback Control Bar (Specular Layout with Ergonomic Centered Controls & Glass Pills) -->
 <footer class="player-bar glassmorphic" style="height: 94px; padding: 6px 24px;">
 
+    <!-- Mobile: collapse full-screen player (hidden on desktop) -->
+    <button class="player-mobile-collapse" id="player-collapse-btn" title="Riduci player" aria-label="Riduci player">
+        <i class="fa-solid fa-chevron-down"></i>
+    </button>
+
     <!-- Left Action Group (Glassmorphic Pill Container) -->
     <div class="player-left-actions" style="display: flex; align-items: center; width: 22%; justify-content: flex-start;">
         <div class="glass-pill-group">
@@ -26,6 +31,9 @@
             <div class="track-badge hidden" id="player-track-badge">
                 <span class="badge-tag">YT</span>
             </div>
+            <button class="player-mobile-expand" id="player-expand-btn" title="Apri player" aria-label="Apri player">
+                <i class="fa-solid fa-chevron-up"></i>
+            </button>
         </div>
 
         <!-- Playback Controls -->

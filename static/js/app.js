@@ -145,4 +145,89 @@ onDOMReady(() => {
 
     // 4. Initialize Core Router & Hash Navigation
     initRouter();
+
+    // 5. Mobile app-style UI (bottom sheet + full-screen player)
+    initMobileUI();
 });
+
+// --- Mobile helpers ---
+function initMobileUI() {
+    const playerBar = document.querySelector('.player-bar');
+    const expandBtn = document.getElementById('player-expand-btn');
+    const collapseBtn = document.getElementById('player-collapse-btn');
+    const trackInfoHeader = document.getElementById('player-track-info-header');
+
+    const expandPlayer = () => {
+        if (!playerBar || !state.currentTrack) return;
+        playerBar.classList.add('expanded');
+        document.body.classList.add('player-expanded');
+    };
+    const collapsePlayer = () => {
+        if (!playerBar) return;
+        playerBar.classList.remove('expanded');
+        document.body.classList.remove('player-expanded');
+    };
+
+    if (expandBtn) expandBtn.addEventListener('click', (e) => { e.stopPropagation(); expandPlayer(); });
+    if (trackInfoHeader) trackInfoHeader.addEventListener('click', expandPlayer);
+    if (collapseBtn) collapseBtn.addEventListener('click', (e) => { e.stopPropagation(); collapsePlayer(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') collapsePlayer(); });
+
+    // "Altro" bottom sheet
+    const sheet = document.getElementById('mobile-more-sheet');
+    const backdrop = document.getElementById('mobile-sheet-backdrop');
+    let sheetCloseTimer = null;
+
+    const openSheet = () => {
+        if (!sheet || !backdrop) return;
+        clearTimeout(sheetCloseTimer);
+        backdrop.classList.remove('hidden');
+        sheet.classList.remove('hidden');
+        requestAnimationFrame(() => sheet.classList.add('open'));
+    };
+    const closeSheet = () => {
+        if (!sheet || !backdrop) return;
+        sheet.classList.remove('open');
+        sheetCloseTimer = setTimeout(() => {
+            sheet.classList.add('hidden');
+            backdrop.classList.add('hidden');
+        }, 250);
+    };
+
+    document.addEventListener('click', (e) => {
+        const moreBtn = e.target.closest('[data-sheet="more"]');
+        if (moreBtn) {
+            e.preventDefault();
+            if (sheet && sheet.classList.contains('open')) closeSheet();
+            else openSheet();
+            return;
+        }
+        if (e.target.closest('#mobile-sheet-backdrop')) {
+            closeSheet();
+            return;
+        }
+        // Chiudi lo sheet dopo aver scelto una voce
+        if (e.target.closest('#mobile-more-sheet .nav-btn')) {
+            closeSheet();
+        }
+    });
+
+    // Evidenzia "Altro" quando la tab attiva è dentro lo sheet
+    const syncMoreActive = () => {
+        const moreBtn = document.getElementById('mtab-more');
+        if (!moreBtn || !sheet) return;
+        const hasActiveItem = !!sheet.querySelector('.mobile-sheet-item.active');
+        moreBtn.classList.toggle('active', hasActiveItem);
+    };
+    window.addEventListener('hashchange', () => setTimeout(syncMoreActive, 0));
+    syncMoreActive();
+}
+
+// --- PWA: registrazione Service Worker ---
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch((err) => {
+            console.warn('Service Worker non registrato:', err);
+        });
+    });
+}

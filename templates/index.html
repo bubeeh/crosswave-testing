@@ -2,8 +2,16 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>CrossWave Player - Musica Unificata</title>
+    <!-- PWA -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
+    <meta name="theme-color" content="#000000">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="CrossWave">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon-180.png') }}">
     <!-- Google Fonts (non-bloccante: il CSS si applica appena arriva) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,7 +21,7 @@
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260823_v3">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260912_mobile1">
 
     <link rel="icon" type="image/png" href="https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=32&auto=format&fit=crop&q=60">
 </head>
@@ -373,6 +381,7 @@
 
 
 
+        {% include 'components/mobile_nav.html' %}
         {% include 'components/player_bar.html' %}
         {% include 'components/hidden_players.html' %}
         {% include 'components/modals.html' %}
@@ -384,7 +393,7 @@
     <script src="https://widget.mixcloud.com/media/js/widgetApi.js" defer></script>
 
     <!-- Modular ES SPA Application -->
-    <script type="module" src="{{ url_for('static', filename='js/app.js') }}?v=20260826_v5"></script>
+    <script type="module" src="{{ url_for('static', filename='js/app.js') }}?v=20260912_mobile1"></script>
 
 </body>
 
