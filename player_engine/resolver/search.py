@@ -33,6 +33,7 @@ import httpx
 
 from ..core.schema import SearchResult, compute_canonical_id
 from .rate_limit import RateLimiter
+from . import soundcloud_api
 from ..storage.repos import RateLimitRepo, SearchCacheRepo
 
 # Piattaforme ricercabili (Vimeo escluso: nessun canale)
@@ -110,8 +111,10 @@ class Searcher:
             )
 
         try:
-            if platform in ("youtube", "soundcloud"):
-                outcome = self._search_ytdlp(platform, query, limit)
+            if platform == "youtube":
+                outcome = self._search_youtube(query, limit)
+            elif platform == "soundcloud":
+                outcome = self._search_soundcloud(query, limit)
             elif platform == "bandcamp":
                 outcome = self._search_bandcamp(query)
             else:
@@ -325,6 +328,134 @@ class Searcher:
         return SearchOutcome(results=results)
 
     # ------------------------------------------------------------------
+    # youtube: tracce (ytsearch) + RACCOLTE (playlist)
+    # ------------------------------------------------------------------
+    def _search_youtube(self, query: str, limit: int) -> SearchOutcome:
+        tracks = self._search_ytdlp("youtube", query, limit)
+        playlists = self._search_youtube_playlists(query, max(1, limit // 2))
+        track_items = tracks.results or []
+        playlist_items = playlists.results or []
+        if not track_items and not playlist_items:
+            return tracks if tracks.results is None else playlists
+        merged = _interleave(track_items, playlist_items, every=3)
+        return SearchOutcome(results=merged[:limit])
+
+    def _search_youtube_playlists(self, query: str, limit: int) -> SearchOutcome:
+        """Raccolte YouTube: pagina /results con filtro "playlist" (`sp`).
+
+        yt-dlp non espone un canale di ricerca playlist, ma la pagina risultati
+        filtrata (`sp=EgIQAw%3D%3D`) è una playlist di YouTubeTab: il flat
+        restituisce le raccolte con titolo e id in ~1.5s.
+        """
+        url = f"https://www.youtube.com/results?search_query={quote(query)}&sp=EgIQAw%3D%3D"
+        try:
+            # --playlist-end evita di flattenare l'intera pagina (~330 voci):
+            # senza il limite la flat richiede ~13s, con il limite ~2s.
+            proc = subprocess.run(
+                _ytdlp_cmd(["-J", "--flat-playlist", "--playlist-end", str(limit),
+                            "--no-warnings", url]),
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=YTDLP_SEARCH_TIMEOUT,
+            )
+        except subprocess.TimeoutExpired:
+            return SearchOutcome(error_kind="timeout", message="timeout ricerca playlist youtube")
+        except FileNotFoundError:
+            return SearchOutcome(
+                error_kind="search_failed",
+                message=f"binario yt-dlp non trovato ('{_ytdlp_bin()}')",
+            )
+        if proc.returncode != 0:
+            return SearchOutcome(
+                error_kind="search_failed",
+                message=proc.stderr.strip()[:300] or "yt-dlp fallito (youtube playlist)",
+            )
+        try:
+            data = json.loads(proc.stdout)
+        except json.JSONDecodeError:
+            return SearchOutcome(error_kind="search_failed", message="output non valido (youtube playlist)")
+
+        results: list[SearchResult] = []
+        for entry in data.get("entries") or []:
+            if not isinstance(entry, dict):
+                continue
+            entry_url = str(entry.get("webpage_url") or entry.get("url") or "")
+            if "list=" not in entry_url:
+                continue
+            title = str(entry.get("title") or "").strip()
+            if not title:
+                continue
+            results.append(
+                SearchResult(
+                    platform="youtube",
+                    url=entry_url,
+                    title=title[:300],
+                    uploader=str(entry.get("uploader") or entry.get("channel") or ""),
+                    duration=0.0,
+                    thumbnail=_flat_thumb(entry),
+                    canonical_id=compute_canonical_id("youtube", entry.get("id"), entry_url),
+                )
+            )
+            if len(results) >= limit:
+                break
+        if not results:
+            return SearchOutcome(
+                error_kind="no_results", message=f"nessuna playlist per '{query}' (youtube)"
+            )
+        return SearchOutcome(results=results)
+
+    # ------------------------------------------------------------------
+    # soundcloud: tracce (scsearch) + RACCOLTE (set/playlist via API v2)
+    # ------------------------------------------------------------------
+    def _search_soundcloud(self, query: str, limit: int) -> SearchOutcome:
+        tracks = self._search_ytdlp("soundcloud", query, limit)
+        sets = self._search_soundcloud_sets(query, max(1, limit // 2))
+        track_items = tracks.results or []
+        set_items = sets.results or []
+        if not track_items and not set_items:
+            return tracks if tracks.results is None else sets
+        merged = _interleave(track_items, set_items, every=3)
+        return SearchOutcome(results=merged[:limit])
+
+    def _search_soundcloud_sets(self, query: str, limit: int) -> SearchOutcome:
+        """Set/playlist SoundCloud cercati via API v2 pubblica (client_id)."""
+        try:
+            items = soundcloud_api.search_playlists(query, limit)
+        except soundcloud_api.SoundCloudApiError as exc:
+            return SearchOutcome(error_kind="search_failed", message=str(exc))
+
+        results: list[SearchResult] = []
+        for item in items:
+            item_url = str(item.get("permalink_url") or "")
+            if not item_url or "/sets/" not in item_url:
+                continue
+            title = str(item.get("title") or "").strip()
+            if not title:
+                continue
+            user = item.get("user")
+            uploader = str(user.get("username") or "") if isinstance(user, dict) else ""
+            results.append(
+                SearchResult(
+                    platform="soundcloud",
+                    url=item_url,
+                    title=title[:300],
+                    uploader=uploader,
+                    duration=float(item.get("duration") or 0.0) / 1000.0,
+                    thumbnail=soundcloud_api.artwork_url(item),
+                    canonical_id=compute_canonical_id("soundcloud", item.get("id"), item_url),
+                )
+            )
+            if len(results) >= limit:
+                break
+        if not results:
+            return SearchOutcome(
+                error_kind="no_results", message=f"nessun set per '{query}' (soundcloud)"
+            )
+        return SearchOutcome(results=results)
+
+    # ------------------------------------------------------------------
     # bandcamp: API mobile fuzzysearch (JSON) — NON la pagina HTML protetta
     # ------------------------------------------------------------------
     def _search_bandcamp(self, query: str) -> SearchOutcome:
@@ -417,6 +548,25 @@ class Searcher:
         if not results:
             return SearchOutcome(error_kind="no_results", message=f"nessun risultato per '{query}' (mixcloud)")
         return SearchOutcome(results=results)
+
+
+def _interleave(primary: list[SearchResult], secondary: list[SearchResult], every: int = 3) -> list[SearchResult]:
+    """Alterna `primary` e `secondary` (una raccolta ogni `every` tracce).
+
+    Serve a far emergere le raccolte nelle prime pagine dei risultati senza
+    seppellire le tracce singole: l'ordine resta deterministico.
+    """
+    out: list[SearchResult] = []
+    pi = si = 0
+    while pi < len(primary) or si < len(secondary):
+        for _ in range(every):
+            if pi < len(primary):
+                out.append(primary[pi])
+                pi += 1
+        if si < len(secondary):
+            out.append(secondary[si])
+            si += 1
+    return out
 
 
 def _flat_thumb(entry: dict[str, Any]) -> str:

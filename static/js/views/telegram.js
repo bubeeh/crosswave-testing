@@ -1,6 +1,6 @@
 import { showToast, escapeHtml } from '../core/utils.js';
 import { addToQueue } from '../player/player.js';
-import { openBandcampAlbumDetailView } from './album.js';
+import { openCollectionDetailView } from './album.js';
 import { sendToSoundload } from './soundload.js';
 
 let telegramShares = [];
@@ -97,11 +97,12 @@ function renderTelegramTable(items) {
             const idx = parseInt(e.currentTarget.getAttribute('data-index'));
             const share = items[idx];
             if (!share) return;
-            openBandcampAlbumDetailView({
+            openCollectionDetailView({
                 url: share.url,
                 title: share.title,
                 artist: share.artist,
-                thumbnail: share.thumbnail
+                thumbnail: share.thumbnail,
+                source: share.platform || 'bandcamp'
             });
         });
     });

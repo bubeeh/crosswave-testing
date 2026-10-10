@@ -2,7 +2,7 @@
 import { showToast, formatTime, escapeHtml } from '../core/utils.js';
 import { playTrackImmediately, addToQueue, playTrackWithVideo } from '../player/player.js';
 import { openAddToPlaylistModal } from './library.js';
-import { loadAndAddAlbumToQueue, openBandcampAlbumDetailView } from './album.js';
+import { loadAndAddAlbumToQueue, openCollectionDetailView } from './album.js';
 import { sendToSoundload } from './soundload.js';
 
 let currentSearchResults = [];
@@ -193,11 +193,14 @@ export function createResultRow(track, index, options = {}) {
     if (track.source === 'bandcamp') sourceIcon = 'fa-brands fa-bandcamp';
     if (track.source === 'mixcloud') sourceIcon = 'fa-brands fa-mixcloud';
 
+    let collectionLabel = 'ALBUM';
+    if (track.source === 'youtube') collectionLabel = 'PLAYLIST';
+    if (track.source === 'soundcloud') collectionLabel = 'SET';
     const typeBadge = (track.type === 'album')
-        ? `<span class="badge-album" title="Album / Raccolta"><i class="fa-solid fa-compact-disc"></i> ALBUM</span>`
+        ? `<span class="badge-album" title="Raccolta (album / playlist / set)"><i class="fa-solid fa-compact-disc"></i> ${collectionLabel}</span>`
         : '';
 
-    const videoBtnHtml = (track.source === 'youtube')
+    const videoBtnHtml = (track.source === 'youtube' && track.type !== 'album')
         ? `<button class="track-row-action-btn vd-s" title="Riproduci con Video"><i class="fa-solid fa-film"></i></button>`
         : '';
 
@@ -281,7 +284,7 @@ export function createResultRow(track, index, options = {}) {
 
 export function handlePlayAction(track) {
     if (track.type === 'album') {
-        openBandcampAlbumDetailView(track);
+        openCollectionDetailView(track);
     } else {
         playTrackImmediately(track);
     }

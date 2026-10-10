@@ -41,7 +41,8 @@ class PlatformSpec:
 
 
 _PATTERNS: dict[str, str] = {
-    "youtube": r"https?://(www\.|m\.)?(youtube\.com/(watch\?v=|shorts/|live/|embed/)|youtu\.be/)",
+    # playlist?list=... è una raccolta (album/playlist): supportata come tale
+    "youtube": r"https?://(www\.|m\.)?(youtube\.com/(watch\?v=|shorts/|live/|embed/|playlist\?)|youtu\.be/)",
     "bandcamp": r"https?://([a-z0-9-]+\.)?bandcamp\.com/(track/|album/|.*\.bandcamp\.com/)",
     # api.soundcloud.com/tracks/... è l'URL che restituisce la ricerca flat
     "soundcloud": r"https?://(www\.|m\.)?(api\.)?soundcloud\.com/[^/]+/[^/?]+",
@@ -107,6 +108,26 @@ def native_id_from_url(platform: str, url: str) -> str | None:
         if path:
             return path
     return None
+
+
+def is_collection_url(platform: str, url: str) -> bool:
+    """True se l'URL punta a una raccolta (album/playlist/set).
+
+    È l'unica fonte di verità condivisa tra ricerca (worker) e UI (app.py):
+    sono raccolte:
+      - Bandcamp  → /album/<slug>
+      - YouTube   → /playlist?list=... (NON watch?v=..&list=..: resta un video)
+      - SoundCloud→ /<user>/sets/<slug>
+    """
+    if not url:
+        return False
+    if platform == "bandcamp":
+        return "/album/" in url
+    if platform == "youtube":
+        return "/playlist" in url
+    if platform == "soundcloud":
+        return "/sets/" in url
+    return False
 
 
 def platform_spec(key: str) -> PlatformSpec:

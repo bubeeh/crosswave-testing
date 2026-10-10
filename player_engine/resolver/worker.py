@@ -184,28 +184,42 @@ class ResolverWorker:
                 retry_after=gate.retry_after,
             )
 
-        try:
-            proc = subprocess.run(
-                _ytdlp_cmd(["-J", "--no-warnings", url]),
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                timeout=YTDLP_TIMEOUT + 30,
-            )
-        except subprocess.TimeoutExpired:
-            return ResolveOutcome(error_kind="timeout", message=f"Timeout album: {url}")
-        except FileNotFoundError:
-            return ResolveOutcome(
-                error_kind="resolver_unavailable",
-                message=f"Binario yt-dlp non trovato ('{YTDLP_BIN}').",
-            )
-        if proc.returncode != 0:
-            return self._error_from_ytdlp(proc.stderr, url)
-        try:
-            data = json.loads(proc.stdout)
-        except json.JSONDecodeError:
-            return ResolveOutcome(error_kind="parse", message=f"Output yt-dlp non valido per {url}")
+        # SoundCloud: l'API v2 pubblica restituisce l'intera tracklist (titoli,
+        # durate, URL) in un'unica chiamata rapida → niente estrazione yt-dlp
+        # traccia-per-traccia (che su set grandi andava in timeout).
+        data: dict[str, Any] | None = None
+        if platform == "soundcloud":
+            data = self._soundcloud_playlist_raw(url)
+
+        # YouTube: flat extraction (metadati + id per traccia in ~1.5s); la
+        # risoluzione dello stream avviene per singola traccia al play.
+        # Bandcamp e fallback: estrazione completa (il parser è veloce).
+        if data is None:
+            args = ["-J", "--no-warnings"]
+            if platform == "youtube":
+                args = ["-J", "--flat-playlist", "--no-warnings"]
+            try:
+                proc = subprocess.run(
+                    _ytdlp_cmd([*args, url]),
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    timeout=YTDLP_TIMEOUT + 30,
+                )
+            except subprocess.TimeoutExpired:
+                return ResolveOutcome(error_kind="timeout", message=f"Timeout album: {url}")
+            except FileNotFoundError:
+                return ResolveOutcome(
+                    error_kind="resolver_unavailable",
+                    message=f"Binario yt-dlp non trovato ('{YTDLP_BIN}').",
+                )
+            if proc.returncode != 0:
+                return self._error_from_ytdlp(proc.stderr, url)
+            try:
+                data = json.loads(proc.stdout)
+            except json.JSONDecodeError:
+                return ResolveOutcome(error_kind="parse", message=f"Output yt-dlp non valido per {url}")
 
         entries = data.get("entries") or []
         if not entries:
@@ -243,6 +257,22 @@ class ResolverWorker:
         # essere derivabile dall'URL (es. album:2921611913 vs /album/slug)
         self.cache.put_alias(url, album.canonical_id, album.resolved_at)
         return ResolveOutcome(media=album, tracks=tracks)
+
+    @staticmethod
+    def _soundcloud_playlist_raw(url: str) -> dict[str, Any] | None:
+        """Tracklist di un set SoundCloud via API v2 pubblica (o None)."""
+        from . import soundcloud_api
+
+        try:
+            item = soundcloud_api.resolve_playlist(url)
+        except soundcloud_api.SoundCloudApiError:
+            return None
+        if not item:
+            return None
+        raw = soundcloud_api.playlist_to_raw(item, fallback_url=url)
+        if not raw.get("entries"):
+            return None
+        return raw
 
     def _fetch_cache(self, url: str, platform: str) -> MediaObject | None:
         """Cerca in cache per canonical_id derivato dall'URL (id nativo

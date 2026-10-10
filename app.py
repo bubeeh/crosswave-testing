@@ -38,7 +38,7 @@ sys.path.insert(0, str(BASE_DIR))
 from player_engine.resolver.service import ResolverService
 from player_engine.resolver.search import SEARCHABLE_PLATFORMS
 from player_engine.core.channels import CHANNELS
-from player_engine.core.platforms import detect_platform, native_id_from_url
+from player_engine.core.platforms import detect_platform, native_id_from_url, is_collection_url
 from player_engine.core.errors import (
     ResolverUnavailableError,
     SearchError,
@@ -287,22 +287,34 @@ _PLATFORM_LABELS = {
 }
 
 
+def _ui_track_id(platform, url, canonical_id):
+    """Id per la UI: l'embed YouTube richiede l'id nativo con prefisso 'yt_'
+    (vedi playTrack in player.js), le altre piattaforme usano il canonical_id."""
+    native = native_id_from_url(platform, url)
+    if platform == 'youtube' and native:
+        return f"yt_{native}"
+    return canonical_id
+
+
+def _ui_media_type(platform, url):
+    """'album' per le raccolte (Bandcamp album, YouTube playlist, SoundCloud
+    set): si aprono nella vista dettaglio con tracklist. Altrimenti 'track'."""
+    return 'album' if is_collection_url(platform, url) else 'track'
+
+
 def _search_result_to_track(result):
     """Mappa un SearchResult (contratto canonico) alla forma attesa dalla UI.
 
-    La UI (main.js) usa source/artist/id/type; il contratto canonico usa
-    platform/uploader/canonical_id. L'embed YouTube richiede l'id nativo con
-    prefisso 'yt_' (vedi playTrackImmediately), gli album Bandcamp sono
-    raccolte e si aprono nella vista album.
+    La UI usa source/artist/id/type; il contratto canonico usa
+    platform/uploader/canonical_id. Le raccolte (Bandcamp album, YouTube
+    playlist, SoundCloud set) sono marcate type='album' e si aprono nella
+    vista dettaglio con tracklist e play-all.
     """
     url = result.url
     platform = result.platform
-    native = native_id_from_url(platform, url)
-    track_id = f"yt_{native}" if platform == 'youtube' and native else result.canonical_id
-    media_type = 'album' if platform == 'bandcamp' and '/album/' in url else 'track'
     duration = result.duration or 0
     return {
-        'id': track_id,
+        'id': _ui_track_id(platform, url, result.canonical_id),
         'canonical_id': result.canonical_id,
         'title': result.title or 'Senza Titolo',
         'artist': result.uploader or 'Artista Sconosciuto',
@@ -312,7 +324,7 @@ def _search_result_to_track(result):
         'thumbnail': result.thumbnail or '',
         'duration': duration,
         'duration_string': f"{int(duration // 60)}:{int(duration % 60):02d}" if duration else "N/D",
-        'type': media_type,
+        'type': _ui_media_type(platform, url),
     }
 
 
@@ -572,7 +584,7 @@ def _media_to_track(media):
     _search_result_to_track: source/artist/id/type...)."""
     duration = media.duration or 0
     return {
-        'id': media.canonical_id,
+        'id': _ui_track_id(media.platform, media.source_url, media.canonical_id),
         'canonical_id': media.canonical_id,
         'title': media.title or 'Senza Titolo',
         'artist': media.uploader or 'Artista Sconosciuto',
@@ -582,7 +594,7 @@ def _media_to_track(media):
         'thumbnail': media.thumbnail or '',
         'duration': duration,
         'duration_string': f"{int(duration // 60)}:{int(duration % 60):02d}" if duration else "N/D",
-        'type': 'track',
+        'type': _ui_media_type(media.platform, media.source_url),
     }
 
 
@@ -676,6 +688,53 @@ def api_bandcamp_track():
         'thumbnail': media.thumbnail,
         'duration': media.duration,
         'stream_url': stream_url,
+    })
+
+
+@app.route('/api/collection')
+def api_collection():
+    """Vista raccolta generica: album Bandcamp, playlist YouTube, set SoundCloud.
+
+    Un unico endpoint per tutte le piattaforme: il worker risolve la raccolta
+    (Bandcamp: estrazione completa; YouTube: flat; SoundCloud: API v2) e
+    restituisce meta + tracklist già pronti per la vista album e il play-all.
+    Per Bandcamp arricchisce con note/crediti dalla pagina.
+    """
+    url = request.args.get('url', '').strip()
+    if not url:
+        return jsonify({'error': 'URL della raccolta mancante'}), 400
+
+    try:
+        album, tracks = resolver_service.album(url)
+    except ResolverUnavailableError:
+        return jsonify({'error': 'Motore di risoluzione non disponibile — riprova tra poco.'}), 503
+    except RateLimitedError as exc:
+        if exc.retry_after and exc.retry_after <= 3.0:
+            time.sleep(exc.retry_after + 0.1)
+            try:
+                album, tracks = resolver_service.album(url)
+            except Exception as e:
+                return jsonify({'error': str(e)}), 500
+        else:
+            return jsonify({'error': str(exc), 'retry_after': exc.retry_after}), 429
+    except Exception as exc:
+        return jsonify({'error': f'Errore nel caricamento della raccolta: {exc}'}), 500
+
+    platform = album.platform
+    about_text, credits_text = "", ""
+    if platform == 'bandcamp':
+        about_text, credits_text = _fetch_bandcamp_extra_info(url)
+
+    collection_type = {'bandcamp': 'album', 'youtube': 'playlist', 'soundcloud': 'set'}.get(platform, 'collection')
+    return jsonify({
+        'album_title': album.title or 'Raccolta senza titolo',
+        'artist': album.uploader or 'Artista Sconosciuto',
+        'thumbnail': album.thumbnail or '',
+        'description': about_text or album.description or '',
+        'credits': credits_text or '',
+        'platform': platform,
+        'collection_type': collection_type,
+        'tracks': [_media_to_track(t) for t in tracks],
     })
 
 
