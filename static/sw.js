@@ -1,5 +1,5 @@
 // CrossWave Player - minimal service worker (app shell + static asset cache)
-const CACHE_VERSION = 'crosswave-v1';
+const CACHE_VERSION = 'crosswave-v2';
 const SHELL_ASSETS = [
     '/',
     '/static/css/style.css',

@@ -83,6 +83,11 @@ def add_perf_headers(response):
     if request.path.startswith('/static/'):
         response.headers['Cache-Control'] = 'no-cache, must-revalidate'
 
+    # L'HTML non va mai messo in cache (il Service Worker fa network-first,
+    # ma anche l'HTTP cache del browser eviterebbe l'aggiornamento dei token ?v=)
+    if response.mimetype == 'text/html':
+        response.headers['Cache-Control'] = 'no-cache, must-revalidate'
+
     # Compressione gzip per HTML/CSS/JS/JSON, se il client la supporta
     if _should_gzip(response) and 'gzip' in request.headers.get('Accept-Encoding', ''):
         data = response.get_data()
