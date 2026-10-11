@@ -1,0 +1,9 @@
+{
+  "similarartists": {
+    "artist": [
+      {"name": "Massive Attack", "mbid": "mb-massive", "match": "1"},
+      {"name": "Portishead", "mbid": "mb-portishead", "match": "0.9"},
+      {"name": "Tricky", "mbid": "", "match": "0.7"}
+    ]
+  }
+}

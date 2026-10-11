@@ -50,3 +50,17 @@ class RateLimiter:
     def release(self, platform: str, now: float | None = None) -> None:
         """Registra l'avvenuta richiesta (chiamato dopo una risoluzione)."""
         self._repo.record(platform, now if now is not None else time.time())
+
+    def wait(self, platform: str, now: float | None = None) -> float:
+        """Attende fino allo slot libero e lo consuma. Ritorna i secondi attesi.
+
+        Usato dalle fonti esterne (es. MusicBrainz 1 req/s) dove è preferibile
+        rispettare il limite piuttosto che scartare la richiesta.
+        """
+        gate = self.check(platform, now)
+        waited = 0.0
+        if not gate.allowed:
+            waited = gate.retry_after
+            time.sleep(waited)
+        self.release(platform)
+        return waited

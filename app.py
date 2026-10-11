@@ -24,6 +24,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from urllib.parse import urlparse
 
+import httpx
 import requests
 from flask import Flask, Response, jsonify, render_template, request
 
@@ -40,13 +41,23 @@ from player_engine.core.errors import (
 )
 from player_engine.core.platforms import PLATFORMS, detect_platform, is_collection_url, native_id_from_url
 from player_engine.core.schema import MediaObject, MediaType, compute_canonical_id
+from player_engine.recommend import config as rec_config
 from player_engine.recommend import identity
 from player_engine.recommend.events import infer_event_type
+from player_engine.recommend.sources.lastfm import LastFmSource
+from player_engine.recommend.sources.musicbrainz import MusicBrainzSource
 from player_engine.recommend.worker import RecommendationEngine
+from player_engine.resolver.rate_limit import RateLimiter
 from player_engine.resolver.search import SEARCHABLE_PLATFORMS
 from player_engine.resolver.service import ResolverService
 from player_engine.storage.db import init_db as init_player_db
-from player_engine.storage.repos import ArtistRepo, FeedbackRepo, HistoryRepo
+from player_engine.storage.repos import (
+    ArtistRepo,
+    FeedbackRepo,
+    HistoryRepo,
+    RateLimitRepo,
+    SourceCacheRepo,
+)
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 app.secret_key = os.environ.get("SECRET_KEY", "crosswave_hybrid_secret_key_2026")
@@ -136,6 +147,25 @@ artist_repo = ArtistRepo(user_conn)
 feedback_repo = FeedbackRepo(user_conn)
 recommender = RecommendationEngine(user_conn)
 user_db_lock = threading.Lock()
+
+# Fonti esterne di similarità (HTTP pulito, consentito nel processo Flask).
+# Degradano silenziosamente se disabilitate (es. senza LASTFM_API_KEY).
+_source_cache = SourceCacheRepo(user_conn, ttl_days=rec_config.SIMILARITY_TTL_DAYS)
+_source_http = httpx.Client(timeout=15.0)
+rec_sources = [
+    LastFmSource(
+        _source_http,
+        cache=_source_cache,
+        limiter=RateLimiter(RateLimitRepo(user_conn), interval=0.25),
+        api_key=os.environ.get("LASTFM_API_KEY"),
+    ),
+    MusicBrainzSource(
+        _source_http,
+        cache=_source_cache,
+        limiter=RateLimiter(RateLimitRepo(user_conn), interval=1.0),
+        user_agent=os.environ.get("MB_USER_AGENT"),
+    ),
+]
 
 
 # ------------------------------------------------------------------
@@ -1047,13 +1077,21 @@ def api_play():
 
 @app.route('/api/recommendations', methods=['GET'])
 def api_recommendations():
+    """Artisti consigliati: mode=close|scene|mixed, explore=0..1, limit."""
+    mode = (request.args.get('mode') or rec_config.DEFAULT_MODE).strip().lower()
+    if mode not in rec_config.MODES:
+        mode = rec_config.DEFAULT_MODE
     try:
-        limit = min(50, max(1, int(request.args.get('limit', 20))))
+        explore = float(request.args.get('explore', rec_config.DEFAULT_EXPLORE))
     except (TypeError, ValueError):
-        limit = 20
+        explore = rec_config.DEFAULT_EXPLORE
+    try:
+        limit = min(50, max(1, int(request.args.get('limit', 30))))
+    except (TypeError, ValueError):
+        limit = 30
     with user_db_lock:
-        items = recommender.home(limit)
-    return jsonify({'items': items})
+        items = recommender.recommend(mode=mode, explore=explore, limit=limit, sources=rec_sources)
+    return jsonify({'items': items, 'mode': mode})
 
 
 @app.route('/api/recommendations/feedback', methods=['POST'])

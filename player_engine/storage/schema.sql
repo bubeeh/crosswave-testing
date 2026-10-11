@@ -203,3 +203,12 @@ CREATE TABLE IF NOT EXISTS rec_feedback (
   ts TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_rec_feedback_norm ON rec_feedback(artist_name_norm);
+
+-- Cache risposte delle fonti esterne di similarità (TTL lungo, 7–30 giorni)
+CREATE TABLE IF NOT EXISTS source_cache (
+  source TEXT NOT NULL,
+  cache_key TEXT NOT NULL,
+  payload TEXT NOT NULL,
+  fetched_at TEXT NOT NULL,
+  PRIMARY KEY(source, cache_key)
+);

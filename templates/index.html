@@ -21,7 +21,7 @@
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20261012_recv2">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20261012_recv3">
 
     <link rel="icon" type="image/png" href="https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=32&auto=format&fit=crop&q=60">
 </head>
@@ -171,12 +171,25 @@
 
                         </div>
 
-                        <!-- Per te: raccomandazioni basate sugli ascolti -->
+                        <!-- Per te: raccomandazioni per artisti (close/scene/mixed) -->
                         <div class="home-for-you-section" id="home-for-you-section">
                             <div class="home-for-you-header">
                                 <h2 class="home-section-title">
                                     <i class="fa-solid fa-wand-magic-sparkles accent-cyan"></i> Per te
                                 </h2>
+                                <div class="for-you-controls">
+                                    <div class="for-you-modes" id="for-you-modes">
+                                        <button class="for-you-mode" data-mode="close" title="Artisti simili ai tuoi ascolti">Vicino</button>
+                                        <button class="for-you-mode active" data-mode="mixed" title="Mix di vicino e scena">Misto</button>
+                                        <button class="for-you-mode" data-mode="scene" title="Stessa scena: label, collaborazioni, membri">Scena</button>
+                                    </div>
+                                    <button class="btn btn-secondary btn-sm hidden" id="for-you-seeds" title="Imposta artisti di partenza">
+                                        <i class="fa-solid fa-seedling"></i> Seed
+                                    </button>
+                                    <button class="btn btn-secondary btn-sm hidden" id="home-for-you-forget" title="Azzera cronologia e suggerimenti">
+                                        <i class="fa-solid fa-eraser"></i> Dimentica
+                                    </button>
+                                </div>
                             </div>
                             <div id="home-for-you-list" class="home-for-you-grid">
                                 <!-- Card raccomandazioni iniettate da JS -->
@@ -358,7 +371,7 @@
     <script src="https://widget.mixcloud.com/media/js/widgetApi.js" defer></script>
 
     <!-- Modular ES SPA Application -->
-    <script type="module" src="{{ url_for('static', filename='js/app.js') }}?v=20261012_recv2"></script>
+    <script type="module" src="{{ url_for('static', filename='js/app.js') }}?v=20261012_recv3"></script>
 
 </body>
 

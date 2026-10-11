@@ -141,3 +141,14 @@ class ComplianceError(PlayerError):
 
 class RecommendationError(PlayerError):
     """Errore nel calcolo o nella lettura delle raccomandazioni."""
+
+
+class RecommendationSourceError(PlayerError):
+    """Errore di una fonte esterna di similarità (Last.fm, MusicBrainz, ...).
+
+    Le fonti degradano silenziosamente: la pipeline prosegue con le altre.
+    """
+
+    def __init__(self, source: str, message: str) -> None:
+        self.source = source
+        super().__init__(f"{source}: {message}")

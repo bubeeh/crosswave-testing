@@ -20,7 +20,9 @@ from typing import Any
 from ..core.errors import RecommendationError
 from ..core.schema import MediaObject
 from ..storage.db import dumps, loads, transaction
-from ..storage.repos import HistoryRepo
+from ..storage.repos import ArtistRepo, FeedbackRepo, HistoryRepo
+from . import config, scoring
+from .identity import ArtistRef
 
 TOP_N = 20
 HALF_LIFE_DAYS = 30.0
@@ -148,4 +150,81 @@ class RecommendationEngine:
             item = dict(r)
             item["reason_tags"] = loads(item["reason_tags"], [])
             out.append(item)
+        return out
+
+    # ------------------------------------------------------------------
+    # Sistema v2: raccomandazione per ARTISTI (close/scene/mixed)
+    # ------------------------------------------------------------------
+    def recommend(self, mode: str = config.DEFAULT_MODE, explore: float | None = None,
+                  limit: int = 30, sources: list | None = None,
+                  per_seed_limit: int = 20) -> list[dict[str, Any]]:
+        """Pipeline: seed → candidati per fonte → RRF → filtri → diversificazione.
+
+        Le fonti sono iniettate (lista di `RecSource`): degradano silenziosamente
+        se disabilitate o in errore. Ritorna artisti con motivi e (quando noto)
+        un `playable` ripreso dai link già associati all'artista.
+        """
+        if mode not in config.MODES:
+            mode = config.DEFAULT_MODE
+        source_weights = config.SOURCE_WEIGHTS.get(mode, config.SOURCE_WEIGHTS[config.DEFAULT_MODE])
+
+        feedback = FeedbackRepo(self._conn).latest_actions()
+        seeds = scoring.compute_seed_weights(self._history.recent_events(2000), feedback)
+        if not seeds:
+            return []
+
+        excluded = {n for n, a in feedback.items() if a in ("dislike", "hide")}
+        seed_norms = {s["name_norm"] for s in seeds}
+        max_weight = max((s["weight"] for s in seeds), default=0.0) or 1.0
+        seed_weight_norm = {s["name_norm"]: s["weight"] / max_weight for s in seeds}
+
+        grouped: dict[str, dict[str, list]] = {}
+        for seed in seeds:
+            ref = ArtistRef(name=seed["name"], name_norm=seed["name_norm"], mbid=seed.get("mbid"))
+            per_source: dict[str, list] = {}
+            for src in sources or []:
+                try:
+                    if not src.enabled():
+                        continue
+                    cands = src.similar(ref, per_seed_limit)
+                except Exception:
+                    continue  # degrado silenzioso
+                if cands:
+                    per_source[src.name] = cands
+            if per_source:
+                grouped[seed["name_norm"]] = per_source
+
+        ranked = scoring.fuse(grouped, source_weights, seed_weight_norm)
+        ranked = [r for r in ranked if r["name_norm"] not in excluded and r["name_norm"] not in seed_norms]
+        final = scoring.diversify(ranked, limit, explore=explore)
+
+        artist_repo = ArtistRepo(self._conn)
+        out: list[dict[str, Any]] = []
+        for item in final:
+            seen_reasons: set[str] = set()
+            reasons = []
+            for reason in item["reasons"]:
+                if reason["text"] in seen_reasons:
+                    continue
+                seen_reasons.add(reason["text"])
+                reasons.append(reason)
+            playable = None
+            stored = artist_repo.get_by_norm(item["name_norm"])
+            if stored:
+                links = artist_repo.list_links(stored["id"])
+                if links:
+                    playable = {"platform": links[0]["platform"], "url": links[0]["url"]}
+                if not item.get("mbid") and stored.get("mbid"):
+                    item["mbid"] = stored["mbid"]
+            out.append({
+                "name": item["name"],
+                "name_norm": item["name_norm"],
+                "mbid": item.get("mbid"),
+                "score": round(float(item["score"]), 6),
+                "mode": mode,
+                "sources": [{"source": s, "score": round(v, 6)} for s, v in
+                            sorted(item["sources"].items(), key=lambda kv: kv[1], reverse=True)],
+                "reasons": reasons[:3],
+                "playable": playable,
+            })
         return out

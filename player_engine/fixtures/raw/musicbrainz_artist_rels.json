@@ -1,0 +1,21 @@
+{
+  "id": "mb-burial",
+  "name": "Burial",
+  "relations": [
+    {
+      "type": "collaboration",
+      "target-type": "artist",
+      "artist": {"id": "mb-four-tet", "name": "Four Tet"}
+    },
+    {
+      "type": "member of band",
+      "target-type": "artist",
+      "artist": {"id": "mb-massive", "name": "Massive Attack"}
+    },
+    {
+      "type": "official homepage",
+      "target-type": "url",
+      "url": {"resource": "https://example.org"}
+    }
+  ]
+}

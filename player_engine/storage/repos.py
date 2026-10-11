@@ -194,6 +194,17 @@ class HistoryRepo:
                      media.source_url, media.uploader, media.title, media.thumbnail),
                 )
 
+    def recent_events(self, limit: int = 1000) -> list[dict[str, Any]]:
+        """Eventi di ascolto con l'artista collegato (per i seed delle reco v2)."""
+        rows = self._conn.execute(
+            "SELECT e.event_type, e.watched_at, e.play_seconds, e.completion, e.artist_id, "
+            "a.name AS artist_name, a.name_norm AS artist_name_norm, a.mbid AS artist_mbid "
+            "FROM history_events e LEFT JOIN artists a ON a.id = e.artist_id "
+            "WHERE e.artist_id IS NOT NULL ORDER BY e.id DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
     def aggregates(self, limit: int = 50) -> list[dict[str, Any]]:
         rows = self._conn.execute(
             "SELECT media_id, platform, play_count, total_seconds, last_played, tags, source_url, "
@@ -387,6 +398,35 @@ class FeedbackRepo:
     def clear(self) -> None:
         with transaction(self._conn):
             self._conn.execute("DELETE FROM rec_feedback")
+
+
+class SourceCacheRepo:
+    """Cache delle risposte delle fonti esterne di similarità (TTL lungo)."""
+
+    def __init__(self, conn: sqlite3.Connection, ttl_days: float = 14.0) -> None:
+        self._conn = conn
+        self.ttl_days = ttl_days
+
+    def get(self, source: str, cache_key: str, now: datetime | None = None) -> Any | None:
+        row = self._conn.execute(
+            "SELECT payload, fetched_at FROM source_cache WHERE source=? AND cache_key=?",
+            (source, cache_key),
+        ).fetchone()
+        if not row:
+            return None
+        fetched = datetime.fromisoformat(row["fetched_at"])
+        now = now or datetime.now(timezone.utc)
+        if now - fetched > timedelta(days=self.ttl_days):
+            return None
+        return loads(row["payload"])
+
+    def set(self, source: str, cache_key: str, payload: Any) -> None:
+        with transaction(self._conn):
+            self._conn.execute(
+                "INSERT OR REPLACE INTO source_cache(source, cache_key, payload, fetched_at) "
+                "VALUES(?,?,?,?)",
+                (source, cache_key, dumps(payload), _now()),
+            )
 
 
 class ComplianceRepo:

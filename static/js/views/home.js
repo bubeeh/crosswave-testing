@@ -10,6 +10,7 @@ export async function loadHomeDashboard() {
     bindNavLinkCards();
     updateHomeBadges();
     renderHomeResume();
+    initForYouControls();
     loadForYou();
 }
 
@@ -142,70 +143,132 @@ async function updateHomeBadges() {
     }
 }
 
-// --- "Per te": raccomandazioni precomputate dal backend ---
+// --- "Per te": raccomandazioni per ARTISTI (close/scene/mixed) ---
+const REC_MODE_KEY = 'cw_rec_mode';
+const FALLBACK_ART = 'https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=300';
+
+function getRecMode() {
+    const m = localStorage.getItem(REC_MODE_KEY);
+    return (m === 'close' || m === 'scene' || m === 'mixed') ? m : 'mixed';
+}
+
+function setRecMode(mode) {
+    localStorage.setItem(REC_MODE_KEY, mode);
+    document.querySelectorAll('.for-you-mode').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-mode') === mode);
+    });
+}
+
 function youtubeVideoId(url) {
     const m = String(url || '').match(/[?&]v=([\w-]+)/);
     return m ? m[1] : '';
 }
 
-function recToTrack(item) {
-    const platform = item.platform;
-    const native = platform === 'youtube' ? youtubeVideoId(item.source_url) : '';
-    return {
-        id: (platform === 'youtube' && native) ? `yt_${native}` : (item.media_id || item.source_url),
-        canonical_id: item.media_id,
-        title: item.title || 'Senza Titolo',
-        artist: item.uploader || 'Artista Sconosciuto',
-        source: platform,
-        url: item.source_url,
-        thumbnail: item.thumbnail || '',
-        duration: item.duration || 0,
-        type: 'track',
-    };
+// Clicca una card: se c'è un elemento riproducibile suona, altrimenti cerca l'artista.
+function openForYouArtist(item) {
+    const playable = item.playable;
+    if (playable && playable.url) {
+        const platform = playable.platform;
+        const native = platform === 'youtube' ? youtubeVideoId(playable.url) : '';
+        playTrackImmediately({
+            id: native ? `yt_${native}` : playable.url,
+            title: item.name,
+            artist: item.name,
+            source: platform,
+            url: playable.url,
+            thumbnail: '',
+            duration: 0,
+            type: 'track',
+        });
+        return;
+    }
+    const mainSearchInput = document.getElementById('search-input');
+    if (mainSearchInput) mainSearchInput.value = item.name;
+    navigate('search');
+    executeSearch(item.name);
 }
 
 function renderForYouCard(item) {
-    const platform = item.platform || '';
-    const tags = (item.reason_tags || [])
-        .filter(t => typeof t === 'string' && !t.startsWith('artist:') && t !== platform)
-        .slice(0, 2);
-
-    let sourceIcon = 'fa-solid fa-music';
-    if (platform === 'youtube') sourceIcon = 'fa-brands fa-youtube';
-    if (platform === 'soundcloud') sourceIcon = 'fa-brands fa-soundcloud';
-    if (platform === 'bandcamp') sourceIcon = 'fa-brands fa-bandcamp';
-    if (platform === 'mixcloud') sourceIcon = 'fa-brands fa-mixcloud';
+    const mode = getRecMode();
+    const reason = (item.reasons && item.reasons[0] && item.reasons[0].text) || '';
+    const sourceLabels = (item.sources || []).map(s => s.source === 'lastfm' ? 'Last.fm' : s.source)
+        .filter((v, i, a) => a.indexOf(v) === i).join(' · ');
 
     const card = document.createElement('div');
     card.className = 'for-you-card glassmorphic-card';
     card.innerHTML = `
         <div class="for-you-cover">
-            <img src="${escapeHtml(item.thumbnail || 'https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=300')}"
-                 alt="${escapeHtml(item.title || '')}"
-                 onerror="this.src='https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=300'">
-            <span class="for-you-source"><i class="${sourceIcon}"></i></span>
+            <img src="${FALLBACK_ART}" alt="${escapeHtml(item.name || '')}" onerror="this.src='${FALLBACK_ART}'">
+            <span class="for-you-source"><i class="fa-solid fa-user-music"></i></span>
         </div>
         <div class="for-you-info">
-            <div class="for-you-title truncate">${escapeHtml(item.title || 'Senza Titolo')}</div>
-            <div class="for-you-artist truncate">${escapeHtml(item.uploader || 'Artista Sconosciuto')}</div>
-            ${tags.length ? `<div class="for-you-tags truncate">${tags.map(t => escapeHtml(t)).join(' · ')}</div>` : ''}
+            <div class="for-you-title truncate">${escapeHtml(item.name || 'Artista')}</div>
+            ${reason ? `<div class="for-you-tags truncate" title="${escapeHtml(reason)}">${escapeHtml(reason)}</div>` : ''}
+            ${sourceLabels ? `<div class="for-you-artist truncate">${escapeHtml(sourceLabels)}</div>` : ''}
+        </div>
+        <div class="for-you-actions">
+            <button class="for-you-action" data-action="like" title="Mi piace"><i class="fa-solid fa-thumbs-up"></i></button>
+            <button class="for-you-action" data-action="dislike" title="Non mi piace"><i class="fa-solid fa-thumbs-down"></i></button>
+            <button class="for-you-action" data-action="hide" title="Nascondi"><i class="fa-solid fa-eye-slash"></i></button>
         </div>
     `;
-    card.addEventListener('click', () => playTrackImmediately(recToTrack(item)));
+    card.classList.add(`mode-${mode}`);
+
+    card.addEventListener('click', (e) => {
+        if (e.target.closest('.for-you-action')) return;
+        openForYouArtist(item);
+    });
+    card.querySelectorAll('.for-you-action').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            sendFeedback(item.name, btn.getAttribute('data-action'), card);
+        });
+    });
     return card;
+}
+
+async function sendFeedback(artist, action, cardEl) {
+    try {
+        await fetch('/api/recommendations/feedback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ artist, action }),
+        });
+        if (cardEl) cardEl.remove();
+        const labels = { like: 'Aggiunto ai preferiti', dislike: 'Segnalato', hide: 'Nascosto' };
+        showToast(labels[action] || 'Feedback salvato');
+    } catch (err) {
+        showToast('Errore nel salvataggio del feedback', 'error');
+    }
 }
 
 export async function loadForYou() {
     const grid = document.getElementById('home-for-you-list');
     if (!grid) return;
+    const forgetBtn = document.getElementById('home-for-you-forget');
+    const seedsBtn = document.getElementById('for-you-seeds');
+    const mode = getRecMode();
+    setRecMode(mode);
+
     try {
-        const res = await fetch('/api/recommendations?limit=12');
+        const res = await fetch(`/api/recommendations?mode=${mode}&explore=0.3&limit=12`);
         const data = await res.json();
         const items = data.items || [];
 
         if (items.length === 0) {
-            grid.innerHTML = '<div class="empty-state-text" style="grid-column: 1/-1; padding: 14px;">Ascolta qualche brano: qui compariranno i suggerimenti personalizzati.</div>';
+            grid.innerHTML = '<div class="empty-state-text" style="grid-column: 1/-1; padding: 14px;">Ascolta qualche brano o imposta dei seed: qui compariranno gli artisti consigliati.</div>';
+            if (forgetBtn) forgetBtn.classList.add('hidden');
+            if (seedsBtn) seedsBtn.classList.remove('hidden');
             return;
+        }
+
+        if (forgetBtn) {
+            forgetBtn.classList.remove('hidden');
+            forgetBtn.onclick = clearForYou;
+        }
+        if (seedsBtn) {
+            seedsBtn.classList.remove('hidden');
+            seedsBtn.onclick = openSeedsPrompt;
         }
 
         grid.innerHTML = '';
@@ -216,8 +279,37 @@ export async function loadForYou() {
     }
 }
 
+export function initForYouControls() {
+    const modesBox = document.getElementById('for-you-modes');
+    if (modesBox && !modesBox.dataset.bound) {
+        modesBox.dataset.bound = 'true';
+        modesBox.querySelectorAll('.for-you-mode').forEach(btn => {
+            btn.addEventListener('click', () => {
+                setRecMode(btn.getAttribute('data-mode'));
+                loadForYou();
+            });
+        });
+    }
+    setRecMode(getRecMode());
+}
+
+function openSeedsPrompt() {
+    const raw = window.prompt('Artisti di partenza (separati da virgola):');
+    if (!raw) return;
+    const artists = raw.split(',').map(s => s.trim()).filter(Boolean);
+    if (artists.length === 0) return;
+    fetch('/api/recommendations/seeds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ artists }),
+    }).then(() => {
+        showToast('Seed salvati');
+        loadForYou();
+    }).catch(() => showToast('Errore nel salvataggio dei seed', 'error'));
+}
+
 export async function clearForYou() {
-    if (!confirm('Azzerare la cronologia di ascolto e i suggerimenti "Per te"?')) return;
+    if (!confirm('Azzerare la cronologia di ascolto, i feedback e i suggerimenti "Per te"?')) return;
     try {
         await fetch('/api/recommendations/forget', { method: 'POST' });
     } catch (e) {
