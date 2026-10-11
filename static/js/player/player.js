@@ -9,12 +9,17 @@ import { ensureSCPlayer } from './soundcloud.js';
 import { startRadioMetadataPolling, stopRadioMetadataPolling } from './radio.js';
 
 // --- Tracciamento ascolti per "Per te" (invio a /api/play) ---
-const LISTEN_MIN_SECONDS = 15;
+// Invia anche completion (0..1) ed event_type (complete/half/partial/skip/replay)
+// così il motore di raccomandazione v2 può pesare gli eventi.
+const LISTEN_MIN_SECONDS = 15;   // soglia server per retrocompatibilità
+const LISTEN_MIN_SEND_SECONDS = 5; // floor per inviare comunque gli skip
 let listeningTrack = null;
 let listenSeconds = 0;
 let listenTickTs = 0;
 let listenTimer = null;
 let listenReported = false;
+let listeningEndedNaturally = false;
+let listeningWasReplay = false;
 
 function startListeningTimer() {
     if (listenTimer) return;
@@ -37,6 +42,8 @@ function resetListening(track) {
     listeningTrack = track;
     listenSeconds = 0;
     listenReported = false;
+    listeningEndedNaturally = false;
+    listeningWasReplay = false;
     listenTickTs = Date.now();
 }
 
@@ -56,24 +63,44 @@ function sendPlay(payload) {
     }).catch(() => {});
 }
 
+function computeEventType(seconds, completion) {
+    if (listeningEndedNaturally) return listeningWasReplay ? 'replay' : 'complete';
+    if (completion < 0.15 || seconds < LISTEN_MIN_SECONDS) return 'skip';
+    if (completion >= 0.9) return 'complete';
+    if (completion >= 0.5) return 'half';
+    return 'partial';
+}
+
 function flushListening(rearm = false) {
     stopListeningTimer();
     const track = listeningTrack;
     const seconds = listenSeconds;
-    if (track && !listenReported && seconds >= LISTEN_MIN_SECONDS) {
-        sendPlay({ track: { ...track }, seconds: Math.round(seconds) });
+    const ended = listeningEndedNaturally;
+    if (track && !listenReported && seconds > 0 && (ended || seconds >= LISTEN_MIN_SEND_SECONDS)) {
+        const duration = Number(track.duration) || 0;
+        const completion = duration > 0 ? Math.min(1, seconds / duration) : 0;
+        sendPlay({
+            track: { ...track },
+            seconds: Math.round(seconds),
+            completion,
+            event_type: computeEventType(seconds, completion),
+        });
         listenReported = true;
     }
     if (rearm) {
         listeningTrack = track;
         listenSeconds = 0;
         listenReported = false;
+        listeningEndedNaturally = ended;
+        listeningWasReplay = false;
         listenTickTs = Date.now();
         if (state.isPlaying) startListeningTimer();
     } else {
         listeningTrack = null;
         listenSeconds = 0;
         listenReported = false;
+        listeningEndedNaturally = false;
+        listeningWasReplay = false;
     }
 }
 
@@ -435,7 +462,9 @@ export function updateActiveQueueItemRow() {
 }
 
 export function handleTrackFinished() {
+    listeningEndedNaturally = true;
     if (state.repeatMode === 'one') {
+        listeningWasReplay = true;
         playTrack(state.currentTrack);
     } else {
         nextTrack();
@@ -462,6 +491,7 @@ export function nextTrack() {
                 state.currentIndex = 0;
             } else {
                 state.currentIndex = state.queue.length;
+                flushListening();
                 pauseAllPlayers();
                 setPlayingState(false);
                 showToast('Fine della coda di riproduzione');

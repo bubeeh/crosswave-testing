@@ -64,6 +64,14 @@ def migrate(conn: sqlite3.Connection) -> None:
             "ALTER TABLE recommendations ADD COLUMN uploader TEXT NOT NULL DEFAULT ''",
             "ALTER TABLE history_aggregates ADD COLUMN title TEXT NOT NULL DEFAULT ''",
             "ALTER TABLE history_aggregates ADD COLUMN thumbnail TEXT NOT NULL DEFAULT ''",
+            # v2: eventi estesi + raccomandazioni per artista/modalità
+            "ALTER TABLE history_events ADD COLUMN artist_id INTEGER",
+            "ALTER TABLE history_events ADD COLUMN event_type TEXT NOT NULL DEFAULT 'play'",
+            "ALTER TABLE history_events ADD COLUMN completion REAL NOT NULL DEFAULT 0",
+            "ALTER TABLE recommendations ADD COLUMN artist_id INTEGER",
+            "ALTER TABLE recommendations ADD COLUMN mode TEXT NOT NULL DEFAULT 'mixed'",
+            "ALTER TABLE recommendations ADD COLUMN reasons TEXT NOT NULL DEFAULT '[]'",
+            "ALTER TABLE recommendations ADD COLUMN source_breakdown TEXT NOT NULL DEFAULT '[]'",
         ):
             try:
                 conn.execute(sql)

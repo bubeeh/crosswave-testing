@@ -23,14 +23,8 @@ import subprocess
 import sys
 import time
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any
 
-from ..core.errors import (
-    ResolveTimeoutError,
-    SourceForbiddenError,
-    UnsupportedPlatformError,
-)
 from ..core.platforms import detect_platform
 from ..core.schema import MediaObject
 from .cache import ResolutionCache
@@ -66,7 +60,7 @@ class ResolverWorker:
 
     def __init__(self, db_path: str | None = None) -> None:
         from ..storage.db import init_db
-        from ..storage.repos import CacheRepo, RateLimitRepo, SearchCacheRepo
+        from ..storage.repos import CacheRepo, RateLimitRepo
 
         self.db_path = db_path or os.environ.get("PLAYER_DB_PATH") or ":memory:"
         self._conn = init_db(self.db_path)

@@ -17,24 +17,22 @@ Regole del piano rispettate:
 
 from __future__ import annotations
 
-import html as html_mod
 import json
 import os
 import re
 import shutil
 import subprocess
 import sys
-import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 from urllib.parse import quote, urlparse
 
 import httpx
 
 from ..core.schema import SearchResult, compute_canonical_id
-from .rate_limit import RateLimiter
-from . import soundcloud_api
 from ..storage.repos import RateLimitRepo, SearchCacheRepo
+from . import soundcloud_api
+from .rate_limit import RateLimiter
 
 # Piattaforme ricercabili (Vimeo escluso: nessun canale)
 SEARCHABLE_PLATFORMS: tuple[str, ...] = ("youtube", "soundcloud", "bandcamp", "mixcloud")

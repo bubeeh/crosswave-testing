@@ -52,7 +52,7 @@ def _scrape_client_id() -> str:
             timeout=_HTTP_TIMEOUT,
         ).text
     except Exception as exc:  # rete/anti-bot
-        raise SoundCloudApiError(f"impossibile contattare SoundCloud: {exc}")
+        raise SoundCloudApiError(f"impossibile contattare SoundCloud: {exc}") from exc
 
     for src in reversed(re.findall(r'<script[^>]+src="([^"]+)"', home)):
         try:
@@ -92,7 +92,7 @@ def _api_get(endpoint: str, params: dict[str, Any]) -> dict[str, Any]:
                 follow_redirects=True,
             )
         except httpx.HTTPError as exc:
-            raise SoundCloudApiError(f"richiesta SoundCloud fallita: {exc}")
+            raise SoundCloudApiError(f"richiesta SoundCloud fallita: {exc}") from exc
         if resp.status_code in (401, 403) and attempt == 0:
             continue
         resp.raise_for_status()

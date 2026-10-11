@@ -26,8 +26,8 @@ from ..core.errors import (
     SourceForbiddenError,
     UnsupportedPlatformError,
 )
-from ..core.schema import MediaObject, SearchResult, compute_canonical_id
 from ..core.platforms import detect_platform
+from ..core.schema import MediaObject, SearchResult, compute_canonical_id
 
 RESPONSE_TIMEOUT = 50.0
 PING_TIMEOUT = 5.0
@@ -200,7 +200,7 @@ class ResolverService:
         try:
             response = self._request({"op": "search", "platform": platform, "q": query})
         except ResolverUnavailableError:
-            raise ResolverUnavailableError(platform, "processo Media Resolver non attivo")
+            raise ResolverUnavailableError(platform, "processo Media Resolver non attivo") from None
 
         if response.get("ok"):
             return [SearchResult.model_validate(r) for r in response.get("results", [])]
@@ -218,7 +218,7 @@ class ResolverService:
         try:
             response = self._request({"op": "album", "url": url})
         except ResolverUnavailableError:
-            raise ResolveError(url, "resolver non disponibile")
+            raise ResolveError(url, "resolver non disponibile") from None
 
         if response.get("ok"):
             album = MediaObject.model_validate(response["album"])
@@ -244,7 +244,7 @@ class ResolverService:
                 "limit": limit, "topic": topic_hint,
             })
         except ResolverUnavailableError:
-            raise ResolveError(url, "resolver non disponibile")
+            raise ResolveError(url, "resolver non disponibile") from None
 
         if response.get("ok"):
             return response.get("catalog") or {}
@@ -254,7 +254,7 @@ class ResolverService:
 
     def _link_only(self, url: str, platform: str, reason: str) -> MediaObject:
         """Media Object minimo 'solo link': nessuno stream, download bloccato."""
-        from ..core.schema import Rights, RiskLevel, DownloadLicense, MediaType
+        from ..core.schema import DownloadLicense, MediaType, Rights, RiskLevel
 
         return MediaObject(
             canonical_id=compute_canonical_id(platform, None, url),

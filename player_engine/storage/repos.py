@@ -6,13 +6,11 @@ Ogni repo incapsula le query della propria tabella; la logica di dominio
 
 from __future__ import annotations
 
-import json
 import sqlite3
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable
 
 from ..core.events import ComplianceEvent, DownloadProgress
-from ..core.errors import StorageError
 from ..core.schema import MediaObject
 from .db import RETENTION_COMPLIANCE_DAYS, RETENTION_HISTORY_DAYS, dumps, loads, transaction
 
@@ -159,13 +157,21 @@ class HistoryRepo:
         self._conn = conn
 
     def record_play(self, media: MediaObject, play_seconds: float, watched_at: str | None = None) -> None:
+        """Retrocompatibile: registra un evento 'play'."""
+        self.record_event(media, play_seconds, event_type="play", completion=0.0, watched_at=watched_at)
+
+    def record_event(self, media: MediaObject, play_seconds: float, event_type: str = "play",
+                     completion: float = 0.0, artist_id: int | None = None,
+                     watched_at: str | None = None) -> None:
+        """Registra un evento di ascolto esteso (play/complete/skip/replay/...)."""
         watched_at = watched_at or _now()
         tags_json = dumps(media.tags)
         with transaction(self._conn):
             self._conn.execute(
-                "INSERT INTO history_events(media_id, platform, tags, play_seconds, watched_at) "
-                "VALUES(?,?,?,?,?)",
-                (media.canonical_id, media.platform, tags_json, play_seconds, watched_at),
+                "INSERT INTO history_events(media_id, platform, tags, play_seconds, watched_at, "
+                "artist_id, event_type, completion) VALUES(?,?,?,?,?,?,?,?)",
+                (media.canonical_id, media.platform, tags_json, play_seconds, watched_at,
+                 artist_id, event_type, float(completion or 0.0)),
             )
             row = self._conn.execute(
                 "SELECT play_count, total_seconds FROM history_aggregates WHERE media_id=?",
@@ -211,6 +217,176 @@ class HistoryRepo:
             self._conn.execute("DELETE FROM history_events")
             self._conn.execute("DELETE FROM history_aggregates")
             self._conn.execute("DELETE FROM recommendations")
+
+
+class ArtistRepo:
+    """Identità artisti: anagrafica, alias e link piattaforma (sistema reco v2)."""
+
+    def __init__(self, conn: sqlite3.Connection) -> None:
+        self._conn = conn
+
+    def get(self, artist_id: int) -> dict[str, Any] | None:
+        row = self._conn.execute("SELECT * FROM artists WHERE id=?", (artist_id,)).fetchone()
+        return dict(row) if row else None
+
+    def get_by_norm(self, name_norm: str) -> dict[str, Any] | None:
+        row = self._conn.execute(
+            "SELECT * FROM artists WHERE name_norm=? ORDER BY id LIMIT 1", (name_norm,)
+        ).fetchone()
+        return dict(row) if row else None
+
+    def get_by_alias(self, alias_norm: str) -> dict[str, Any] | None:
+        row = self._conn.execute(
+            "SELECT a.* FROM artists a JOIN artist_aliases al ON al.artist_id=a.id "
+            "WHERE al.alias_norm=? ORDER BY a.id LIMIT 1",
+            (alias_norm,),
+        ).fetchone()
+        return dict(row) if row else None
+
+    def get_by_mbid(self, mbid: str) -> dict[str, Any] | None:
+        if not mbid:
+            return None
+        row = self._conn.execute("SELECT * FROM artists WHERE mbid=?", (mbid,)).fetchone()
+        return dict(row) if row else None
+
+    def resolve(self, name_norm: str) -> dict[str, Any] | None:
+        """Trova per nome normalizzato, alias o (fallback) per nome grezzo."""
+        return self.get_by_norm(name_norm) or self.get_by_alias(name_norm)
+
+    def upsert(self, name: str, name_norm: str, mbid: str | None = None) -> int:
+        existing = self.get_by_norm(name_norm)
+        if not existing and mbid:
+            existing = self.get_by_mbid(mbid)
+        if not existing:
+            existing = self.get_by_alias(name_norm)
+        if existing:
+            artist_id = int(existing["id"])
+            if mbid and not existing.get("mbid"):
+                self.set_mbid(artist_id, mbid, status="resolved")
+            self.add_alias(artist_id, name_norm)
+            return artist_id
+        with transaction(self._conn):
+            cur = self._conn.execute(
+                "INSERT INTO artists(name, name_norm, mbid, resolve_status, created_at) "
+                "VALUES(?,?,?,?,?)",
+                (name, name_norm, mbid, "resolved" if mbid else "unresolved", _now()),
+            )
+            artist_id = int(cur.lastrowid)
+            self._conn.execute(
+                "INSERT OR IGNORE INTO artist_aliases(artist_id, alias_norm) VALUES(?,?)",
+                (artist_id, name_norm),
+            )
+        return artist_id
+
+    def add_alias(self, artist_id: int, alias_norm: str) -> None:
+        with transaction(self._conn):
+            self._conn.execute(
+                "INSERT OR IGNORE INTO artist_aliases(artist_id, alias_norm) VALUES(?,?)",
+                (artist_id, alias_norm),
+            )
+
+    def set_mbid(self, artist_id: int, mbid: str, status: str = "resolved") -> None:
+        with transaction(self._conn):
+            self._conn.execute(
+                "UPDATE artists SET mbid=?, resolve_status=?, resolved_at=? WHERE id=?",
+                (mbid, status, _now(), artist_id),
+            )
+
+    def link(self, artist_id: int, platform: str, url: str) -> None:
+        if not platform or not url:
+            return
+        with transaction(self._conn):
+            self._conn.execute(
+                "INSERT OR IGNORE INTO artist_links(artist_id, platform, url) VALUES(?,?,?)",
+                (artist_id, platform, url),
+            )
+
+    def list_links(self, artist_id: int) -> list[dict[str, Any]]:
+        rows = self._conn.execute(
+            "SELECT platform, url FROM artist_links WHERE artist_id=? ORDER BY platform",
+            (artist_id,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def set_tags(self, artist_id: int, tags: list[tuple[str, float]], source: str) -> None:
+        with transaction(self._conn):
+            self._conn.execute(
+                "DELETE FROM artist_tags WHERE artist_id=? AND source=?", (artist_id, source)
+            )
+            self._conn.executemany(
+                "INSERT OR REPLACE INTO artist_tags(artist_id, tag, weight, source) VALUES(?,?,?,?)",
+                [(artist_id, str(tag), float(weight), source) for tag, weight in tags],
+            )
+
+    def get_tags(self, artist_id: int, source: str | None = None) -> list[dict[str, Any]]:
+        if source:
+            rows = self._conn.execute(
+                "SELECT tag, weight, source FROM artist_tags WHERE artist_id=? AND source=? "
+                "ORDER BY weight DESC", (artist_id, source),
+            ).fetchall()
+        else:
+            rows = self._conn.execute(
+                "SELECT tag, weight, source FROM artist_tags WHERE artist_id=? ORDER BY weight DESC",
+                (artist_id,),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def set_similarity(self, artist_id: int, similar_name_norm: str, score: float,
+                       source: str, reason: str = "", similar_artist_id: int | None = None) -> None:
+        with transaction(self._conn):
+            self._conn.execute(
+                "INSERT OR REPLACE INTO artist_similarity(artist_id, similar_name_norm, "
+                "similar_artist_id, score, source, reason, fetched_at) VALUES(?,?,?,?,?,?,?)",
+                (artist_id, similar_name_norm, similar_artist_id, float(score), source, reason, _now()),
+            )
+
+    def get_similarity(self, artist_id: int, source: str | None = None) -> list[dict[str, Any]]:
+        if source:
+            rows = self._conn.execute(
+                "SELECT similar_name_norm, similar_artist_id, score, source, reason, fetched_at "
+                "FROM artist_similarity WHERE artist_id=? AND source=? ORDER BY score DESC",
+                (artist_id, source),
+            ).fetchall()
+        else:
+            rows = self._conn.execute(
+                "SELECT similar_name_norm, similar_artist_id, score, source, reason, fetched_at "
+                "FROM artist_similarity WHERE artist_id=? ORDER BY score DESC",
+                (artist_id,),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+
+class FeedbackRepo:
+    """Feedback esplicito dell'utente sugli artisti (like/dislike/hide/seed)."""
+
+    def __init__(self, conn: sqlite3.Connection) -> None:
+        self._conn = conn
+
+    def add(self, artist_name_norm: str, action: str, artist_id: int | None = None) -> None:
+        with transaction(self._conn):
+            self._conn.execute(
+                "INSERT INTO rec_feedback(artist_id, artist_name_norm, action, ts) VALUES(?,?,?,?)",
+                (artist_id, artist_name_norm, action, _now()),
+            )
+
+    def latest_actions(self) -> dict[str, str]:
+        """Ultima azione per artista (name_norm → action)."""
+        rows = self._conn.execute(
+            "SELECT artist_name_norm, action FROM rec_feedback f "
+            "WHERE id = (SELECT MAX(id) FROM rec_feedback g "
+            "            WHERE g.artist_name_norm = f.artist_name_norm)"
+        ).fetchall()
+        return {r["artist_name_norm"]: r["action"] for r in rows}
+
+    def list_all(self) -> list[dict[str, Any]]:
+        rows = self._conn.execute(
+            "SELECT id, artist_id, artist_name_norm, action, ts FROM rec_feedback ORDER BY id DESC"
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def clear(self) -> None:
+        with transaction(self._conn):
+            self._conn.execute("DELETE FROM rec_feedback")
 
 
 class ComplianceRepo:

@@ -141,3 +141,65 @@ CREATE TABLE IF NOT EXISTS compliance_log (
   ts TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_compliance_ts ON compliance_log(ts);
+
+-- ==========================================================================
+-- Sistema di raccomandazione v2 (artisti + similarità da fonti esterne)
+-- ==========================================================================
+
+-- Identità artista: una riga per artista noto (nome normalizzato + eventuale MBID)
+CREATE TABLE IF NOT EXISTS artists (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  mbid TEXT UNIQUE,
+  name TEXT NOT NULL,
+  name_norm TEXT NOT NULL,
+  resolve_status TEXT NOT NULL DEFAULT 'unresolved',  -- unresolved | resolved | ambiguous
+  resolved_at TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_artists_name_norm ON artists(name_norm);
+
+-- Alias/varianti di nome → artista (per varianti, " - Topic", traslitterazioni)
+CREATE TABLE IF NOT EXISTS artist_aliases (
+  artist_id INTEGER NOT NULL REFERENCES artists(id) ON DELETE CASCADE,
+  alias_norm TEXT NOT NULL UNIQUE
+);
+
+-- Link piattaforma → URL (profilo/canale/traccia) associati all'artista
+CREATE TABLE IF NOT EXISTS artist_links (
+  artist_id INTEGER NOT NULL REFERENCES artists(id) ON DELETE CASCADE,
+  platform TEXT NOT NULL,
+  url TEXT NOT NULL,
+  UNIQUE(platform, url)
+);
+
+-- Similarità tra artisti precomputata dalle fonti (Last.fm, MusicBrainz, ...)
+CREATE TABLE IF NOT EXISTS artist_similarity (
+  artist_id INTEGER NOT NULL REFERENCES artists(id) ON DELETE CASCADE,
+  similar_name_norm TEXT NOT NULL,
+  similar_artist_id INTEGER REFERENCES artists(id),
+  score REAL NOT NULL,
+  source TEXT NOT NULL,
+  reason TEXT NOT NULL DEFAULT '',
+  fetched_at TEXT NOT NULL,
+  PRIMARY KEY(artist_id, similar_name_norm, source)
+);
+CREATE INDEX IF NOT EXISTS idx_artist_similarity_name ON artist_similarity(similar_name_norm);
+
+-- Tag/generi pesati per artista, per fonte
+CREATE TABLE IF NOT EXISTS artist_tags (
+  artist_id INTEGER NOT NULL REFERENCES artists(id) ON DELETE CASCADE,
+  tag TEXT NOT NULL,
+  weight REAL NOT NULL DEFAULT 0,
+  source TEXT NOT NULL,
+  PRIMARY KEY(artist_id, tag, source)
+);
+
+-- Feedback esplicito dell'utente sugli artisti
+CREATE TABLE IF NOT EXISTS rec_feedback (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  artist_id INTEGER REFERENCES artists(id),
+  artist_name_norm TEXT NOT NULL,
+  action TEXT NOT NULL,   -- like | dislike | hide
+  ts TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_rec_feedback_norm ON rec_feedback(artist_name_norm);

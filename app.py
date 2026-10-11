@@ -7,44 +7,46 @@ Combines CrossWave UX with test2's isolated Media Resolver Engine (yt-dlp subpro
 loudnorm audio normalization, ID3 watermarking, and 5-platform support (YouTube, Bandcamp, SoundCloud, Mixcloud, Vimeo).
 """
 
-import os
-import sys
-import re
-import json
-import time
 import datetime
+import gzip
+import html
+import json
+import os
+import re
 import sqlite3
 import ssl
-import gzip
+import sys
 import threading
+import time
 import urllib.request
-import html
-from urllib.parse import urlparse
 from collections import OrderedDict
-from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from flask import Flask, render_template, jsonify, request, Response
+from pathlib import Path
+from urllib.parse import urlparse
 
 import requests
+from flask import Flask, Response, jsonify, render_template, request
 
 # Import test2 player engine modules
 BASE_DIR = Path(__file__).parent.resolve()
 sys.path.insert(0, str(BASE_DIR))
 
-from player_engine.resolver.service import ResolverService
-from player_engine.resolver.search import SEARCHABLE_PLATFORMS
-from player_engine.core.platforms import detect_platform, native_id_from_url, is_collection_url, PLATFORMS
 from player_engine.core.errors import (
+    RateLimitedError,
     ResolverUnavailableError,
     SearchError,
     SearchRateLimitedError,
     SearchUnsupportedError,
-    RateLimitedError,
 )
+from player_engine.core.platforms import PLATFORMS, detect_platform, is_collection_url, native_id_from_url
 from player_engine.core.schema import MediaObject, MediaType, compute_canonical_id
-from player_engine.storage.db import init_db as init_player_db
-from player_engine.storage.repos import HistoryRepo
+from player_engine.recommend import identity
+from player_engine.recommend.events import infer_event_type
 from player_engine.recommend.worker import RecommendationEngine
+from player_engine.resolver.search import SEARCHABLE_PLATFORMS
+from player_engine.resolver.service import ResolverService
+from player_engine.storage.db import init_db as init_player_db
+from player_engine.storage.repos import ArtistRepo, FeedbackRepo, HistoryRepo
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 app.secret_key = os.environ.get("SECRET_KEY", "crosswave_hybrid_secret_key_2026")
@@ -113,10 +115,13 @@ else:
 
 DB_PATH = DATA_DIR / "crosswave.db"
 RESOLVER_DB_PATH = DATA_DIR / "resolver_cache.db"
-USER_DB_PATH = DATA_DIR / "user.db"
+# Override per i test (CROSSWAVE_USER_DB): evita di toccare il DB reale.
+USER_DB_PATH = Path(os.environ.get("CROSSWAVE_USER_DB") or (DATA_DIR / "user.db"))
 
-# Initialize Isolated Subprocess Media Resolver Engine (in-process for Vercel)
-resolver_service = ResolverService(db_path=str(RESOLVER_DB_PATH), autostart=not IS_VERCEL)
+# Initialize Isolated Subprocess Media Resolver Engine (in-process for Vercel).
+# CROSSWAVE_SKIP_RESOLVER=1 evita di avviare il worker (solo per i test).
+_resolver_autostart = (not IS_VERCEL) and os.environ.get("CROSSWAVE_SKIP_RESOLVER") != "1"
+resolver_service = ResolverService(db_path=str(RESOLVER_DB_PATH), autostart=_resolver_autostart)
 
 # Audio Streaming Cache (LRU)
 AUDIO_CACHE_SIZE = 500
@@ -127,6 +132,8 @@ cache_lock = threading.Lock()
 # DB separato (user.db) così la cache del resolver resta isolata.
 user_conn = init_player_db(str(USER_DB_PATH))
 history_repo = HistoryRepo(user_conn)
+artist_repo = ArtistRepo(user_conn)
+feedback_repo = FeedbackRepo(user_conn)
 recommender = RecommendationEngine(user_conn)
 user_db_lock = threading.Lock()
 
@@ -998,7 +1005,11 @@ def _media_from_ui_track(track):
 
 @app.route('/api/play', methods=['POST'])
 def api_play():
-    """Registra un ascolto (secondi effettivi) e aggiorna le raccomandazioni."""
+    """Registra un evento di ascolto esteso e aggiorna le raccomandazioni.
+
+    Retrocompatibile: {track, seconds} resta valido. Campi opzionali:
+    completion (0..1), event_type (complete|half|partial|skip|replay|...), artist.
+    """
     data = request.json or {}
     try:
         seconds = float(data.get('seconds') or 0)
@@ -1007,16 +1018,31 @@ def api_play():
     if seconds <= 0:
         return jsonify({'error': 'seconds non valido'}), 400
 
-    media = _media_from_ui_track(data.get('track'))
+    track = data.get('track') or {}
+    media = _media_from_ui_track(track)
     if media is None:
         return jsonify({'error': 'Traccia non valida'}), 400
 
     try:
+        completion = max(0.0, min(1.0, float(data.get('completion') or 0)))
+    except (TypeError, ValueError):
+        completion = 0.0
+    event_type = infer_event_type(seconds, completion, data.get('event_type'))
+    artist_name = str(data.get('artist') or track.get('artist') or track.get('uploader') or '').strip()
+
+    try:
         with user_db_lock:
-            recommender.record_play(media, seconds)
+            artist_id = None
+            if artist_name:
+                ref = identity.resolve_local(artist_repo, artist_name,
+                                             platform=media.platform, url=media.source_url)
+                artist_id = ref.artist_id if ref else None
+            history_repo.record_event(media, seconds, event_type=event_type,
+                                      completion=completion, artist_id=artist_id)
+            recommender.recompute()
     except Exception as exc:
         return jsonify({'error': f"Impossibile registrare l'ascolto: {exc}"}), 500
-    return jsonify({'status': 'ok'})
+    return jsonify({'status': 'ok', 'event_type': event_type})
 
 
 @app.route('/api/recommendations', methods=['GET'])
@@ -1030,11 +1056,58 @@ def api_recommendations():
     return jsonify({'items': items})
 
 
+@app.route('/api/recommendations/feedback', methods=['POST'])
+def api_recommendations_feedback():
+    """Feedback esplicito su un artista: like | dislike | hide."""
+    data = request.json or {}
+    artist = str(data.get('artist') or '').strip()
+    action = str(data.get('action') or '').strip().lower()
+    if not artist or action not in ('like', 'dislike', 'hide'):
+        return jsonify({'error': 'artist e action (like|dislike|hide) obbligatori'}), 400
+    try:
+        with user_db_lock:
+            ref = identity.resolve_local(artist_repo, artist)
+            feedback_repo.add(ref.name_norm, action, ref.artist_id if ref else None)
+            if action in ('dislike', 'hide'):
+                recommender.recompute()
+    except Exception as exc:
+        return jsonify({'error': f'Impossibile salvare il feedback: {exc}'}), 500
+    return jsonify({'status': 'ok'})
+
+
+@app.route('/api/recommendations/seeds', methods=['POST'])
+def api_recommendations_seeds():
+    """Seed manuali per il cold start: {artists: [nome, ...]}."""
+    data = request.json or {}
+    names = data.get('artists')
+    if not isinstance(names, list):
+        return jsonify({'error': 'artists deve essere una lista di nomi'}), 400
+    stored: list[str] = []
+    try:
+        with user_db_lock:
+            for raw in names[:50]:
+                name = str(raw or '').strip()
+                if not name:
+                    continue
+                ref = identity.resolve_local(artist_repo, name)
+                if ref:
+                    feedback_repo.add(ref.name_norm, 'seed', ref.artist_id)
+                    stored.append(ref.name_norm)
+    except Exception as exc:
+        return jsonify({'error': f'Impossibile salvare i seed: {exc}'}), 500
+    return jsonify({'status': 'ok', 'seeds': stored})
+
+
 @app.route('/api/recommendations/forget', methods=['POST'])
 def api_recommendations_forget():
-    """Privacy: azzera cronologia + raccomandazioni."""
+    """Privacy: azzera cronologia estesa, raccomandazioni e feedback.
+
+    La cache di similarità (artists/artist_similarity) NON viene toccata:
+    non contiene dati personali.
+    """
     with user_db_lock:
         history_repo.forget_all()
+        feedback_repo.clear()
     return jsonify({'status': 'ok'})
 
 
