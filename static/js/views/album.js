@@ -33,6 +33,30 @@ async function fetchCollection(url) {
     return response.json();
 }
 
+// I titoli delle tracce di alcune piattaforme (es. Bandcamp) arrivano come
+// "Artista - Nome brano": nella vista album si deve vedere solo il nome brano.
+const TITLE_SEPARATORS = [' - ', ' – ', ' — ', ' | '];
+
+function cleanTrackTitle(track) {
+    const title = String(track.title || '');
+    const artist = String(track.artist || '').trim();
+    if (!title || !artist) return track;
+    if (title.toLowerCase().startsWith(artist.toLowerCase())) {
+        const rest = title.slice(artist.length);
+        for (const sep of TITLE_SEPARATORS) {
+            if (rest.startsWith(sep)) {
+                const cleaned = rest.slice(sep.length).trim();
+                if (cleaned) return { ...track, title: cleaned };
+            }
+        }
+    }
+    return track;
+}
+
+function cleanTracks(tracks) {
+    return (tracks || []).map(cleanTrackTitle);
+}
+
 // Apre la vista dettaglio di una raccolta (album Bandcamp, playlist YouTube,
 // set SoundCloud): stesso layout, tracklist e play-all con avanzamento auto.
 export async function openCollectionDetailView(collection) {
@@ -78,7 +102,7 @@ export async function openCollectionDetailView(collection) {
             return;
         }
 
-        const tracks = data.tracks || [];
+        const tracks = cleanTracks(data.tracks);
         if (title) title.innerText = data.album_title || collection.title;
         if (artist) artist.innerText = data.artist || collection.artist;
         if (data.thumbnail && cover) cover.src = data.thumbnail;
@@ -124,6 +148,20 @@ export async function openCollectionDetailView(collection) {
             btnExtSource.classList.remove('hidden');
         }
 
+        // Esplora catalogo (Bandcamp: artista + rileva etichetta dalla release).
+        const btnCatalog = document.getElementById('btn-album-catalog');
+        if (btnCatalog) {
+            if (data.platform === 'bandcamp') {
+                btnCatalog.classList.remove('hidden');
+                btnCatalog.onclick = async () => {
+                    const { openCatalogView } = await import('./catalog.js');
+                    openCatalogView({ url, platform: data.platform, name: data.artist });
+                };
+            } else {
+                btnCatalog.classList.add('hidden');
+            }
+        }
+
     } catch (err) {
         console.error('Failed to load collection view', err);
         showToast('Errore nel caricamento della raccolta', 'error');
@@ -143,7 +181,7 @@ export async function loadAndAddAlbumToQueue(collection, playImmediately = false
     showToast('Caricamento della raccolta...');
     try {
         const data = await fetchCollection(url);
-        const tracks = data.tracks || [];
+        const tracks = cleanTracks(data.tracks);
         if (tracks.length > 0) {
             addPlaylistTracksToQueue(tracks, playImmediately);
             showToast(`Aggiunta la raccolta "${data.album_title}" alla coda.`, 'success');
@@ -167,7 +205,7 @@ export async function playAllAlbumTracks() {
 
     try {
         const data = await fetchCollection(url);
-        const tracks = data.tracks || [];
+        const tracks = cleanTracks(data.tracks);
         if (tracks.length > 0) {
             addPlaylistTracksToQueue(tracks, true);
         } else {

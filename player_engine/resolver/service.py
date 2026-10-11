@@ -252,6 +252,26 @@ class ResolverService:
                                    retry_after=error.get("retry_after", 5.0))
         raise ResolveError(url, error.get("message", "errore album"))
 
+    def catalog(self, platform: str, url: str, limit: int = 100,
+                topic_hint: bool = False) -> dict[str, Any]:
+        """Catalogo di un artista/label (Bandcamp) o canale (YouTube).
+
+        Pass-through del worker: ritorna un dict con meta + sezioni leggere
+        (SearchResult). Degrada con ResolveError se il resolver è giù."""
+        try:
+            response = self._request({
+                "op": "catalog", "platform": platform, "url": url,
+                "limit": limit, "topic": topic_hint,
+            })
+        except ResolverUnavailableError:
+            raise ResolveError(url, "resolver non disponibile")
+
+        if response.get("ok"):
+            return response.get("catalog") or {}
+
+        error = response.get("error", {})
+        raise ResolveError(url, error.get("message", "errore catalogo"))
+
     def _link_only(self, url: str, platform: str, reason: str) -> MediaObject:
         """Media Object minimo 'solo link': nessuno stream, download bloccato."""
         from ..core.schema import Rights, RiskLevel, DownloadLicense, MediaType

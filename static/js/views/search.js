@@ -3,6 +3,7 @@ import { showToast, formatTime, escapeHtml } from '../core/utils.js';
 import { playTrackImmediately, addToQueue, playTrackWithVideo } from '../player/player.js';
 import { openAddToPlaylistModal } from './library.js';
 import { loadAndAddAlbumToQueue, openCollectionDetailView } from './album.js';
+import { openCatalogView } from './catalog.js';
 import { sendToSoundload } from './soundload.js';
 
 let currentSearchResults = [];
@@ -200,6 +201,17 @@ export function createResultRow(track, index, options = {}) {
         ? `<span class="badge-album" title="Raccolta (album / playlist / set)"><i class="fa-solid fa-compact-disc"></i> ${collectionLabel}</span>`
         : '';
 
+    const topicBadge = track.is_topic
+        ? `<span class="card-type-badge topic-badge" title="Canale auto-generato dell'artista">TOPIC</span>`
+        : '';
+    const verifiedBadge = (track.verified && !track.is_topic)
+        ? `<i class="fa-solid fa-circle-check verified-badge" title="Canale ufficiale verificato"></i>`
+        : '';
+
+    const artistHtml = track.catalog_url
+        ? `<span class="artist-catalog-link" title="Esplora il catalogo di ${escapeHtml(track.artist)}">${escapeHtml(track.artist)}</span>`
+        : escapeHtml(track.artist);
+
     const videoBtnHtml = (track.source === 'youtube' && track.type !== 'album')
         ? `<button class="track-row-action-btn vd-s" title="Riproduci con Video"><i class="fa-solid fa-film"></i></button>`
         : '';
@@ -220,8 +232,8 @@ export function createResultRow(track, index, options = {}) {
         </div>
         <img class="track-row-thumbnail" src="${track.thumbnail || 'https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=80'}" alt="Thumb">
         <div class="track-row-details">
-            <div class="track-row-title truncate">${escapeHtml(track.title)} ${typeBadge}</div>
-            <div class="track-row-artist truncate">${escapeHtml(track.artist)}</div>
+            <div class="track-row-title truncate">${escapeHtml(track.title)} ${typeBadge}${topicBadge}</div>
+            <div class="track-row-artist truncate">${artistHtml} ${verifiedBadge}</div>
         </div>
         ${sourceBadgeHtml}
         <div class="track-row-duration">${track.duration > 0 ? formatTime(track.duration) : '--:--'}</div>
@@ -234,9 +246,17 @@ export function createResultRow(track, index, options = {}) {
     `;
 
     row.addEventListener('click', (e) => {
-        if (e.target.closest('.track-row-action-btn') || e.target.closest('.track-row-play-btn') || e.target.closest('.track-row-source-badge')) return;
+        if (e.target.closest('.track-row-action-btn') || e.target.closest('.track-row-play-btn') || e.target.closest('.track-row-source-badge') || e.target.closest('.artist-catalog-link')) return;
         handlePlayAction(track);
     });
+
+    const artistLink = row.querySelector('.artist-catalog-link');
+    if (artistLink) {
+        artistLink.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openCatalogView({ url: track.catalog_url, platform: track.source, name: track.artist, isTopic: track.is_topic });
+        });
+    }
 
     const playBtn = row.querySelector('.track-row-play-btn');
     if (playBtn) {

@@ -466,6 +466,17 @@ class ResolverWorker:
             if outcome.retry_after:
                 error["retry_after"] = round(outcome.retry_after, 1)
             return {"id": rid, "ok": False, "error": error}
+        if op == "catalog":
+            from .catalog import build_catalog, catalog_to_dict
+
+            url = request.get("url", "")
+            platform = request.get("platform") or (detect_platform(url) or "")
+            try:
+                cat = build_catalog(platform, url, int(request.get("limit") or 100),
+                                    bool(request.get("topic")))
+            except Exception as exc:  # mai far cadere il worker per un catalogo
+                return {"id": rid, "ok": False, "error": {"kind": "catalog_failed", "message": str(exc)}}
+            return {"id": rid, "ok": True, "catalog": catalog_to_dict(cat)}
         return {"id": rid, "ok": False, "error": {"kind": "bad_op", "message": f"op sconosciuta: {op}"}}
 
 

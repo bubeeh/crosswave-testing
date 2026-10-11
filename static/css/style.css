@@ -713,6 +713,24 @@ h1, h2, h3, h4, h5, h6,
     font-weight: 600;
 }
 
+.verified-badge {
+    color: var(--accent-cyan);
+    font-size: 11px;
+    margin-left: 5px;
+    vertical-align: middle;
+}
+
+.artist-catalog-link {
+    cursor: pointer;
+    border-bottom: 1px dotted transparent;
+    transition: var(--transition-fast);
+}
+
+.artist-catalog-link:hover {
+    color: var(--accent-cyan);
+    border-bottom-color: var(--accent-cyan);
+}
+
 .track-row-source-badge {
     font-size: 11px;
     width: 20px;

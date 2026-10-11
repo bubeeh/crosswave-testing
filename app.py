@@ -23,6 +23,7 @@ import threading
 import urllib.request
 import html
 import random
+from urllib.parse import urlparse
 from collections import OrderedDict
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -325,6 +326,10 @@ def _search_result_to_track(result):
         'duration': duration,
         'duration_string': f"{int(duration // 60)}:{int(duration % 60):02d}" if duration else "N/D",
         'type': _ui_media_type(platform, url),
+        'verified': bool(getattr(result, 'channel_is_verified', False)),
+        'is_topic': bool(getattr(result, 'is_topic', False)),
+        'catalog_url': getattr(result, 'catalog_url', '') or '',
+        'catalog_name': (getattr(result, 'uploader', '') or ''),
     }
 
 
@@ -579,6 +584,15 @@ def api_proxy_audio():
 # ------------------------------------------------------------------
 # Bandcamp REST API (album / track) — delegata al MediaResolver isolato
 # ------------------------------------------------------------------
+def _media_catalog_url(media):
+    """Profilo catalogo derivabile da un MediaObject (solo Bandcamp: host)."""
+    if media.platform == 'bandcamp' and media.source_url:
+        p = urlparse(media.source_url)
+        if p.scheme and p.netloc:
+            return f"{p.scheme}://{p.netloc}"
+    return ''
+
+
 def _media_to_track(media):
     """Converte un MediaObject nel formato UI (stesso contratto di
     _search_result_to_track: source/artist/id/type...)."""
@@ -595,6 +609,8 @@ def _media_to_track(media):
         'duration': duration,
         'duration_string': f"{int(duration // 60)}:{int(duration % 60):02d}" if duration else "N/D",
         'type': _ui_media_type(media.platform, media.source_url),
+        'catalog_url': _media_catalog_url(media),
+        'catalog_name': media.uploader or '',
     }
 
 
@@ -736,6 +752,29 @@ def api_collection():
         'collection_type': collection_type,
         'tracks': [_media_to_track(t) for t in tracks],
     })
+
+
+@app.route('/api/catalog')
+def api_catalog():
+    """Esplorazione catalogo: discografia di un artista/label Bandcamp o
+    le uscite/playlist/upload di un canale YouTube (vista catalogo)."""
+    url = request.args.get('url', '').strip()
+    if not url:
+        return jsonify({'error': 'URL del catalogo mancante'}), 400
+
+    platform = (request.args.get('platform') or '').strip() or (detect_platform(url) or '')
+    if platform not in ('bandcamp', 'youtube'):
+        return jsonify({'error': 'Esplorazione cataloghi disponibile per Bandcamp e YouTube.'}), 400
+
+    topic_hint = request.args.get('topic') in ('1', 'true', 'yes')
+    try:
+        catalog = resolver_service.catalog(platform, url, topic_hint=topic_hint)
+    except ResolverUnavailableError:
+        return jsonify({'error': 'Motore di risoluzione non disponibile — riprova tra poco.'}), 503
+    except Exception as exc:
+        return jsonify({'error': f'Errore nel caricamento del catalogo: {exc}'}), 500
+
+    return jsonify({'catalog': catalog})
 
 
 # ------------------------------------------------------------------

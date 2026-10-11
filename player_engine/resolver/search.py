@@ -27,7 +27,7 @@ import sys
 import time
 from dataclasses import dataclass, field
 from typing import Any
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 import httpx
 
@@ -45,6 +45,13 @@ HTTP_TIMEOUT = 15.0
 RESULT_LIMIT = 50
 # Solo mix/set lunghi nella sezione Mix Random: 20 min di soglia
 MIX_MIN_DURATION = 1200.0
+# Quante tracce di canali Topic/Official promuovere in cima alla ricerca YT
+_PROMOTED_CAP = 15
+# Parole non significative per capire se un canale è pertinente alla query
+_STOPWORDS = {
+    "official", "video", "audio", "music", "lyrics", "topic", "feat",
+    "featuring", "hd", "hq", "full", "album", "live", "remix", "version", "edit",
+}
 
 UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -308,15 +315,19 @@ class Searcher:
             if not entry_url:
                 continue
             native_id = entry.get("id")
+            channel = str(entry.get("uploader") or entry.get("channel") or entry.get("artist") or "")
             results.append(
                 SearchResult(
                     platform=platform,
                     url=entry_url,
                     title=str(entry["title"])[:300],
-                    uploader=str(entry.get("uploader") or entry.get("channel") or entry.get("artist") or ""),
+                    uploader=channel,
                     duration=float(entry.get("duration") or 0.0),
                     thumbnail=_flat_thumb(entry),
                     canonical_id=compute_canonical_id(platform, native_id, entry_url),
+                    channel_is_verified=bool(entry.get("channel_is_verified")),
+                    is_topic=bool(re.search(r"[-–—]\s*topic$", channel.strip(), re.IGNORECASE)),
+                    catalog_url=str(entry.get("channel_url") or ""),
                 )
             )
             if len(results) >= limit:
@@ -337,7 +348,17 @@ class Searcher:
         playlist_items = playlists.results or []
         if not track_items and not playlist_items:
             return tracks if tracks.results is None else playlists
-        merged = _interleave(track_items, playlist_items, every=3)
+
+        # Priorità: canali Topic (catalogo ufficiale dell'artista) e canali
+        # verificati PERTINENTI alla query in cima; poi le altre tracce
+        # interallacciate con le playlist.
+        tokens = _query_tokens(query)
+        promoted: list[SearchResult] = []
+        others: list[SearchResult] = []
+        for r in track_items:
+            (promoted if _channel_rank(r, tokens) <= 1 else others).append(r)
+        promoted.sort(key=lambda r: 0 if r.is_topic else 1)
+        merged = promoted[:_PROMOTED_CAP] + _interleave(others, playlist_items, every=3)
         return SearchOutcome(results=merged[:limit])
 
     def _search_youtube_playlists(self, query: str, limit: int) -> SearchOutcome:
@@ -512,6 +533,7 @@ class Searcher:
                     uploader=str(item.get("band_name") or ""),
                     thumbnail=thumbnail,
                     canonical_id=compute_canonical_id("bandcamp", None, item_url),
+                    catalog_url=f"{urlparse(item_url).scheme}://{urlparse(item_url).netloc}",
                 )
             )
         if not results:
@@ -548,6 +570,28 @@ class Searcher:
         if not results:
             return SearchOutcome(error_kind="no_results", message=f"nessun risultato per '{query}' (mixcloud)")
         return SearchOutcome(results=results)
+
+
+def _query_tokens(query: str) -> list[str]:
+    """Token significativi (>=3 char, senza stopword) per il match canale/query."""
+    tokens = re.findall(r"[a-z0-9]+", query.lower())
+    return [t for t in tokens if len(t) >= 3 and t not in _STOPWORDS]
+
+
+def _strip_topic_suffix(name: str) -> str:
+    """'Burial - Topic' → 'Burial' (per confrontare il nome artista)."""
+    return re.sub(r"\s*[-–—]\s*topic$", "", name.strip(), flags=re.IGNORECASE).strip()
+
+
+def _channel_rank(result: SearchResult, tokens: list[str]) -> int:
+    """Priorità del canale: 0 = Topic, 1 = verified pertinente, 2 = altri."""
+    if result.is_topic:
+        return 0
+    if result.channel_is_verified:
+        name = _strip_topic_suffix(result.uploader).lower()
+        if name and (any(t in name for t in tokens) or name in result.title.lower()):
+            return 1
+    return 2
 
 
 def _interleave(primary: list[SearchResult], secondary: list[SearchResult], every: int = 3) -> list[SearchResult]:

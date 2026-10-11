@@ -199,6 +199,11 @@ class SearchResult(BaseModel):
 
     La risoluzione completa (streams, licenza) avviene al click tramite
     /api/resolve (riserva Astrid: TTF < 5s — la UI è pronta subito).
+
+    Campi di classificazione canale (YouTube):
+      - channel_is_verified: canale ufficiale verificato;
+      - is_topic: canale auto-generato "Artista - Topic";
+      - catalog_url: profilo/canale apribile nella vista catalogo.
     """
 
     platform: str
@@ -208,6 +213,9 @@ class SearchResult(BaseModel):
     duration: float = 0.0
     thumbnail: str = ""
     canonical_id: str = ""
+    channel_is_verified: bool = False
+    is_topic: bool = False
+    catalog_url: str = ""
 
 
 def derive_tags(raw: dict[str, Any]) -> list[str]:
