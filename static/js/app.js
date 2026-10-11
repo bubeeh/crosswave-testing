@@ -225,6 +225,16 @@ function initMobileUI() {
 
 // --- PWA: registrazione Service Worker ---
 if ('serviceWorker' in navigator) {
+    // Quando arriva una nuova versione del SW (deploy), ricarica una volta per
+    // applicare subito nuovi HTML/CSS/JS senza hard refresh manuale.
+    let refreshing = false;
+    const hadController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!hadController || refreshing) return;
+        refreshing = true;
+        window.location.reload();
+    });
+
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js').catch((err) => {
             console.warn('Service Worker non registrato:', err);
