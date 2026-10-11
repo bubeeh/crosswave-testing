@@ -1,5 +1,5 @@
 // CrossWave Player - minimal service worker (app shell + static asset cache)
-const CACHE_VERSION = 'crosswave-v5';
+const CACHE_VERSION = 'crosswave-v6';
 const SHELL_ASSETS = [
     '/',
     '/static/css/style.css',
@@ -48,21 +48,20 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Static assets: stale-while-revalidate.
+    // Static assets: network-first (moduli JS/CSS sempre freschi quando online),
+    // fallback alla cache solo offline. Evita che i moduli importati senza
+    // query di versione restino serviti da una copia vecchia.
     if (url.pathname.startsWith('/static/')) {
         event.respondWith(
-            caches.match(req).then((cached) => {
-                const network = fetch(req)
-                    .then((res) => {
-                        if (res && res.ok) {
-                            const copy = res.clone();
-                            caches.open(CACHE_VERSION).then((cache) => cache.put(req, copy)).catch(() => undefined);
-                        }
-                        return res;
-                    })
-                    .catch(() => cached);
-                return cached || network;
-            })
+            fetch(req)
+                .then((res) => {
+                    if (res && res.ok) {
+                        const copy = res.clone();
+                        caches.open(CACHE_VERSION).then((cache) => cache.put(req, copy)).catch(() => undefined);
+                    }
+                    return res;
+                })
+                .catch(() => caches.match(req))
         );
     }
 });
