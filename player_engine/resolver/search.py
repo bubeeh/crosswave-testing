@@ -47,6 +47,10 @@ RESULT_LIMIT = 50
 MIX_MIN_DURATION = 1200.0
 # Quante tracce di canali Topic/Official promuovere in cima alla ricerca YT
 _PROMOTED_CAP = 15
+# Quanti album (raccolte OLAK5uy) mettere in testa alla ricerca YT
+_ALBUM_CAP = 8
+# Quante voci (miste) leggere dalla pagina risultati YouTube
+_YOUTUBE_PAGE_FETCH = 60
 # Parole non significative per capire se un canale è pertinente alla query
 _STOPWORDS = {
     "official", "video", "audio", "music", "lyrics", "topic", "feat",
@@ -339,42 +343,22 @@ class Searcher:
         return SearchOutcome(results=results)
 
     # ------------------------------------------------------------------
-    # youtube: tracce (ytsearch) + RACCOLTE (playlist)
+    # youtube: una sola flat della pagina risultati (video + album + playlist)
     # ------------------------------------------------------------------
     def _search_youtube(self, query: str, limit: int) -> SearchOutcome:
-        tracks = self._search_ytdlp("youtube", query, limit)
-        playlists = self._search_youtube_playlists(query, max(1, limit // 2))
-        track_items = tracks.results or []
-        playlist_items = playlists.results or []
-        if not track_items and not playlist_items:
-            return tracks if tracks.results is None else playlists
+        """Ricerca YouTube in un'unica chiamata alla pagina /results.
 
-        # Priorità: canali Topic (catalogo ufficiale dell'artista) e canali
-        # verificati PERTINENTI alla query in cima; poi le altre tracce
-        # interallacciate con le playlist.
-        tokens = _query_tokens(query)
-        promoted: list[SearchResult] = []
-        others: list[SearchResult] = []
-        for r in track_items:
-            (promoted if _channel_rank(r, tokens) <= 1 else others).append(r)
-        promoted.sort(key=lambda r: 0 if r.is_topic else 1)
-        merged = promoted[:_PROMOTED_CAP] + _interleave(others, playlist_items, every=3)
-        return SearchOutcome(results=merged[:limit])
-
-    def _search_youtube_playlists(self, query: str, limit: int) -> SearchOutcome:
-        """Raccolte YouTube: pagina /results con filtro "playlist" (`sp`).
-
-        yt-dlp non espone un canale di ricerca playlist, ma la pagina risultati
-        filtrata (`sp=EgIQAw%3D%3D`) è una playlist di YouTubeTab: il flat
-        restituisce le raccolte con titolo e id in ~1.5s.
+        La pagina risultati non filtrata contiene, insieme ai video, anche le
+        **raccolte**: gli album auto-generati (`playlist?list=OLAK5uy_...`) e le
+        playlist utente (`list=PL...`). Sono proprio gli album a dare la vista
+        album tipo Bandcamp, quindi vanno in testa. I video mantengono i
+        metadati canale (Topic/ufficiale) usati per la priorità.
         """
-        url = f"https://www.youtube.com/results?search_query={quote(query)}&sp=EgIQAw%3D%3D"
+        url = f"https://www.youtube.com/results?search_query={quote(query)}"
         try:
-            # --playlist-end evita di flattenare l'intera pagina (~330 voci):
-            # senza il limite la flat richiede ~13s, con il limite ~2s.
             proc = subprocess.run(
-                _ytdlp_cmd(["-J", "--flat-playlist", "--playlist-end", str(limit),
-                            "--no-warnings", url]),
+                _ytdlp_cmd(["-J", "--flat-playlist", "--playlist-end",
+                            str(max(limit, _YOUTUBE_PAGE_FETCH)), "--no-warnings", url]),
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
@@ -382,7 +366,7 @@ class Searcher:
                 timeout=YTDLP_SEARCH_TIMEOUT,
             )
         except subprocess.TimeoutExpired:
-            return SearchOutcome(error_kind="timeout", message="timeout ricerca playlist youtube")
+            return SearchOutcome(error_kind="timeout", message="timeout ricerca youtube")
         except FileNotFoundError:
             return SearchOutcome(
                 error_kind="search_failed",
@@ -391,41 +375,73 @@ class Searcher:
         if proc.returncode != 0:
             return SearchOutcome(
                 error_kind="search_failed",
-                message=proc.stderr.strip()[:300] or "yt-dlp fallito (youtube playlist)",
+                message=proc.stderr.strip()[:300] or "yt-dlp fallito (youtube)",
             )
         try:
             data = json.loads(proc.stdout)
         except json.JSONDecodeError:
-            return SearchOutcome(error_kind="search_failed", message="output non valido (youtube playlist)")
+            return SearchOutcome(error_kind="search_failed", message="output non valido (youtube)")
 
-        results: list[SearchResult] = []
+        tracks: list[SearchResult] = []
+        albums: list[SearchResult] = []
+        playlists: list[SearchResult] = []
         for entry in data.get("entries") or []:
             if not isinstance(entry, dict):
                 continue
             entry_url = str(entry.get("webpage_url") or entry.get("url") or "")
-            if "list=" not in entry_url:
-                continue
             title = str(entry.get("title") or "").strip()
-            if not title:
+            if not entry_url or not title:
                 continue
-            results.append(
-                SearchResult(
+            if "/playlist" in entry_url:
+                list_id = str(entry.get("id") or _youtube_list_id(entry_url))
+                if list_id.startswith("RD"):
+                    continue  # mix radio auto-generati (rumore)
+                item = SearchResult(
                     platform="youtube",
                     url=entry_url,
                     title=title[:300],
-                    uploader=str(entry.get("uploader") or entry.get("channel") or ""),
+                    uploader=str(entry.get("channel") or entry.get("uploader") or ""),
                     duration=0.0,
                     thumbnail=_flat_thumb(entry),
                     canonical_id=compute_canonical_id("youtube", entry.get("id"), entry_url),
                 )
-            )
-            if len(results) >= limit:
-                break
-        if not results:
+                (albums if list_id.startswith("OLAK5uy") else playlists).append(item)
+            elif entry.get("ie_key") == "Youtube":
+                channel = str(entry.get("channel") or entry.get("uploader") or "")
+                tracks.append(
+                    SearchResult(
+                        platform="youtube",
+                        url=entry_url,
+                        title=title[:300],
+                        uploader=channel,
+                        duration=float(entry.get("duration") or 0.0),
+                        thumbnail=_flat_thumb(entry),
+                        canonical_id=compute_canonical_id("youtube", entry.get("id"), entry_url),
+                        channel_is_verified=bool(entry.get("channel_is_verified")),
+                        is_topic=bool(re.search(r"[-–—]\s*topic$", channel.strip(), re.IGNORECASE)),
+                        catalog_url=str(entry.get("channel_url") or ""),
+                    )
+                )
+
+        if not tracks and not albums and not playlists:
             return SearchOutcome(
-                error_kind="no_results", message=f"nessuna playlist per '{query}' (youtube)"
+                error_kind="no_results", message=f"nessun risultato per '{query}' (youtube)"
             )
-        return SearchOutcome(results=results)
+
+        # Ordine: album (vista album) in testa → tracce Topic/ufficiali → altre
+        # tracce interallacciate con le playlist utente.
+        tokens = _query_tokens(query)
+        promoted: list[SearchResult] = []
+        others: list[SearchResult] = []
+        for r in tracks:
+            (promoted if _channel_rank(r, tokens) <= 1 else others).append(r)
+        promoted.sort(key=lambda r: 0 if r.is_topic else 1)
+        merged = (
+            albums[:_ALBUM_CAP]
+            + promoted[:_PROMOTED_CAP]
+            + _interleave(others, playlists, every=3)
+        )
+        return SearchOutcome(results=merged[:limit])
 
     # ------------------------------------------------------------------
     # soundcloud: tracce (scsearch) + RACCOLTE (set/playlist via API v2)
@@ -570,6 +586,12 @@ class Searcher:
         if not results:
             return SearchOutcome(error_kind="no_results", message=f"nessun risultato per '{query}' (mixcloud)")
         return SearchOutcome(results=results)
+
+
+def _youtube_list_id(url: str) -> str:
+    """Estrae l'id playlist da un URL YouTube (`...?list=OLAK5uy_...`)."""
+    m = re.search(r"[?&]list=([\w-]+)", url)
+    return m.group(1) if m else ""
 
 
 def _query_tokens(query: str) -> list[str]:
