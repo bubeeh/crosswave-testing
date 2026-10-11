@@ -221,7 +221,7 @@ function renderPaginationControls(page, totalPages) {
 
     // Bottone Precedente <
     const prevBtn = document.createElement('button');
-    prevBtn.className = 'page-btn';
+    prevBtn.className = 'page-btn page-prev';
     prevBtn.innerHTML = '<i class="fa-solid fa-chevron-left"></i>';
     if (page === 1) {
         prevBtn.style.opacity = '0.4';
@@ -234,10 +234,16 @@ function renderPaginationControls(page, totalPages) {
     }
     controlsContainer.appendChild(prevBtn);
 
-    // Bottoni numeri di pagina (1, 2, 3...)
+    // Indicatore compatto "1 / n" (visibile solo su mobile)
+    const indicator = document.createElement('span');
+    indicator.className = 'page-indicator';
+    indicator.innerText = `${page} / ${totalPages}`;
+    controlsContainer.appendChild(indicator);
+
+    // Bottoni numeri di pagina (1, 2, 3...) — nascosti su mobile
     for (let p = 1; p <= totalPages; p++) {
         const pageBtn = document.createElement('button');
-        pageBtn.className = `page-btn ${p === page ? 'active' : ''}`;
+        pageBtn.className = `page-btn page-num ${p === page ? 'active' : ''}`;
         pageBtn.innerText = p;
         pageBtn.addEventListener('click', () => {
             renderSearchResultsPage(p);
@@ -248,7 +254,7 @@ function renderPaginationControls(page, totalPages) {
 
     // Bottone Successivo >
     const nextBtn = document.createElement('button');
-    nextBtn.className = 'page-btn';
+    nextBtn.className = 'page-btn page-next';
     nextBtn.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
     if (page === totalPages) {
         nextBtn.style.opacity = '0.4';
@@ -294,11 +300,11 @@ export function createResultRow(track, index, options = {}) {
     const webUrl = track.url || track.webpage_url || track.permalink_url;
 
     const extLinkHtml = webUrl
-        ? `<a href="${escapeHtml(webUrl)}" target="_blank" rel="noopener noreferrer" class="result-action ext-link" title="Apri pagina fonte"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>`
+        ? `<a href="${escapeHtml(webUrl)}" target="_blank" rel="noopener noreferrer" class="result-action ext-link" title="Apri pagina fonte"><i class="fa-solid fa-arrow-up-right-from-square"></i><span class="result-action-label">Apri link</span></a>`
         : '';
 
     const videoBtnHtml = (track.source === 'youtube' && track.type !== 'album')
-        ? `<button class="result-action vd-s" title="Riproduci con video"><i class="fa-solid fa-film"></i></button>`
+        ? `<button class="result-action vd-s" title="Riproduci con video"><i class="fa-solid fa-film"></i><span class="result-action-label">Video</span></button>`
         : '';
 
     const sourceInner = `<i class="${sourceIcon}"></i> <span>${escapeHtml(sourceLabel)}</span>`;
@@ -310,15 +316,20 @@ export function createResultRow(track, index, options = {}) {
         ? escapeHtml(track.thumbnail)
         : 'https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=120';
 
+    // Durata: mostrata solo se valida, altrimenti il campo è omesso (niente "--:--").
+    const hasDuration = typeof track.duration === 'number' && isFinite(track.duration) && track.duration > 0;
+    const durationLabel = hasDuration ? formatTime(track.duration) : '';
+
     row.innerHTML = `
         <button class="result-play" title="Riproduci"><i class="fa-solid fa-play"></i></button>
         <img class="result-cover" src="${coverSrc}" alt="" loading="lazy">
         <div class="result-main">
             <div class="result-title truncate">${escapeHtml(track.title)} ${typeBadge}${topicBadge}</div>
-            <div class="result-artist truncate">${artistHtml} ${verifiedBadge}</div>
+            <div class="result-artist truncate">${artistHtml} ${verifiedBadge}${durationLabel ? `<span class="result-artist-meta"> &middot; ${durationLabel}</span>` : ''}</div>
         </div>
         ${sourceHtml}
-        <div class="result-duration">${track.duration > 0 ? formatTime(track.duration) : '--:--'}</div>
+        ${durationLabel ? `<div class="result-duration">${durationLabel}</div>` : ''}
+        <button class="result-menu-btn" title="Altre azioni" aria-label="Altre azioni"><i class="fa-solid fa-ellipsis"></i></button>
         <div class="result-actions">
             <button class="result-action add-p" title="Aggiungi alla playlist"><i class="fa-solid fa-folder-plus"></i> Playlist</button>
             <button class="result-action add-q" title="Aggiungi alla coda"><i class="fa-solid fa-plus"></i> Coda</button>
@@ -328,7 +339,7 @@ export function createResultRow(track, index, options = {}) {
     `;
 
     row.addEventListener('click', (e) => {
-        if (e.target.closest('.result-action') || e.target.closest('.result-play') || e.target.closest('.result-source') || e.target.closest('.artist-catalog-link')) return;
+        if (e.target.closest('.result-action') || e.target.closest('.result-play') || e.target.closest('.result-source') || e.target.closest('.result-menu-btn') || e.target.closest('.artist-catalog-link')) return;
         handlePlayAction(track);
     });
 
@@ -438,6 +449,23 @@ export function initSearchView() {
 
     const playAllBtn = document.getElementById('search-play-all-btn');
     if (playAllBtn) playAllBtn.addEventListener('click', playAllSearchResults);
+
+    // Menu "⋯" delle righe risultato (mobile): Playlist / Coda / Apri link
+    document.addEventListener('click', (e) => {
+        const menuBtn = e.target.closest('.result-menu-btn');
+        if (menuBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            const row = menuBtn.closest('.result-row');
+            if (!row) return;
+            const willOpen = !row.classList.contains('menu-open');
+            document.querySelectorAll('.result-row.menu-open').forEach(r => r.classList.remove('menu-open'));
+            row.classList.toggle('menu-open', willOpen);
+            return;
+        }
+        // Qualunque altro click chiude i menu aperti
+        document.querySelectorAll('.result-row.menu-open').forEach(r => r.classList.remove('menu-open'));
+    }, true);
 
     // Default: tutte le sorgenti attive (chip con conteggio risultati)
     document.querySelectorAll('.search-filters-row .filter-pill').forEach(pill => {

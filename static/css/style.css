@@ -3292,6 +3292,12 @@ body, .app-container {
     background: var(--surface-3);
 }
 
+/* Elementi mobile-only della riga risultato */
+.result-menu-btn { display: none; }
+.result-artist-meta { display: none; }
+.result-action-label { display: none; }
+.page-indicator { display: none; }
+
 /* --- Web Radio: griglia a 2 colonne --- */
 .web-radios-grid {
     display: grid !important;
@@ -4448,4 +4454,221 @@ body, .app-container {
     .results-count { font-size: 20px; }
     .settings-row { flex-direction: column; align-items: flex-start; }
     .settings-row .btn { align-self: stretch; }
+}
+
+/* ==========================================================================
+   MOBILE ≤430px — correzioni ricerca e mini-player
+   ========================================================================== */
+@media (max-width: 430px) {
+
+    /* Padding laterale uniforme 20px su header, contenuto, lista */
+    .app-header {
+        padding-left: 20px !important;
+        padding-right: 20px !important;
+    }
+    .main-content {
+        padding: 14px 20px 20px 20px !important;
+    }
+
+    /* --- Ricerca: campo (flex:1, min-width:0) e "Cerca" sulla stessa riga --- */
+    .search-box-wrapper,
+    .home-search-box {
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        gap: 8px !important;
+        height: 48px !important;
+        padding: 4px 4px 4px 14px !important;
+        border-radius: 14px !important;
+        overflow: hidden;
+    }
+    .search-box-wrapper .search-icon,
+    .home-search-box .search-icon {
+        display: flex !important;
+        flex: 0 0 auto;
+        margin-right: 2px;
+    }
+    .search-box-wrapper input,
+    .home-search-box input {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+        width: auto !important;
+        padding: 0 !important;
+        font-size: 15px !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .search-action-btn,
+    .home-search-box .search-action-btn {
+        flex: 0 0 auto !important;
+        width: auto !important;
+        height: 40px !important;
+        min-height: 40px;
+        padding: 0 16px !important;
+        border-radius: 11px !important;
+        font-size: 14px !important;
+    }
+
+    /* --- Chip sorgenti: riga a scorrimento, 44px, con contatore --- */
+    .search-filters-row {
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        gap: 10px !important;
+        margin-top: 14px !important;
+        padding-left: 0 !important;
+    }
+    .search-filters-row .filter-label { flex: 0 0 auto; }
+    .filter-pills {
+        flex-wrap: nowrap !important;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        gap: 8px !important;
+        padding-bottom: 2px;
+    }
+    .search-filters-row .filter-pill {
+        flex: 0 0 auto !important;
+        height: 44px;
+        min-height: 44px;
+        white-space: nowrap;
+    }
+
+    /* --- Intestazione risultati --- */
+    .results-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    .results-count {
+        font-size: 19px;
+        line-height: 1.25;
+    }
+    .results-header-actions {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: nowrap;
+    }
+    #search-play-all-btn {
+        white-space: nowrap;
+        flex: 0 0 auto;
+        min-height: 44px;
+        padding: 0 16px;
+    }
+    .search-pagination-controls {
+        flex: 0 0 auto;
+        gap: 6px;
+    }
+    .search-pagination-controls .page-btn {
+        min-width: 44px;
+        height: 44px;
+        padding: 0;
+    }
+    .search-pagination-controls .page-num { display: none !important; }
+    .page-indicator {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 56px;
+        height: 44px;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-secondary);
+    }
+
+    /* --- Riga risultato: copertina 56, titolo 15/600, sottotitolo, "⋯" 44 --- */
+    .result-row {
+        position: relative;
+        padding: 10px 8px !important;
+        gap: 12px !important;
+        align-items: center;
+    }
+    .result-play { display: none !important; }
+    .result-cover {
+        width: 56px !important;
+        height: 56px !important;
+        border-radius: 12px !important;
+    }
+    .result-main { gap: 2px; }
+    .result-title {
+        font-size: 15px;
+        font-weight: 600;
+    }
+    .result-artist { font-size: 13px; }
+    .result-artist-meta { display: inline; }
+    .result-source { display: none !important; }
+    .result-duration { display: none !important; }
+
+    .result-menu-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        flex: 0 0 auto;
+        border: 1px solid var(--border-2);
+        border-radius: 12px;
+        background: transparent;
+        color: var(--text-secondary);
+        font-size: 17px;
+        cursor: pointer;
+    }
+    .result-row .result-actions {
+        position: absolute;
+        right: 8px;
+        top: calc(100% + 4px);
+        flex-direction: column;
+        align-items: stretch;
+        gap: 2px;
+        min-width: 176px;
+        padding: 6px;
+        background: var(--surface-3);
+        border: 1px solid var(--border-3);
+        border-radius: 12px;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+        z-index: 60;
+        opacity: 1;
+        display: none;
+    }
+    .result-row.menu-open { z-index: 61; }
+    .result-row.menu-open .result-actions { display: flex; }
+    .result-row .result-actions .result-action {
+        justify-content: flex-start;
+        width: 100%;
+        padding: 10px 12px;
+        border: none;
+        border-radius: 8px;
+        font-size: 13.5px;
+        gap: 10px;
+    }
+    .result-actions .result-action-label { display: inline; }
+    .result-actions .result-action i { width: 16px; text-align: center; }
+
+    /* --- Mini-player: più spazio a titolo/artista; prev/next solo espansi --- */
+    .player-bar #ctrl-prev,
+    .player-bar #ctrl-next { display: none !important; }
+    .player-bar.expanded #ctrl-prev,
+    .player-bar.expanded #ctrl-next { display: flex !important; }
+
+    .player-bar .player-track-info-header {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+        gap: 8px !important;
+    }
+    .player-bar .track-details-inline {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        overflow: hidden !important;
+        gap: 6px !important;
+    }
+    .player-bar #player-track-title,
+    .player-bar #player-track-artist {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .player-bar #player-track-title { flex: 1 1 auto; }
+    .player-bar #player-track-artist { flex: 0 1 auto; max-width: 42%; }
 }

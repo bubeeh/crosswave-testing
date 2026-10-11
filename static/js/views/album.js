@@ -63,12 +63,15 @@ function createAlbumTrackRow(track, index) {
     row.className = 'track-row album-track-row';
     if (track.id) row.dataset.trackId = track.id;
 
+    const hasDuration = typeof track.duration === 'number' && isFinite(track.duration) && track.duration > 0;
+    const durationLabel = hasDuration ? formatTime(track.duration) : '';
+
     row.innerHTML = `
         <div class="album-track-num">${index + 1}</div>
         <div class="album-track-main">
             <div class="album-track-title truncate">${escapeHtml(track.title)}</div>
         </div>
-        <div class="album-track-duration">${track.duration > 0 ? formatTime(track.duration) : '--:--'}</div>
+        <div class="album-track-duration">${durationLabel}</div>
         <button class="album-track-play" title="Riproduci"><i class="fa-solid fa-play"></i></button>
     `;
 
