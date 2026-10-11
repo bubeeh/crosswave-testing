@@ -174,22 +174,24 @@ class HistoryRepo:
             if row:
                 self._conn.execute(
                     "UPDATE history_aggregates SET play_count=play_count+1, "
-                    "total_seconds=total_seconds+?, last_played=?, tags=?, source_url=? "
-                    "WHERE media_id=?",
-                    (play_seconds, watched_at, tags_json, media.source_url, media.canonical_id),
+                    "total_seconds=total_seconds+?, last_played=?, tags=?, source_url=?, uploader=?, "
+                    "title=?, thumbnail=? WHERE media_id=?",
+                    (play_seconds, watched_at, tags_json, media.source_url,
+                     media.uploader, media.title, media.thumbnail, media.canonical_id),
                 )
             else:
                 self._conn.execute(
                     "INSERT INTO history_aggregates(media_id, platform, play_count, total_seconds, "
-                    "last_played, tags, source_url) VALUES(?,?,1,?,?,?,?)",
+                    "last_played, tags, source_url, uploader, title, thumbnail) "
+                    "VALUES(?,?,1,?,?,?,?,?,?,?)",
                     (media.canonical_id, media.platform, play_seconds, watched_at, tags_json,
-                     media.source_url),
+                     media.source_url, media.uploader, media.title, media.thumbnail),
                 )
 
     def aggregates(self, limit: int = 50) -> list[dict[str, Any]]:
         rows = self._conn.execute(
-            "SELECT media_id, platform, play_count, total_seconds, last_played, tags, source_url "
-            "FROM history_aggregates ORDER BY last_played DESC LIMIT ?",
+            "SELECT media_id, platform, play_count, total_seconds, last_played, tags, source_url, "
+            "uploader, title, thumbnail FROM history_aggregates ORDER BY last_played DESC LIMIT ?",
             (limit,),
         ).fetchall()
         return [dict(r) | {"tags": loads(r["tags"], [])} for r in rows]

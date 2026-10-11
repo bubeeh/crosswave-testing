@@ -213,26 +213,6 @@ class ResolverService:
             raise SearchUnsupportedError(platform)
         raise SearchError(platform, error.get("message", "errore di ricerca"))
 
-    def channel(self, platform: str, channel_id: str) -> list[SearchResult]:
-        """Feed mix di un canale curato (solo set lunghi, filtro nel worker).
-        Solleva errori tipizzati; se il resolver è giù solleva
-        ResolverUnavailableError (stesso contratto di search)."""
-        try:
-            response = self._request({"op": "channel", "platform": platform, "channel_id": channel_id})
-        except ResolverUnavailableError:
-            raise ResolverUnavailableError(channel_id, "processo Media Resolver non attivo")
-
-        if response.get("ok"):
-            return [SearchResult.model_validate(r) for r in response.get("results", [])]
-
-        error = response.get("error", {})
-        kind = error.get("kind", "internal")
-        if kind == "rate_limited":
-            raise SearchRateLimitedError(platform, error.get("retry_after", 5.0), channel_id)
-        if kind == "search_unsupported":
-            raise SearchUnsupportedError(platform)
-        raise SearchError(platform, error.get("message", "errore feed canale"))
-
     def album(self, url: str) -> tuple[MediaObject, list[MediaObject]]:
         """Tracklist completa di un album (meta + tracce già in cache)."""
         try:

@@ -50,7 +50,10 @@ CREATE TABLE IF NOT EXISTS history_aggregates (
   total_seconds REAL NOT NULL DEFAULT 0,
   last_played TEXT NOT NULL,
   tags TEXT NOT NULL DEFAULT '[]',
-  source_url TEXT NOT NULL DEFAULT ''
+  source_url TEXT NOT NULL DEFAULT '',
+  uploader TEXT NOT NULL DEFAULT '',
+  title TEXT NOT NULL DEFAULT '',
+  thumbnail TEXT NOT NULL DEFAULT ''
 );
 
 -- Raccomandazioni PRECOMPUTATE: la home legge solo questa tabella,
@@ -65,6 +68,7 @@ CREATE TABLE IF NOT EXISTS recommendations (
   duration REAL DEFAULT 0,
   reason_tags TEXT NOT NULL DEFAULT '[]',
   source_url TEXT NOT NULL DEFAULT '',
+  uploader TEXT NOT NULL DEFAULT '',
   computed_at TEXT NOT NULL
 );
 

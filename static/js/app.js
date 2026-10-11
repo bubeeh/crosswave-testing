@@ -16,10 +16,6 @@ import './views/search.js';
 import { openAddToPlaylistModal, renderPlaylists, renderHistory } from './views/library.js';
 import './views/album.js';
 import { loadWebRadios } from './views/radios.js';
-import { loadRandomMixIfNeeded } from './views/mixrandom.js';
-import { loadTelegramFeed } from './views/telegram.js';
-import { startDownloadsPolling, stopDownloadsPolling } from './views/downloads.js';
-import './views/soundload.js';
 
 function onDOMReady(fn) {
     if (document.readyState !== 'loading') {
@@ -32,11 +28,8 @@ function onDOMReady(fn) {
 onDOMReady(() => {
     // 1. Register Tab Lifecycle Handlers in Router
     registerTab('home', { onEnter: loadHomeDashboard });
-    registerTab('downloads', { onEnter: startDownloadsPolling, onLeave: stopDownloadsPolling });
     registerTab('web-radio', { onEnter: loadWebRadios });
-    registerTab('mix-random', { onEnter: loadRandomMixIfNeeded });
     registerTab('playlists', { onEnter: renderPlaylists });
-    registerTab('telegram', { onEnter: loadTelegramFeed });
     registerTab('queue-history', {
         onEnter: () => {
             renderQueue();

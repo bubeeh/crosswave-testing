@@ -60,6 +60,10 @@ def migrate(conn: sqlite3.Connection) -> None:
         for sql in (
             "ALTER TABLE history_aggregates ADD COLUMN source_url TEXT NOT NULL DEFAULT ''",
             "ALTER TABLE recommendations ADD COLUMN source_url TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE history_aggregates ADD COLUMN uploader TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE recommendations ADD COLUMN uploader TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE history_aggregates ADD COLUMN title TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE history_aggregates ADD COLUMN thumbnail TEXT NOT NULL DEFAULT ''",
         ):
             try:
                 conn.execute(sql)

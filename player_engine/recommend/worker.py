@@ -87,18 +87,19 @@ class RecommendationEngine:
             for rank, (score, agg, reasons) in enumerate(scored, start=1):
                 self._conn.execute(
                     "INSERT INTO recommendations(rank, media_id, score, platform, title, "
-                    "thumbnail, duration, reason_tags, source_url, computed_at) "
-                    "VALUES(?,?,?,?,?,?,?,?,?,?)",
+                    "thumbnail, duration, reason_tags, source_url, uploader, computed_at) "
+                    "VALUES(?,?,?,?,?,?,?,?,?,?,?)",
                     (
                         rank,
                         agg["media_id"],
                         round(score, 4),
                         agg["platform"],
-                        self._title_for(agg["media_id"], agg["platform"]),
-                        self._thumb_for(agg["media_id"]),
+                        agg.get("title") or self._title_for(agg["media_id"], agg["platform"]),
+                        agg.get("thumbnail") or self._thumb_for(agg["media_id"]),
                         agg["total_seconds"],
                         dumps(reasons),
                         agg.get("source_url", ""),
+                        agg.get("uploader", ""),
                         computed_at,
                     ),
                 )
@@ -136,7 +137,8 @@ class RecommendationEngine:
         try:
             rows = self._conn.execute(
                 "SELECT rank, media_id, score, platform, title, thumbnail, duration, "
-                "reason_tags, source_url, computed_at FROM recommendations ORDER BY rank LIMIT ?",
+                "reason_tags, source_url, uploader, computed_at "
+                "FROM recommendations ORDER BY rank LIMIT ?",
                 (limit,),
             ).fetchall()
         except sqlite3.Error as exc:

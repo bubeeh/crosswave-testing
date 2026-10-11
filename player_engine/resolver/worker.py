@@ -421,22 +421,6 @@ class ResolverWorker:
             if outcome.retry_after:
                 error["retry_after"] = round(outcome.retry_after, 1)
             return {"id": rid, "ok": False, "error": error}
-        if op == "channel":
-            outcome = self.searcher.fetch_channel(
-                request.get("platform", ""), request.get("channel_id", ""),
-                limit=int(request.get("limit") or 20),
-            )
-            if outcome.results is not None:
-                return {
-                    "id": rid,
-                    "ok": True,
-                    "results": [r.model_dump(mode="json") for r in outcome.results],
-                    "cache_hit": outcome.cache_hit,
-                }
-            error = {"kind": outcome.error_kind, "message": outcome.message}
-            if outcome.retry_after:
-                error["retry_after"] = round(outcome.retry_after, 1)
-            return {"id": rid, "ok": False, "error": error}
         if op == "album":
             outcome = self.resolve_album(request.get("url", ""))
             if outcome.media is not None:

@@ -3,7 +3,6 @@ import { showToast, calculateTotalDuration } from '../core/utils.js';
 import { switchTab } from '../core/router.js';
 import { createResultRow } from './search.js';
 import { addPlaylistTracksToQueue } from '../player/player.js';
-import { sendToSoundload } from './soundload.js';
 
 const COLLECTION_BADGES = {
     bandcamp: { icon: 'fa-brands fa-bandcamp', label: 'ALBUM RELEASE' },
@@ -130,13 +129,6 @@ export async function openCollectionDetailView(collection) {
         if (btnPlayAll) {
             btnPlayAll.onclick = () => {
                 if (tracks.length > 0) addPlaylistTracksToQueue(tracks, true);
-            };
-        }
-
-        const btnDlAll = document.getElementById('btn-album-download-all');
-        if (btnDlAll) {
-            btnDlAll.onclick = () => {
-                sendToSoundload(collection);
             };
         }
 

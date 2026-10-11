@@ -21,7 +21,7 @@
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20261011_ytalbums1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20261011_foryou1">
 
     <link rel="icon" type="image/png" href="https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=32&auto=format&fit=crop&q=60">
 </head>
@@ -46,21 +46,9 @@
                     <i class="fa-solid fa-radio"></i>
                     <span>Web Radio</span>
                 </button>
-                <button class="nav-btn" data-tab="mix-random" id="nav-btn-mix-random">
-                    <i class="fa-solid fa-shuffle"></i>
-                    <span>Mixtapes</span>
-                </button>
                 <button class="nav-btn" data-tab="playlists" id="nav-btn-playlists">
                     <i class="fa-solid fa-compact-disc"></i>
                     <span>Playlist</span>
-                </button>
-                <button class="nav-btn" data-tab="telegram" id="nav-btn-telegram">
-                    <i class="fa-brands fa-telegram" style="color: #0088cc;"></i>
-                    <span>Telegram</span>
-                </button>
-                <button class="nav-btn" data-tab="downloads" id="nav-btn-downloads">
-                    <i class="fa-solid fa-cloud-arrow-down"></i>
-                    <span>Downloads</span>
                 </button>
                 <button class="nav-btn" data-tab="queue-history" id="nav-btn-queue-history">
                     <i class="fa-solid fa-list-ol"></i>
@@ -134,27 +122,7 @@
                         </div>
 
 
-                        <!-- CARD 3: Mixtapes -->
-                        <div class="nav-link-card glassmorphic-card link-card-mixtapes" data-target="mix-random">
-                            <div class="link-card-glow-bg"></div>
-                            <div class="link-card-content">
-                                <div class="link-card-icon-badge">
-                                    <i class="fa-solid fa-shuffle"></i>
-                                </div>
-                                <div class="link-card-text">
-                                    <div class="link-card-top-row">
-                                        <h2 class="link-card-title">Mixtapes</h2>
-                                        <span class="tag-pill">Mix Casual</span>
-                                    </div>
-                                    <p class="link-card-desc">Mix casuali, DJ set e selezioni musicali estratte dai tuoi canali</p>
-                                </div>
-                                <div class="link-card-arrow">
-                                    <span>Esplora</span> <i class="fa-solid fa-arrow-right"></i>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- CARD 4: Playlist -->
+                        <!-- CARD 2: Playlist -->
                         <div class="nav-link-card glassmorphic-card link-card-playlists" data-target="playlists">
                             <div class="link-card-glow-bg"></div>
                             <div class="link-card-content">
@@ -174,46 +142,21 @@
                             </div>
                         </div>
 
-                        <!-- CARD 5: Downloads Manager -->
-                        <div class="nav-link-card glassmorphic-card link-card-downloads" data-target="downloads">
-                            <div class="link-card-glow-bg"></div>
-                            <div class="link-card-content">
-                                <div class="link-card-icon-badge">
-                                    <i class="fa-solid fa-cloud-arrow-down"></i>
-                                </div>
-                                <div class="link-card-text">
-                                    <div class="link-card-top-row">
-                                        <h2 class="link-card-title">Downloads</h2>
-                                        <span class="tag-pill">Libreria Locale</span>
-                                    </div>
-                                    <p class="link-card-desc">File MP3 scaricati, coda download in corso e archivio offline</p>
-                                </div>
-                                <div class="link-card-arrow">
-                                    <span>Vedi File</span> <i class="fa-solid fa-arrow-right"></i>
-                                </div>
-                            </div>
-                        </div>
+                    </div>
 
-                        <!-- CARD 6: Telegram -->
-                        <div class="nav-link-card glassmorphic-card link-card-telegram" data-target="telegram">
-                            <div class="link-card-glow-bg"></div>
-                            <div class="link-card-content">
-                                <div class="link-card-icon-badge">
-                                    <i class="fa-brands fa-telegram" style="color: #0088cc;"></i>
-                                </div>
-                                <div class="link-card-text">
-                                    <div class="link-card-top-row">
-                                        <h2 class="link-card-title">Telegram</h2>
-                                        <span class="tag-pill">Bot & Canali</span>
-                                    </div>
-                                    <p class="link-card-desc">Brani inviati al bot Telegram e feed audio integrato</p>
-                                </div>
-                                <div class="link-card-arrow">
-                                    <span>Apri Feed</span> <i class="fa-solid fa-arrow-right"></i>
-                                </div>
-                            </div>
+                    <!-- Per te: raccomandazioni basate sugli ascolti -->
+                    <div class="home-for-you-section" id="home-for-you-section" style="margin-top: 28px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px;">
+                            <h2 style="font-size: 1.2rem; font-weight: 700; margin: 0;">
+                                <i class="fa-solid fa-wand-magic-sparkles accent-cyan"></i> Per te
+                            </h2>
+                            <button class="btn btn-secondary btn-sm hidden" id="home-for-you-forget" title="Azzera cronologia di ascolto e suggerimenti">
+                                <i class="fa-solid fa-eraser"></i> Dimentica tutto
+                            </button>
                         </div>
-
+                        <div id="home-for-you-list" class="home-for-you-grid">
+                            <!-- Card raccomandazioni iniettate da JS -->
+                        </div>
                     </div>
                 </div>
             </section>
@@ -365,9 +308,6 @@
 
 
             <!-- Modular Platform Views -->
-            {% include 'components/view_mix_random.html' %}
-            {% include 'components/view_telegram.html' %}
-            {% include 'components/view_downloads.html' %}
             {% include 'components/view_bandcamp.html' %}
             {% include 'components/view_catalog.html' %}
             {% include 'components/view_youtube.html' %}
@@ -394,7 +334,7 @@
     <script src="https://widget.mixcloud.com/media/js/widgetApi.js" defer></script>
 
     <!-- Modular ES SPA Application -->
-    <script type="module" src="{{ url_for('static', filename='js/app.js') }}?v=20261011_ytalbums1"></script>
+    <script type="module" src="{{ url_for('static', filename='js/app.js') }}?v=20261011_foryou1"></script>
 
 </body>
 

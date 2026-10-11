@@ -1,6 +1,6 @@
 FROM python:3.11-slim
 
-# Dipendenze di sistema (ffmpeg è fondamentale per yt-dlp e per la normalizzazione audio loudnorm)
+# Dipendenze di sistema (ffmpeg serve a yt-dlp per alcuni formati/stream)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     ca-certificates \
@@ -16,8 +16,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copia del codice sorgente
 COPY . .
 
-# Cartella di output e file di DB per la prima inizializzazione
-RUN mkdir -p downloads && touch crosswave.db resolver_cache.db
+# File di DB per la prima inizializzazione (crosswave, cache resolver, libreria utente)
+RUN touch crosswave.db resolver_cache.db user.db
 
 ENV PORT=5002
 ENV FLASK_DEBUG=0

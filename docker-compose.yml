@@ -5,11 +5,10 @@ services:
     ports:
       - "5002:5002"
     volumes:
-      # Persistenza dei DB (utenti, preferiti, playlist e cache resolver)
+      # Persistenza dei DB (app, cache resolver, libreria utente/raccomandazioni)
       - ./crosswave.db:/app/crosswave.db
       - ./resolver_cache.db:/app/resolver_cache.db
-      # Persistenza della cartella download con gli MP3 salvati
-      - ./downloads:/app/downloads
+      - ./user.db:/app/user.db
     environment:
       - PORT=5002
       - FLASK_DEBUG=0

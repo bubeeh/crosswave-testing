@@ -8,6 +8,80 @@ import { initMixcloud, renderMixcloudView, pauseMc, resumeMc, seekMc, setMcVolum
 import { ensureSCPlayer } from './soundcloud.js';
 import { startRadioMetadataPolling, stopRadioMetadataPolling } from './radio.js';
 
+// --- Tracciamento ascolti per "Per te" (invio a /api/play) ---
+const LISTEN_MIN_SECONDS = 15;
+let listeningTrack = null;
+let listenSeconds = 0;
+let listenTickTs = 0;
+let listenTimer = null;
+let listenReported = false;
+
+function startListeningTimer() {
+    if (listenTimer) return;
+    listenTickTs = Date.now();
+    listenTimer = setInterval(() => {
+        const now = Date.now();
+        if (state.isPlaying) listenSeconds += (now - listenTickTs) / 1000;
+        listenTickTs = now;
+    }, 1000);
+}
+
+function stopListeningTimer() {
+    if (listenTimer) {
+        clearInterval(listenTimer);
+        listenTimer = null;
+    }
+}
+
+function resetListening(track) {
+    listeningTrack = track;
+    listenSeconds = 0;
+    listenReported = false;
+    listenTickTs = Date.now();
+}
+
+function sendPlay(payload) {
+    const body = JSON.stringify(payload);
+    try {
+        if (navigator.sendBeacon) {
+            navigator.sendBeacon('/api/play', new Blob([body], { type: 'application/json' }));
+            return;
+        }
+    } catch (e) { /* fallback sotto */ }
+    fetch('/api/play', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+        keepalive: true,
+    }).catch(() => {});
+}
+
+function flushListening(rearm = false) {
+    stopListeningTimer();
+    const track = listeningTrack;
+    const seconds = listenSeconds;
+    if (track && !listenReported && seconds >= LISTEN_MIN_SECONDS) {
+        sendPlay({ track: { ...track }, seconds: Math.round(seconds) });
+        listenReported = true;
+    }
+    if (rearm) {
+        listeningTrack = track;
+        listenSeconds = 0;
+        listenReported = false;
+        listenTickTs = Date.now();
+        if (state.isPlaying) startListeningTimer();
+    } else {
+        listeningTrack = null;
+        listenSeconds = 0;
+        listenReported = false;
+    }
+}
+
+window.addEventListener('beforeunload', () => flushListening());
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushListening(true);
+});
+
 export function initAudioPlayers() {
     initYoutubeAdapter(onYoutubeStateChange);
     initMixcloud(setPlayingState, handleTrackFinished, updateProgressBar);
@@ -185,6 +259,11 @@ export function playTrackWithVideo(track) {
 
 export function setPlayingState(playing) {
     state.isPlaying = playing;
+    if (playing) {
+        startListeningTimer();
+    } else {
+        stopListeningTimer();
+    }
     const playPauseBtn = document.getElementById('ctrl-play-pause');
     if (!playPauseBtn) return;
     const icon = playPauseBtn.querySelector('i');
@@ -406,6 +485,9 @@ export function prevTrack() {
 
 export async function playTrack(track) {
     if (!track) return;
+
+    flushListening();
+    resetListening(track);
 
     pauseAllPlayers();
 

@@ -4,7 +4,6 @@ import { playTrackImmediately, addToQueue, playTrackWithVideo } from '../player/
 import { openAddToPlaylistModal } from './library.js';
 import { loadAndAddAlbumToQueue, openCollectionDetailView } from './album.js';
 import { openCatalogView } from './catalog.js';
-import { sendToSoundload } from './soundload.js';
 
 let currentSearchResults = [];
 let currentPage = 1;
@@ -359,9 +358,6 @@ export function createResultRow(track, index, options = {}) {
             openAddToPlaylistModal(track);
         });
     }
-
-    const dlS = row.querySelector('.dl-s');
-    if (dlS) dlS.addEventListener('click', () => sendToSoundload(track));
 
     return row;
 }

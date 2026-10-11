@@ -9,11 +9,8 @@ export function registerTab(tabId, handlers) {
 const HASH_MAP = {
     'home': '#/home',
     'search': '#/search',
-    'downloads': '#/downloads',
     'web-radio': '#/web-radio',
-    'mix-random': '#/mix-random',
     'playlists': '#/playlists',
-    'telegram': '#/telegram',
     'queue-history': '#/queue-history',
 };
 
@@ -49,10 +46,6 @@ export function switchTab(tabId) {
             tabRegistry[tabId].onEnter();
         } catch (e) {
             console.error(`Error in onEnter for tab ${tabId}:`, e);
-        }
-    } else {
-        if (tabRegistry['downloads'] && tabRegistry['downloads'].onLeave) {
-            tabRegistry['downloads'].onLeave();
         }
     }
 

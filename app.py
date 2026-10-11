@@ -12,24 +12,19 @@ import sys
 import re
 import json
 import time
-import uuid
 import datetime
 import sqlite3
 import ssl
-import zipfile
 import gzip
-import tempfile
 import threading
 import urllib.request
 import html
-import random
 from urllib.parse import urlparse
 from collections import OrderedDict
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from flask import Flask, render_template, jsonify, request, Response, send_file
+from flask import Flask, render_template, jsonify, request, Response
 
-import yt_dlp
 import requests
 
 # Import test2 player engine modules
@@ -38,8 +33,7 @@ sys.path.insert(0, str(BASE_DIR))
 
 from player_engine.resolver.service import ResolverService
 from player_engine.resolver.search import SEARCHABLE_PLATFORMS
-from player_engine.core.channels import CHANNELS
-from player_engine.core.platforms import detect_platform, native_id_from_url, is_collection_url
+from player_engine.core.platforms import detect_platform, native_id_from_url, is_collection_url, PLATFORMS
 from player_engine.core.errors import (
     ResolverUnavailableError,
     SearchError,
@@ -47,9 +41,10 @@ from player_engine.core.errors import (
     SearchUnsupportedError,
     RateLimitedError,
 )
-from player_engine.download.watermark import apply_watermark
-from downloader.download_core import clean_temporary_residues
-from telegram_bot import init_telegram_db, start_telegram_bot_thread
+from player_engine.core.schema import MediaObject, MediaType, compute_canonical_id
+from player_engine.storage.db import init_db as init_player_db
+from player_engine.storage.repos import HistoryRepo
+from player_engine.recommend.worker import RecommendationEngine
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 app.secret_key = os.environ.get("SECRET_KEY", "crosswave_hybrid_secret_key_2026")
@@ -62,7 +57,7 @@ _GZIP_MIN_BYTES = 500
 
 def _should_gzip(response) -> bool:
     """Comprime solo risposte in memoria (mai streaming audio) di tipo testo."""
-    if request.path.startswith('/api/downloads/stream'):
+    if request.path.startswith('/api/proxy_audio'):
         return False
     if request.path.startswith('/static/'):
         # I file statici sono piccoli: disattiviamo il passthrough per
@@ -118,12 +113,7 @@ else:
 
 DB_PATH = DATA_DIR / "crosswave.db"
 RESOLVER_DB_PATH = DATA_DIR / "resolver_cache.db"
-DOWNLOAD_DIR = DATA_DIR / "downloads"
-
-try:
-    DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
-except Exception as e:
-    print(f"Warning creating DOWNLOAD_DIR: {e}")
+USER_DB_PATH = DATA_DIR / "user.db"
 
 # Initialize Isolated Subprocess Media Resolver Engine (in-process for Vercel)
 resolver_service = ResolverService(db_path=str(RESOLVER_DB_PATH), autostart=not IS_VERCEL)
@@ -133,10 +123,12 @@ AUDIO_CACHE_SIZE = 500
 audio_url_cache = OrderedDict()
 cache_lock = threading.Lock()
 
-# Background download executor (concurrency limit = 2 for CPU safety)
-soundload_executor = ThreadPoolExecutor(max_workers=2)
-soundload_jobs = {}
-soundload_jobs_lock = threading.Lock()
+# Libreria utente locale: cronologia ascolti + raccomandazioni "Per te".
+# DB separato (user.db) così la cache del resolver resta isolata.
+user_conn = init_player_db(str(USER_DB_PATH))
+history_repo = HistoryRepo(user_conn)
+recommender = RecommendationEngine(user_conn)
+user_db_lock = threading.Lock()
 
 
 # ------------------------------------------------------------------
@@ -234,39 +226,8 @@ def init_db():
                 default_radios
             )
 
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS custom_channels (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                platform TEXT NOT NULL,
-                url TEXT NOT NULL UNIQUE,
-                label TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS system_flags (
-                key TEXT PRIMARY KEY,
-                value TEXT
-            )
-        ''')
-
-        cursor.execute("SELECT value FROM system_flags WHERE key = 'channels_seeded'")
-        if not cursor.fetchone():
-            cursor.execute("SELECT COUNT(*) as count FROM custom_channels")
-            if cursor.fetchone()['count'] == 0:
-                default_channels = [
-                    ("youtube", "https://www.youtube.com/@gvonniai/videos", "gvonniai")
-                ]
-                cursor.executemany(
-                    "INSERT INTO custom_channels (platform, url, label) VALUES (?, ?, ?)",
-                    default_channels
-                )
-            cursor.execute("INSERT OR REPLACE INTO system_flags (key, value) VALUES ('channels_seeded', '1')")
-
         conn.commit()
         conn.close()
-        init_telegram_db()
     except Exception as e:
         print(f"Warning: init_db encountered an exception (likely Vercel read-only DB): {e}")
 
@@ -412,38 +373,6 @@ def api_search():
                                 'message': 'Errore interno della ricerca', 'retry_after': 0}
 
     return jsonify({'query': query, 'results': results})
-
-
-@app.route('/api/mix/random')
-def api_mix_random():
-    """Mix random: canale casuale dal registry curato (CHANNELS), feed dei
-    suoi ultimi set (filtro durata nel worker), shuffle. Il canale corrente
-    può essere escluso con ?exclude=<key> (bottone "Altro")."""
-    channels = list(CHANNELS)
-    if not channels:
-        return jsonify({'error': 'Nessun canale nel registry'}), 500
-    exclude = request.args.get('exclude', '')
-    pool = [c for c in channels if c['key'] != exclude] or channels
-    channel = random.choice(pool)
-    try:
-        results = resolver_service.channel(channel['platform'], channel['id'])
-    except SearchRateLimitedError as exc:
-        return jsonify({'error': 'rate_limited', 'message': str(exc),
-                        'retry_after': exc.retry_after}), 429
-    except (SearchError, ResolverUnavailableError) as exc:
-        return jsonify({'error': 'channel_failed',
-                        'message': f'{channel["label"]}: {exc}'}), 502
-    except Exception as exc:  # mai far cadere la sezione per un bug interno
-        return jsonify({'error': 'internal', 'message': f'Errore interno: {exc}'}), 500
-
-    mixes = [_search_result_to_track(r) for r in results]
-    random.shuffle(mixes)
-    return jsonify({
-        'channel': {'key': channel['key'], 'platform': channel['platform'],
-                    'label': channel['label']},
-        'mixes': mixes,
-        'total': len(mixes),
-    })
 
 
 # ------------------------------------------------------------------
@@ -785,28 +714,6 @@ def api_catalog():
 # ------------------------------------------------------------------
 # Favorites & Playlists REST API
 # ------------------------------------------------------------------
-# ------------------------------------------------------------------
-# Telegram Shared Music Feed REST API
-# ------------------------------------------------------------------
-@app.route('/api/telegram/feed', methods=['GET'])
-def api_telegram_feed():
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM telegram_shares ORDER BY created_at DESC")
-    rows = [dict(r) for r in cursor.fetchall()]
-    conn.close()
-    return jsonify({'shares': rows})
-
-@app.route('/api/telegram/feed/<int:share_id>', methods=['DELETE'])
-def api_delete_telegram_share(share_id):
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM telegram_shares WHERE id = ?", (share_id,))
-    conn.commit()
-    conn.close()
-    return jsonify({'message': 'Elemento rimosso dal feed Telegram'})
-
-
 @app.route('/api/playlists', methods=['GET', 'POST'])
 def api_playlists():
     conn = get_db()
@@ -1049,244 +956,6 @@ def api_radio_details(radio_id):
     return jsonify({'radio': radio_dict})
 
 
-# ------------------------------------------------------------------
-# Custom Channels & Random Mix REST API
-# ------------------------------------------------------------------
-def _normalize_channel_url(url, platform='youtube'):
-    url = url.strip()
-    if url.startswith('@'):
-        url = f"https://www.youtube.com/{url}"
-    if 'youtube.com/@' in url:
-        clean = url.rstrip('/')
-        if not any(clean.endswith(s) for s in ['/videos', '/shorts', '/streams', '/playlists', '/featured']):
-            url = f"{clean}/videos"
-    return url
-
-
-@app.route('/api/channels', methods=['GET', 'POST'])
-def api_channels():
-    conn = get_db()
-    cursor = conn.cursor()
-
-    if request.method == 'GET':
-        cursor.execute("SELECT * FROM custom_channels ORDER BY id ASC")
-        channels = [dict(c) for c in cursor.fetchall()]
-        conn.close()
-        return jsonify({'channels': channels})
-
-    data = request.json or {}
-    raw_url = data.get('url', '').strip()
-    label = data.get('label', '').strip()
-    platform = data.get('platform', '').strip()
-
-    if not raw_url:
-        return jsonify({'error': 'URL o identificatore canale obbligatorio'}), 400
-
-    if not platform:
-        platform = detect_platform(raw_url) or 'youtube'
-
-    url = _normalize_channel_url(raw_url, platform)
-
-    if not label:
-        parts = [p for p in url.rstrip('/').split('/') if p]
-        if parts:
-            last = parts[-1]
-            if last in ['videos', 'featured', 'playlists', 'streams', 'shorts'] and len(parts) > 1:
-                label = parts[-2]
-            else:
-                label = last
-        else:
-            label = 'Canale Personalizzato'
-
-    try:
-        cursor.execute(
-            "INSERT INTO custom_channels (platform, url, label) VALUES (?, ?, ?)",
-            (platform, url, label)
-        )
-        channel_id = cursor.lastrowid
-        conn.commit()
-        return jsonify({'message': f"Canale '{label}' aggiunto alla lista", 'id': channel_id})
-    except sqlite3.IntegrityError:
-        return jsonify({'error': 'Canale già presente in lista'}), 400
-    finally:
-        conn.close()
-
-@app.route('/api/channels/<int:channel_id>', methods=['DELETE'])
-def api_delete_channel(channel_id):
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM custom_channels WHERE id = ?", (channel_id,))
-    conn.commit()
-    conn.close()
-    return jsonify({'message': 'Canale rimosso'})
-
-
-@app.route('/api/random_mix', methods=['GET'])
-def api_random_mix():
-    channel_id = request.args.get('channel_id', type=int)
-    conn = get_db()
-    cursor = conn.cursor()
-
-    if channel_id:
-        cursor.execute("SELECT * FROM custom_channels WHERE id = ?", (channel_id,))
-        channels = [dict(r) for r in cursor.fetchall()]
-    else:
-        cursor.execute("SELECT * FROM custom_channels")
-        channels = [dict(r) for r in cursor.fetchall()]
-    conn.close()
-
-    if not channels:
-        return jsonify({
-            'track': None,
-            'channel': None,
-            'empty': True,
-            'message': 'Nessun canale salvato. Aggiungi un canale per iniziare!'
-        }), 200
-
-    shuffled_custom = list(channels)
-    random.shuffle(shuffled_custom)
-    results = []
-    selected_label = ""
-    selected_channel = None
-
-    for ch in shuffled_custom:
-        platform = ch['platform']
-        channel_url = _normalize_channel_url(ch['url'], platform)
-        try:
-            res = resolver_service.channel(platform, channel_url)
-            if not res and platform == 'youtube' and not channel_url.endswith('/videos'):
-                res = resolver_service.channel(platform, channel_url.rstrip('/') + '/videos')
-            if res:
-                results = res
-                selected_label = ch['label']
-                selected_channel = ch
-                break
-        except Exception:
-            continue
-
-    if not results:
-        return jsonify({
-            'track': None,
-            'channel': None,
-            'empty': False,
-            'message': 'Impossibile estrarre mix dai canali salvati al momento.'
-        }), 200
-
-    chosen_res = random.choice(results)
-    track = _search_result_to_track(chosen_res)
-    track['channel_label'] = selected_label
-
-    return jsonify({
-        'track': track,
-        'channel': selected_channel
-    })
-
-
-# ------------------------------------------------------------------
-# Advanced Download Engine (Loudnorm + Watermark ID3)
-# ------------------------------------------------------------------
-
-def run_hybrid_download(job_id, url, title, artist):
-    try:
-        with soundload_jobs_lock:
-            soundload_jobs[job_id]['status'] = 'downloading'
-            soundload_jobs[job_id]['message'] = 'Estrazione audio in corso con normalizzazione loudnorm...'
-
-        clean_title = re.sub(r'[^\w\s-]', '', title).strip() or f"track_{int(time.time())}"
-        output_filename = f"{clean_title}.mp3"
-        target_path = DOWNLOAD_DIR / output_filename
-
-        ydl_opts = {
-            'format': 'bestaudio/best',
-            'outtmpl': str(target_path.with_suffix('.%(ext)s')),
-            'postprocessors': [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'mp3',
-                'preferredquality': '320',
-            }],
-            'quiet': True
-        }
-
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
-
-        # Apply ID3 Watermark and loudnorm metadata
-        if target_path.exists():
-            apply_watermark(
-                file_path=target_path,
-                user_hash=uuid.uuid4().hex[:8],
-                source_url=url,
-                timestamp=time.strftime('%Y-%m-%dT%H:%M:%SZ'),
-                title=title
-            )
-
-        with soundload_jobs_lock:
-            soundload_jobs[job_id]['status'] = 'completed'
-            soundload_jobs[job_id]['percent_val'] = 100.0
-            soundload_jobs[job_id]['message'] = 'Download e Watermark completati con successo '
-    except Exception as exc:
-        with soundload_jobs_lock:
-            soundload_jobs[job_id]['status'] = 'failed'
-            soundload_jobs[job_id]['message'] = f'Errore: {str(exc)}'
-    finally:
-        clean_temporary_residues(DOWNLOAD_DIR)
-
-@app.route('/api/soundload/enqueue', methods=['POST'])
-def api_soundload_enqueue():
-    data = request.json or {}
-    url = data.get('url', '').strip()
-    if not url:
-        return jsonify({'error': 'URL mancante'}), 400
-
-    job_id = f"job_{int(time.time())}_{uuid.uuid4().hex[:6]}"
-    title = data.get('title') or url
-    artist = data.get('artist') or 'CrossWave Hybrid Engine'
-
-    job_data = {
-        "id": job_id,
-        "url": url,
-        "title": title,
-        "artist": artist,
-        "status": "pending",
-        "percent_val": 0.0,
-        "message": "In attesa nella coda del motore ibrido...",
-        "created_at": time.time()
-    }
-
-    with soundload_jobs_lock:
-        soundload_jobs[job_id] = job_data
-        if len(soundload_jobs) > 100:
-            oldest_key = min(soundload_jobs.keys(), key=lambda k: soundload_jobs[k].get('created_at', 0))
-            soundload_jobs.pop(oldest_key, None)
-
-    soundload_executor.submit(run_hybrid_download, job_id, url, title, artist)
-    return jsonify({"status": "success", "job_id": job_id, "message": f"Download di '{title}' avviato nel motore ibrido "})
-
-
-@app.route('/api/downloads/local')
-def api_downloads_local():
-    files_list = []
-    if DOWNLOAD_DIR.exists():
-        for root, dirs, files in os.walk(DOWNLOAD_DIR):
-            for f in sorted(files):
-                if f.endswith(('.mp3', '.flac', '.m4a')):
-                    full_path = Path(root) / f
-                    files_list.append({
-                        'filename': f,
-                        'artist': 'Libreria Ibrida',
-                        'title': f.rsplit('.', 1)[0],
-                        'size_mb': round(full_path.stat().st_size / (1024 * 1024), 2)
-                    })
-    return jsonify({'files': files_list, 'download_dir': str(DOWNLOAD_DIR)})
-
-@app.route('/api/downloads/stream/<path:filename>')
-def api_downloads_stream(filename):
-    file_path = (DOWNLOAD_DIR / filename).resolve()
-    if not file_path.exists() or not str(file_path).startswith(str(DOWNLOAD_DIR)):
-        return jsonify({'error': 'File non trovato'}), 404
-    return send_file(file_path, mimetype='audio/mpeg')
-
-
 @app.route('/api/system')
 def api_system():
     health = resolver_service.health()
@@ -1295,8 +964,78 @@ def api_system():
         'engine': 'CrossWave Hybrid (Flask UX + Subprocess MediaResolver)',
         'resolver_ok': health.get('ok', False),
         'resolver_version': health.get('resolver_version', 'yt-dlp'),
-        'active_jobs': len([j for j in soundload_jobs.values() if j['status'] == 'downloading'])
     })
+
+
+# ------------------------------------------------------------------
+# "Per te": cronologia ascolti + raccomandazioni precomputate
+# ------------------------------------------------------------------
+def _media_from_ui_track(track):
+    """Costruisce un MediaObject minimale dal payload UI (senza ri-risolvere)."""
+    track = track or {}
+    url = str(track.get('url') or '').strip()
+    platform = str(track.get('source') or track.get('platform') or '').strip().lower()
+    if platform not in PLATFORMS:
+        platform = detect_platform(url) or platform
+    if not url or platform not in PLATFORMS:
+        return None
+    uploader = str(track.get('artist') or track.get('uploader') or '')
+    tags = [platform]
+    if uploader:
+        tags.append(f"artist:{uploader}")
+    return MediaObject(
+        canonical_id=track.get('canonical_id') or compute_canonical_id(platform, None, url),
+        platform=platform,
+        source_url=url,
+        title=str(track.get('title') or 'Senza Titolo'),
+        uploader=uploader,
+        duration=float(track.get('duration') or 0.0),
+        thumbnail=str(track.get('thumbnail') or ''),
+        media_type=MediaType.VIDEO if platform in ('youtube', 'vimeo') else MediaType.AUDIO,
+        tags=tags,
+    )
+
+
+@app.route('/api/play', methods=['POST'])
+def api_play():
+    """Registra un ascolto (secondi effettivi) e aggiorna le raccomandazioni."""
+    data = request.json or {}
+    try:
+        seconds = float(data.get('seconds') or 0)
+    except (TypeError, ValueError):
+        seconds = 0.0
+    if seconds <= 0:
+        return jsonify({'error': 'seconds non valido'}), 400
+
+    media = _media_from_ui_track(data.get('track'))
+    if media is None:
+        return jsonify({'error': 'Traccia non valida'}), 400
+
+    try:
+        with user_db_lock:
+            recommender.record_play(media, seconds)
+    except Exception as exc:
+        return jsonify({'error': f"Impossibile registrare l'ascolto: {exc}"}), 500
+    return jsonify({'status': 'ok'})
+
+
+@app.route('/api/recommendations', methods=['GET'])
+def api_recommendations():
+    try:
+        limit = min(50, max(1, int(request.args.get('limit', 20))))
+    except (TypeError, ValueError):
+        limit = 20
+    with user_db_lock:
+        items = recommender.home(limit)
+    return jsonify({'items': items})
+
+
+@app.route('/api/recommendations/forget', methods=['POST'])
+def api_recommendations_forget():
+    """Privacy: azzera cronologia + raccomandazioni."""
+    with user_db_lock:
+        history_repo.forget_all()
+    return jsonify({'status': 'ok'})
 
 
 # ------------------------------------------------------------------
@@ -1321,15 +1060,4 @@ if __name__ == '__main__':
     debug = os.environ.get("FLASK_DEBUG", "1") != "0"
     print(f"Avvio di CrossWave Hybrid Server su http://localhost:{port} "
           f"(debug={'on' if debug else 'off'} — FLASK_DEBUG=0 per disabilitare reloader)")
-    # Il bot Telegram deve partire UNA sola volta. Con il reloader Werkzeug attivo
-    # (debug mode) il processo padre NON deve avviare il thread: due poller sullo
-    # stesso token causano 409 Conflict e messaggi persi/duplicati.
-    if debug and os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
-        print("[TelegramBot] Avvio saltato nel processo padre del reloader (debug mode): "
-              "il worker partirà nel processo di lavoro.")
-    else:
-        try:
-            start_telegram_bot_thread()
-        except Exception as e:
-            print(f"[TelegramBot] Errore avvio thread: {e}")
     app.run(debug=debug, host='0.0.0.0', port=port)

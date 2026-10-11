@@ -1,15 +1,15 @@
-// Home Dashboard View Module for CrossWave Hybrid (Clean Link Cards Launcher)
+// Home Dashboard View Module for CrossWave Hybrid
 import { state } from '../core/state.js';
 import { showToast, escapeHtml } from '../core/utils.js';
 import { navigate } from '../core/router.js';
 import { executeSearch } from './search.js';
-import { loadHomeMixRandom } from './mixrandom.js';
+import { playTrackImmediately } from '../player/player.js';
 
 export async function loadHomeDashboard() {
     initHomeSearch();
     bindNavLinkCards();
     updateHomeBadges();
-    loadHomeMixRandom();
+    loadForYou();
 }
 
 // --- Top Home Search Bar Handler ---
@@ -87,10 +87,101 @@ function bindNavLinkCards() {
 
 // --- Update Badge Counts on Cards ---
 async function updateHomeBadges() {
-    // Playlists count badge
     const playlistPill = document.getElementById('home-playlist-count-pill');
     if (playlistPill) {
         const count = Object.keys(state.playlists || {}).length;
         playlistPill.innerText = `${count} raccolte`;
     }
+}
+
+// --- "Per te": raccomandazioni precomputate dal backend ---
+function youtubeVideoId(url) {
+    const m = String(url || '').match(/[?&]v=([\w-]+)/);
+    return m ? m[1] : '';
+}
+
+function recToTrack(item) {
+    const platform = item.platform;
+    const native = platform === 'youtube' ? youtubeVideoId(item.source_url) : '';
+    return {
+        id: (platform === 'youtube' && native) ? `yt_${native}` : (item.media_id || item.source_url),
+        canonical_id: item.media_id,
+        title: item.title || 'Senza Titolo',
+        artist: item.uploader || 'Artista Sconosciuto',
+        source: platform,
+        url: item.source_url,
+        thumbnail: item.thumbnail || '',
+        duration: item.duration || 0,
+        type: 'track',
+    };
+}
+
+function renderForYouCard(item) {
+    const platform = item.platform || '';
+    const tags = (item.reason_tags || [])
+        .filter(t => typeof t === 'string' && !t.startsWith('artist:') && t !== platform)
+        .slice(0, 2);
+
+    let sourceIcon = 'fa-solid fa-music';
+    if (platform === 'youtube') sourceIcon = 'fa-brands fa-youtube';
+    if (platform === 'soundcloud') sourceIcon = 'fa-brands fa-soundcloud';
+    if (platform === 'bandcamp') sourceIcon = 'fa-brands fa-bandcamp';
+    if (platform === 'mixcloud') sourceIcon = 'fa-brands fa-mixcloud';
+
+    const card = document.createElement('div');
+    card.className = 'for-you-card glassmorphic-card';
+    card.innerHTML = `
+        <div class="for-you-cover">
+            <img src="${escapeHtml(item.thumbnail || 'https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=300')}"
+                 alt="${escapeHtml(item.title || '')}"
+                 onerror="this.src='https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=300'">
+            <span class="for-you-source"><i class="${sourceIcon}"></i></span>
+        </div>
+        <div class="for-you-info">
+            <div class="for-you-title truncate">${escapeHtml(item.title || 'Senza Titolo')}</div>
+            <div class="for-you-artist truncate">${escapeHtml(item.uploader || 'Artista Sconosciuto')}</div>
+            ${tags.length ? `<div class="for-you-tags truncate">${tags.map(t => escapeHtml(t)).join(' · ')}</div>` : ''}
+        </div>
+    `;
+    card.addEventListener('click', () => playTrackImmediately(recToTrack(item)));
+    return card;
+}
+
+export async function loadForYou() {
+    const grid = document.getElementById('home-for-you-list');
+    if (!grid) return;
+    const forgetBtn = document.getElementById('home-for-you-forget');
+    try {
+        const res = await fetch('/api/recommendations?limit=12');
+        const data = await res.json();
+        const items = data.items || [];
+
+        if (items.length === 0) {
+            grid.innerHTML = '<div class="empty-state-text" style="grid-column: 1/-1; padding: 14px;">Ascolta qualche brano: qui compariranno i suggerimenti personalizzati.</div>';
+            if (forgetBtn) forgetBtn.classList.add('hidden');
+            return;
+        }
+
+        if (forgetBtn) {
+            forgetBtn.classList.remove('hidden');
+            forgetBtn.onclick = clearForYou;
+        }
+
+        grid.innerHTML = '';
+        items.forEach(item => grid.appendChild(renderForYouCard(item)));
+    } catch (err) {
+        console.error('Failed to load recommendations', err);
+        grid.innerHTML = '';
+    }
+}
+
+async function clearForYou() {
+    if (!confirm('Azzerare la cronologia di ascolto e i suggerimenti "Per te"?')) return;
+    try {
+        await fetch('/api/recommendations/forget', { method: 'POST' });
+    } catch (e) {
+        // ignora: la UI si aggiorna comunque
+    }
+    showToast('Suggerimenti azzerati');
+    loadForYou();
 }
