@@ -21,7 +21,7 @@
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20261012_recv3">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20261012_player1">
 
     <link rel="icon" type="image/png" href="https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=32&auto=format&fit=crop&q=60">
 </head>
@@ -53,6 +53,10 @@
                 <button class="nav-btn sidebar-nav-btn" data-tab="playlists" id="nav-btn-playlists">
                     <i class="fa-solid fa-compact-disc"></i>
                     <span>Playlist</span>
+                </button>
+                <button class="nav-btn sidebar-nav-btn" data-tab="player" id="nav-btn-player">
+                    <i class="fa-solid fa-circle-play"></i>
+                    <span>Player</span>
                 </button>
                 <button class="nav-btn sidebar-nav-btn" data-tab="queue-history" id="nav-btn-queue-history">
                     <i class="fa-solid fa-list-ol"></i>
@@ -348,6 +352,7 @@
 
 
                 <!-- Modular Platform Views -->
+                {% include 'components/view_player.html' %}
                 {% include 'components/view_bandcamp.html' %}
                 {% include 'components/view_catalog.html' %}
                 {% include 'components/view_youtube.html' %}
@@ -371,7 +376,7 @@
     <script src="https://widget.mixcloud.com/media/js/widgetApi.js" defer></script>
 
     <!-- Modular ES SPA Application -->
-    <script type="module" src="{{ url_for('static', filename='js/app.js') }}?v=20261012_recv3"></script>
+    <script type="module" src="{{ url_for('static', filename='js/app.js') }}?v=20261012_player1"></script>
 
 </body>
 

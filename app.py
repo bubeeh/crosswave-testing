@@ -764,6 +764,44 @@ def api_catalog():
     return jsonify({'catalog': catalog})
 
 
+@app.route('/api/related')
+def api_related():
+    """Tracce suggerite per il brano corrente (player desktop "Suggeriti").
+
+    YouTube: usa il Mix del video (`op: related`). Altrimenti (o come fallback)
+    cerca su YouTube a partire da artista/titolo. Ritorna link leggeri UI.
+    """
+    url = request.args.get('url', '').strip()
+    source = (request.args.get('source') or '').strip().lower()
+    title = request.args.get('title', '').strip()
+    artist = request.args.get('artist', '').strip()
+    try:
+        limit = min(20, max(1, int(request.args.get('limit', 10))))
+    except (TypeError, ValueError):
+        limit = 10
+
+    items = []
+    if (source == 'youtube' or detect_platform(url) == 'youtube') and url:
+        video_id = native_id_from_url('youtube', url)
+        if video_id:
+            try:
+                results = resolver_service.related(video_id, limit)
+                items = [_search_result_to_track(r) for r in results]
+            except Exception:
+                items = []
+
+    if not items:
+        query = artist or title
+        if query:
+            try:
+                results = resolver_service.search('youtube', query)
+                items = [_search_result_to_track(r) for r in results[:limit]]
+            except Exception:
+                items = []
+
+    return jsonify({'items': items})
+
+
 # ------------------------------------------------------------------
 # Favorites & Playlists REST API
 # ------------------------------------------------------------------

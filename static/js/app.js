@@ -15,6 +15,7 @@ import { loadHomeDashboard, clearForYou } from './views/home.js';
 import './views/search.js';
 import { openAddToPlaylistModal, renderPlaylists, renderHistory } from './views/library.js';
 import './views/album.js';
+import { initPlayerView, renderNowPlaying } from './views/player.js';
 import { loadWebRadios } from './views/radios.js';
 
 function onDOMReady(fn) {
@@ -30,6 +31,7 @@ onDOMReady(() => {
     registerTab('home', { onEnter: loadHomeDashboard });
     registerTab('web-radio', { onEnter: loadWebRadios });
     registerTab('playlists', { onEnter: renderPlaylists });
+    registerTab('player', { onEnter: renderNowPlaying });
     registerTab('queue-history', {
         onEnter: () => {
             renderQueue();
@@ -39,6 +41,7 @@ onDOMReady(() => {
 
     // 2. Initialize Audio Players & Adapters
     initAudioPlayers();
+    initPlayerView();
 
     // 3. Bind Global Player Bar Controls
     const playPauseBtn = document.getElementById('ctrl-play-pause');

@@ -53,8 +53,29 @@ function cleanTrackTitle(track) {
     return track;
 }
 
-function cleanTracks(tracks) {
-    return (tracks || []).map(cleanTrackTitle);
+// Alle tracce di una raccolta alleghiamo il contesto album: il player
+// desktop mostra "Apri album" quando il brano corrente ne fa parte.
+function cleanTracks(tracks, album = null) {
+    return (tracks || []).map(t => {
+        const cleaned = cleanTrackTitle(t);
+        if (!album || !album.url) return cleaned;
+        return {
+            ...cleaned,
+            album_url: album.url,
+            album_title: album.title || '',
+            album_thumbnail: album.thumbnail || '',
+            album_source: album.source || '',
+        };
+    });
+}
+
+function albumMeta(url, data, fallbackSource) {
+    return {
+        url,
+        title: data.album_title || '',
+        thumbnail: data.thumbnail || '',
+        source: data.platform || fallbackSource || '',
+    };
 }
 
 // Riga traccia album: numero, titolo, durata (l'artista è già nell'header).
@@ -172,7 +193,7 @@ export async function openCollectionDetailView(collection) {
             return;
         }
 
-        const tracks = cleanTracks(data.tracks);
+        const tracks = cleanTracks(data.tracks, albumMeta(url, data, source));
         if (title) title.innerText = data.album_title || collection.title;
         // Il server mappa "Artista Sconosciuto" quando non ricava l'artista:
         // in quel caso manteniamo l'artista del risultato di ricerca (bug fix).
@@ -287,7 +308,7 @@ export async function loadAndAddAlbumToQueue(collection, playImmediately = false
     showToast('Caricamento della raccolta...');
     try {
         const data = await fetchCollection(url);
-        const tracks = cleanTracks(data.tracks);
+        const tracks = cleanTracks(data.tracks, albumMeta(url, data));
         if (tracks.length > 0) {
             addPlaylistTracksToQueue(tracks, playImmediately);
             showToast(`Aggiunta la raccolta "${data.album_title}" alla coda.`, 'success');
@@ -311,7 +332,7 @@ export async function playAllAlbumTracks() {
 
     try {
         const data = await fetchCollection(url);
-        const tracks = cleanTracks(data.tracks);
+        const tracks = cleanTracks(data.tracks, albumMeta(url, data));
         if (tracks.length > 0) {
             addPlaylistTracksToQueue(tracks, true);
         } else {

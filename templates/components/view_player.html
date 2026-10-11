@@ -1,0 +1,37 @@
+<!-- Desktop Now Playing / Player View: fonte, album, suggeriti -->
+<section class="tab-content" id="tab-player">
+    <div class="np-view">
+        <div class="np-main glassmorphic-card">
+            <div class="np-cover">
+                <img id="np-cover" src="https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=400" alt="Cover">
+            </div>
+            <div class="np-meta">
+                <div class="np-source" id="np-source"></div>
+                <h1 class="np-title" id="np-title">Nessun brano in riproduzione</h1>
+                <h2 class="np-artist" id="np-artist">Avvia la riproduzione o cerca un brano</h2>
+
+                <div class="np-links">
+                    <a class="btn btn-outline-cyan hidden" id="np-album-link" href="#" title="Apri la pagina dell'album">
+                        <i class="fa-solid fa-compact-disc"></i> Apri album
+                    </a>
+                    <a class="btn btn-secondary hidden" id="np-ext-link" href="#" target="_blank" rel="noopener noreferrer" title="Apri la fonte originale">
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i> Apri fonte
+                    </a>
+                </div>
+
+                <div class="np-controls">
+                    <button class="np-ctrl" id="np-prev" title="Precedente"><i class="fa-solid fa-backward-step"></i></button>
+                    <button class="np-ctrl np-play" id="np-play" title="Riproduci/Pausa"><i class="fa-solid fa-play"></i></button>
+                    <button class="np-ctrl" id="np-next" title="Successivo"><i class="fa-solid fa-forward-step"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <div class="np-suggestions glassmorphic-card">
+            <h3 class="np-sugg-title"><i class="fa-solid fa-wand-magic-sparkles accent-cyan"></i> Suggeriti</h3>
+            <div id="np-suggestions-list" class="np-sugg-list">
+                <div class="empty-state-text" style="padding: 14px;">Riproduci un brano per vedere i suggerimenti.</div>
+            </div>
+        </div>
+    </div>
+</section>

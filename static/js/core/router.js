@@ -11,6 +11,7 @@ const HASH_MAP = {
     'search': '#/search',
     'web-radio': '#/web-radio',
     'playlists': '#/playlists',
+    'player': '#/player',
     'queue-history': '#/queue-history',
 };
 

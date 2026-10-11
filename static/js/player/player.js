@@ -291,6 +291,9 @@ export function setPlayingState(playing) {
     } else {
         stopListeningTimer();
     }
+    if (typeof window.updateNowPlayingView === 'function') {
+        window.updateNowPlayingView();
+    }
     const playPauseBtn = document.getElementById('ctrl-play-pause');
     if (!playPauseBtn) return;
     const icon = playPauseBtn.querySelector('i');
@@ -578,6 +581,11 @@ export async function playTrack(track) {
     }
 
     updateActiveQueueItemRow();
+
+    // Aggiorna la vista player desktop (fonte, album, suggeriti)
+    if (typeof window.updateNowPlayingView === 'function') {
+        window.updateNowPlayingView();
+    }
 
     try {
         if (track.source === 'youtube') {
