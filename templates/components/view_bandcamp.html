@@ -1,66 +1,68 @@
-<!-- Dedicated Bandcamp-style Album / Release Detail View -->
+<!-- Dedicated Album / Release Detail View -->
 <section class="tab-content" id="tab-album-detail">
     <div class="album-detail-container">
-        <div class="album-detail-header glassmorphic">
+        <button class="album-back-link" id="album-back-btn">
+            <i class="fa-solid fa-arrow-left"></i> Risultati
+        </button>
+
+        <div class="album-detail-header">
             <div class="album-cover-wrapper">
                 <img src="" alt="Album Cover" class="album-detail-cover" id="album-view-cover">
-                <div class="album-cover-glow" id="album-view-glow"></div>
             </div>
             <div class="album-detail-meta">
-                <div class="album-badge" id="album-view-badge"><i class="fa-brands fa-bandcamp"></i> ALBUM RELEASE</div>
+                <div class="album-source-label" id="album-view-badge"><i class="fa-brands fa-bandcamp"></i> ALBUM · BANDCAMP</div>
                 <h1 class="album-title-text" id="album-view-title">Nome Album</h1>
                 <h2 class="album-artist-text" id="album-view-artist">Artista</h2>
                 <div class="album-stats-row">
-                    <span id="album-view-count">0 tracce</span> • <span id="album-view-duration">0 min</span>
+                    <span id="album-view-count">0 tracce</span>
+                    <span class="album-meta-sep">&middot;</span>
+                    <span id="album-view-duration">0 min</span>
+                    <span class="album-meta-sep hidden" id="album-view-date-sep">&middot;</span>
+                    <span id="album-view-date" class="hidden"></span>
                 </div>
                 <div class="album-actions-row">
-                    <button class="btn btn-cyan" id="btn-album-play-all">
-                        <i class="fa-solid fa-play"></i> Riproduci Tutto
+                    <button class="btn btn-cyan btn-album-primary" id="btn-album-play-all">
+                        <i class="fa-solid fa-play"></i> Riproduci tutto
                     </button>
-                    <a href="#" target="_blank" rel="noopener noreferrer" class="btn btn-outline-cyan hidden" id="btn-album-external-source">
+                    <button class="btn btn-secondary" id="btn-album-add-playlist">
+                        <i class="fa-solid fa-folder-plus"></i> Playlist
+                    </button>
+                    <a href="#" target="_blank" rel="noopener noreferrer" class="album-text-link hidden" id="btn-album-external-source">
                         <i class="fa-solid fa-arrow-up-right-from-square"></i> Apri su Bandcamp
                     </a>
-                    <button class="btn btn-outline-cyan hidden" id="btn-album-catalog">
-                        <i class="fa-solid fa-compass"></i> Esplora Catalogo
+                    <button class="album-text-link hidden" id="btn-album-catalog">
+                        <i class="fa-solid fa-compass"></i> Esplora catalogo
                     </button>
                 </div>
             </div>
         </div>
 
         <div class="album-detail-body">
-            <div class="album-tracks-section glassmorphic">
-                <h3 class="section-subtitle">Tracce dell'Album</h3>
-                <div class="search-results-list" id="album-view-tracks-list">
+            <div class="album-tracks-section">
+                <div class="album-tracks-header">
+                    <span class="album-tracks-col-num">#</span>
+                    <span class="album-tracks-col-title">Titolo</span>
+                    <span class="album-tracks-col-dur"><i class="fa-regular fa-clock"></i></span>
+                </div>
+                <div class="album-view-tracks-list" id="album-view-tracks-list">
                     <!-- Album tracks list injected here -->
                 </div>
             </div>
-            
-            <div class="album-info-section glassmorphic hidden" id="album-info-box" style="margin-top: 24px; padding: 24px; border-radius: 16px;">
-                <h3 class="section-subtitle" style="font-size: 1.1rem; letter-spacing: 1px; margin-bottom: 20px; color: var(--accent-cyan);">
-                    <i class="fa-solid fa-circle-info me-2"></i> Info & Crediti Release
-                </h3>
-                <div class="album-info-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: start;">
-                    <!-- Colonna Sinistra: Note sull'Album / Description -->
-                    <div class="album-info-col" id="album-description-col">
-                        <h4 style="font-size: 0.82rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 12px; font-weight: 700;">
-                            Note sull'Album
-                        </h4>
-                        <div id="album-view-description" style="font-size: 0.82rem; line-height: 1.6; color: var(--text-secondary); white-space: pre-wrap;">
-                            <!-- Release notes injected here -->
-                        </div>
-                    </div>
 
-                    <!-- Colonna Destra: Crediti e Dettagli di Produzione -->
-                    <div class="album-credits-col" id="album-credits-col">
-                        <h4 style="font-size: 0.82rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 12px; font-weight: 700;">
-                            Crediti & Rilascio
-                        </h4>
-                        <div id="album-view-credits" style="font-size: 0.82rem; line-height: 1.6; color: var(--text-secondary); white-space: pre-wrap;">
-                            <!-- Credits & metadata injected here -->
-                        </div>
-                    </div>
+            <aside class="album-info-section" id="album-info-box">
+                <h3 class="album-info-title">Info e crediti</h3>
+
+                <div class="album-info-block" id="album-notes-block">
+                    <h4 class="album-info-label">Note sull'album</h4>
+                    <div id="album-view-description" class="album-info-text"></div>
+                    <button class="album-read-more hidden" id="album-read-more">Leggi tutto</button>
                 </div>
-            </div>
+
+                <div class="album-info-block" id="album-credits-block">
+                    <h4 class="album-info-label">Crediti</h4>
+                    <div id="album-view-credits" class="album-credits-list"></div>
+                </div>
+            </aside>
         </div>
     </div>
 </section>

@@ -11,7 +11,7 @@ import './player/bandcamp.js';
 import './player/mixcloud.js';
 import './player/soundcloud.js';
 import './player/radio.js';
-import { loadHomeDashboard } from './views/home.js';
+import { loadHomeDashboard, clearForYou } from './views/home.js';
 import './views/search.js';
 import { openAddToPlaylistModal, renderPlaylists, renderHistory } from './views/library.js';
 import './views/album.js';
@@ -139,9 +139,47 @@ onDOMReady(() => {
     // 4. Initialize Core Router & Hash Navigation
     initRouter();
 
-    // 5. Mobile app-style UI (bottom sheet + full-screen player)
+    // 5. Shell navigation: libreria personale + impostazioni
+    initShellNav();
+
+    // 6. Mobile app-style UI (full-screen player)
     initMobileUI();
 });
+
+// --- Shell nav: libreria personale e impostazioni ---
+function initShellNav() {
+    const libraryButtons = ['sidebar-library-btn', 'header-library-btn'];
+    libraryButtons.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.addEventListener('click', () => navigate('playlists'));
+    });
+
+    const settingsModal = document.getElementById('settings-modal');
+    const openSettings = () => { if (settingsModal) settingsModal.classList.remove('hidden'); };
+    const closeSettings = () => { if (settingsModal) settingsModal.classList.add('hidden'); };
+
+    ['sidebar-settings-btn', 'header-settings-btn'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.addEventListener('click', openSettings);
+    });
+
+    const closeBtn = document.getElementById('close-settings-modal');
+    if (closeBtn) closeBtn.addEventListener('click', closeSettings);
+
+    if (settingsModal) {
+        settingsModal.addEventListener('click', (e) => {
+            if (e.target === settingsModal) closeSettings();
+        });
+    }
+
+    const forgetBtn = document.getElementById('settings-forget-btn');
+    if (forgetBtn) {
+        forgetBtn.addEventListener('click', async () => {
+            await clearForYou();
+            closeSettings();
+        });
+    }
+}
 
 // --- Mobile helpers ---
 function initMobileUI() {
@@ -165,55 +203,6 @@ function initMobileUI() {
     if (trackInfoHeader) trackInfoHeader.addEventListener('click', expandPlayer);
     if (collapseBtn) collapseBtn.addEventListener('click', (e) => { e.stopPropagation(); collapsePlayer(); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') collapsePlayer(); });
-
-    // "Altro" bottom sheet
-    const sheet = document.getElementById('mobile-more-sheet');
-    const backdrop = document.getElementById('mobile-sheet-backdrop');
-    let sheetCloseTimer = null;
-
-    const openSheet = () => {
-        if (!sheet || !backdrop) return;
-        clearTimeout(sheetCloseTimer);
-        backdrop.classList.remove('hidden');
-        sheet.classList.remove('hidden');
-        requestAnimationFrame(() => sheet.classList.add('open'));
-    };
-    const closeSheet = () => {
-        if (!sheet || !backdrop) return;
-        sheet.classList.remove('open');
-        sheetCloseTimer = setTimeout(() => {
-            sheet.classList.add('hidden');
-            backdrop.classList.add('hidden');
-        }, 250);
-    };
-
-    document.addEventListener('click', (e) => {
-        const moreBtn = e.target.closest('[data-sheet="more"]');
-        if (moreBtn) {
-            e.preventDefault();
-            if (sheet && sheet.classList.contains('open')) closeSheet();
-            else openSheet();
-            return;
-        }
-        if (e.target.closest('#mobile-sheet-backdrop')) {
-            closeSheet();
-            return;
-        }
-        // Chiudi lo sheet dopo aver scelto una voce
-        if (e.target.closest('#mobile-more-sheet .nav-btn')) {
-            closeSheet();
-        }
-    });
-
-    // Evidenzia "Altro" quando la tab attiva è dentro lo sheet
-    const syncMoreActive = () => {
-        const moreBtn = document.getElementById('mtab-more');
-        if (!moreBtn || !sheet) return;
-        const hasActiveItem = !!sheet.querySelector('.mobile-sheet-item.active');
-        moreBtn.classList.toggle('active', hasActiveItem);
-    };
-    window.addEventListener('hashchange', () => setTimeout(syncMoreActive, 0));
-    syncMoreActive();
 }
 
 // --- PWA: registrazione Service Worker ---

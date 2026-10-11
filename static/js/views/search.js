@@ -1,6 +1,6 @@
 // Search View Module for CrossWave Hybrid
 import { showToast, formatTime, escapeHtml } from '../core/utils.js';
-import { playTrackImmediately, addToQueue, playTrackWithVideo } from '../player/player.js';
+import { playTrackImmediately, addToQueue, playTrackWithVideo, addPlaylistTracksToQueue } from '../player/player.js';
 import { openAddToPlaylistModal } from './library.js';
 import { loadAndAddAlbumToQueue, openCollectionDetailView } from './album.js';
 import { openCatalogView } from './catalog.js';
@@ -8,6 +8,20 @@ import { openCatalogView } from './catalog.js';
 let currentSearchResults = [];
 let currentPage = 1;
 const RESULTS_PER_PAGE = 10;
+
+const SOURCE_LABELS = {
+    youtube: 'YouTube',
+    soundcloud: 'SoundCloud',
+    bandcamp: 'Bandcamp',
+    mixcloud: 'Mixcloud',
+};
+
+const SOURCE_ICONS = {
+    youtube: 'fa-brands fa-youtube',
+    soundcloud: 'fa-brands fa-soundcloud',
+    bandcamp: 'fa-brands fa-bandcamp',
+    mixcloud: 'fa-brands fa-mixcloud',
+};
 
 // Riconosce un URL di piattaforma incollato nel campo di ricerca.
 function parsePlatformUrl(query) {
@@ -89,7 +103,10 @@ export async function executeSearch() {
     if (loader) loader.classList.remove('hidden');
     if (metaRow) metaRow.classList.remove('hidden');
     if (paginationControls) paginationControls.classList.add('hidden');
+    const playAllBtn = document.getElementById('search-play-all-btn');
+    if (playAllBtn) playAllBtn.classList.add('hidden');
     if (countText) countText.innerText = `Ricerca in corso per "${query}"...`;
+    resetSourceChips();
 
     const list = document.getElementById('search-results-list');
     if (list) list.innerHTML = '';
@@ -129,14 +146,17 @@ export async function executeSearch() {
         });
 
         currentSearchResults = results;
+        updateSourceChips(perSource);
 
         if (countText) {
+            countText.innerText = `${results.length} risultati per “${query}”`;
             if (errors.length > 0) {
-                countText.innerText = `${results.length} risultati trovati per "${query}" — ${errors.length} sorgente/i con problemi`;
                 errors.forEach(msg => showToast(msg, 'error'));
-            } else {
-                countText.innerText = `${results.length} risultati trovati per "${query}"`;
             }
+        }
+
+        if (playAllBtn) {
+            playAllBtn.classList.toggle('hidden', results.length === 0);
         }
 
         if (!list) return;
@@ -249,17 +269,13 @@ function scrollToSearchResults() {
 
 export function createResultRow(track, index, options = {}) {
     const row = document.createElement('div');
-    row.className = 'track-row';
+    row.className = 'track-row result-row';
+    if (track.id) row.dataset.trackId = track.id;
 
-    let sourceIcon = 'fa-solid fa-music';
-    if (track.source === 'youtube') sourceIcon = 'fa-brands fa-youtube';
-    if (track.source === 'soundcloud') sourceIcon = 'fa-brands fa-soundcloud';
-    if (track.source === 'bandcamp') sourceIcon = 'fa-brands fa-bandcamp';
-    if (track.source === 'mixcloud') sourceIcon = 'fa-brands fa-mixcloud';
+    const sourceLabel = SOURCE_LABELS[track.source] || 'Web';
+    const sourceIcon = SOURCE_ICONS[track.source] || 'fa-solid fa-music';
 
-    let collectionLabel = 'ALBUM';
-    if (track.source === 'youtube') collectionLabel = 'PLAYLIST';
-    if (track.source === 'soundcloud') collectionLabel = 'SET';
+    const collectionLabel = { youtube: 'PLAYLIST', soundcloud: 'SET' }[track.source] || 'ALBUM';
     const typeBadge = (track.type === 'album')
         ? `<span class="badge-album" title="Raccolta (album / playlist / set)"><i class="fa-solid fa-compact-disc"></i> ${collectionLabel}</span>`
         : '';
@@ -272,44 +288,47 @@ export function createResultRow(track, index, options = {}) {
         : '';
 
     const artistHtml = track.catalog_url
-        ? `<span class="artist-catalog-link" title="Esplora il catalogo di ${escapeHtml(track.artist)}">${escapeHtml(track.artist)}</span>`
-        : escapeHtml(track.artist);
-
-    const videoBtnHtml = (track.source === 'youtube' && track.type !== 'album')
-        ? `<button class="track-row-action-btn vd-s" title="Riproduci con Video"><i class="fa-solid fa-film"></i></button>`
-        : '';
+        ? `<span class="artist-catalog-link" title="Esplora il catalogo di ${escapeHtml(track.artist)}">${escapeHtml(track.artist || '')}</span>`
+        : escapeHtml(track.artist || '');
 
     const webUrl = track.url || track.webpage_url || track.permalink_url;
 
-    const sourceBadgeHtml = webUrl
-        ? `<a href="${escapeHtml(webUrl)}" target="_blank" rel="noopener noreferrer" class="track-row-source-badge ${track.source}" title="Apri pagina web originale"><i class="${sourceIcon}"></i></a>`
-        : `<div class="track-row-source-badge ${track.source}"><i class="${sourceIcon}"></i></div>`;
-
     const extLinkHtml = webUrl
-        ? `<a href="${escapeHtml(webUrl)}" target="_blank" rel="noopener noreferrer" class="track-row-action-btn ext-link" title="Apri pagina fonte"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>`
+        ? `<a href="${escapeHtml(webUrl)}" target="_blank" rel="noopener noreferrer" class="result-action ext-link" title="Apri pagina fonte"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>`
         : '';
 
+    const videoBtnHtml = (track.source === 'youtube' && track.type !== 'album')
+        ? `<button class="result-action vd-s" title="Riproduci con video"><i class="fa-solid fa-film"></i></button>`
+        : '';
+
+    const sourceInner = `<i class="${sourceIcon}"></i> <span>${escapeHtml(sourceLabel)}</span>`;
+    const sourceHtml = webUrl
+        ? `<a href="${escapeHtml(webUrl)}" target="_blank" rel="noopener noreferrer" class="result-source ${track.source}" title="Apri pagina web originale">${sourceInner}</a>`
+        : `<span class="result-source ${track.source}">${sourceInner}</span>`;
+
+    const coverSrc = track.thumbnail
+        ? escapeHtml(track.thumbnail)
+        : 'https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=120';
+
     row.innerHTML = `
-        <div class="track-row-index">
-            <button class="track-row-play-btn" title="Riproduci"><i class="fa-solid fa-play"></i></button>
+        <button class="result-play" title="Riproduci"><i class="fa-solid fa-play"></i></button>
+        <img class="result-cover" src="${coverSrc}" alt="" loading="lazy">
+        <div class="result-main">
+            <div class="result-title truncate">${escapeHtml(track.title)} ${typeBadge}${topicBadge}</div>
+            <div class="result-artist truncate">${artistHtml} ${verifiedBadge}</div>
         </div>
-        <img class="track-row-thumbnail" src="${track.thumbnail || 'https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=80'}" alt="Thumb">
-        <div class="track-row-details">
-            <div class="track-row-title truncate">${escapeHtml(track.title)} ${typeBadge}${topicBadge}</div>
-            <div class="track-row-artist truncate">${artistHtml} ${verifiedBadge}</div>
-        </div>
-        ${sourceBadgeHtml}
-        <div class="track-row-duration">${track.duration > 0 ? formatTime(track.duration) : '--:--'}</div>
-        <div class="track-row-actions">
+        ${sourceHtml}
+        <div class="result-duration">${track.duration > 0 ? formatTime(track.duration) : '--:--'}</div>
+        <div class="result-actions">
+            <button class="result-action add-p" title="Aggiungi alla playlist"><i class="fa-solid fa-folder-plus"></i> Playlist</button>
+            <button class="result-action add-q" title="Aggiungi alla coda"><i class="fa-solid fa-plus"></i> Coda</button>
             ${videoBtnHtml}
             ${extLinkHtml}
-            <button class="track-row-action-btn add-q" title="Aggiungi alla coda"><i class="fa-solid fa-plus"></i></button>
-            <button class="track-row-action-btn add-p" title="Aggiungi alla playlist"><i class="fa-solid fa-folder-plus"></i></button>
         </div>
     `;
 
     row.addEventListener('click', (e) => {
-        if (e.target.closest('.track-row-action-btn') || e.target.closest('.track-row-play-btn') || e.target.closest('.track-row-source-badge') || e.target.closest('.artist-catalog-link')) return;
+        if (e.target.closest('.result-action') || e.target.closest('.result-play') || e.target.closest('.result-source') || e.target.closest('.artist-catalog-link')) return;
         handlePlayAction(track);
     });
 
@@ -321,14 +340,13 @@ export function createResultRow(track, index, options = {}) {
         });
     }
 
-    const playBtn = row.querySelector('.track-row-play-btn');
+    const playBtn = row.querySelector('.result-play');
     if (playBtn) {
         playBtn.addEventListener('click', () => {
             handlePlayAction(track);
         });
     }
 
-    // Bottone 🎬 (solo YouTube): riproduci con video (play + switch a video-view)
     const vdS = row.querySelector('.vd-s');
     if (vdS) {
         vdS.addEventListener('click', () => {
@@ -362,6 +380,43 @@ export function createResultRow(track, index, options = {}) {
     return row;
 }
 
+// --- Chip sorgenti: reset e conteggi per sorgente ---
+function resetSourceChips() {
+    document.querySelectorAll('.search-filters-row .filter-pill').forEach(pill => {
+        const text = pill.querySelector('.chip-text');
+        if (text) text.innerText = pill.dataset.label || pill.dataset.source;
+    });
+}
+
+function updateSourceChips(perSource) {
+    document.querySelectorAll('.search-filters-row .filter-pill').forEach(pill => {
+        const source = pill.dataset.source;
+        const label = pill.dataset.label || source;
+        const text = pill.querySelector('.chip-text');
+        if (!text) return;
+        const entry = perSource ? perSource[source] : null;
+        const count = entry && Array.isArray(entry.results) ? entry.results.length : 0;
+        text.innerText = count > 0 ? `${label} · ${count}` : label;
+    });
+}
+
+// --- Riproduci tutti i risultati (le raccolte vengono aperte) ---
+export function playAllSearchResults() {
+    const tracks = currentSearchResults.filter(t => t.type !== 'album');
+    const albums = currentSearchResults.filter(t => t.type === 'album');
+
+    if (tracks.length > 0) {
+        addPlaylistTracksToQueue(tracks, true);
+        showToast(`Riproduzione di ${tracks.length} brani`, 'success');
+        return;
+    }
+    if (albums.length > 0) {
+        loadAndAddAlbumToQueue(albums[0], true);
+        return;
+    }
+    showToast('Nessun brano da riprodurre', 'error');
+}
+
 export function handlePlayAction(track) {
     if (track.type === 'album') {
         openCollectionDetailView(track);
@@ -381,8 +436,25 @@ export function initSearchView() {
         });
     }
 
+    const playAllBtn = document.getElementById('search-play-all-btn');
+    if (playAllBtn) playAllBtn.addEventListener('click', playAllSearchResults);
+
+    // Default: tutte le sorgenti attive (chip con conteggio risultati)
     document.querySelectorAll('.search-filters-row .filter-pill').forEach(pill => {
-        pill.addEventListener('click', () => {
+        const chk = pill.querySelector('input[type="checkbox"]');
+        if (chk && !pill.dataset.initialized) {
+            chk.checked = true;
+            pill.classList.add('checked');
+            const source = pill.getAttribute('data-source');
+            const homePill = document.querySelector(`.home-search-filters .filter-pill[data-source="${source}"]`);
+            if (homePill) homePill.classList.add('active');
+            pill.dataset.initialized = '1';
+        }
+    });
+
+    document.querySelectorAll('.search-filters-row .filter-pill').forEach(pill => {
+        pill.addEventListener('click', (e) => {
+            e.preventDefault();
             const chk = pill.querySelector('input[type="checkbox"]');
             if (chk) {
                 chk.checked = !chk.checked;

@@ -9,7 +9,55 @@ export async function loadHomeDashboard() {
     initHomeSearch();
     bindNavLinkCards();
     updateHomeBadges();
+    renderHomeResume();
     loadForYou();
+}
+
+const SOURCE_LABELS = {
+    youtube: 'YouTube',
+    soundcloud: 'SoundCloud',
+    bandcamp: 'Bandcamp',
+    mixcloud: 'Mixcloud',
+    radio: 'Web Radio',
+};
+
+const SOURCE_COLOR_VARS = {
+    youtube: 'var(--yt-color)',
+    soundcloud: 'var(--sc-color)',
+    bandcamp: 'var(--bc-color)',
+    mixcloud: 'var(--mc-color)',
+    radio: 'var(--accent-cyan)',
+};
+
+const FALLBACK_COVER = 'https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=150';
+
+// --- "Riprendi": ultimo ascolto dalla cronologia ---
+function renderHomeResume() {
+    const section = document.getElementById('home-resume-section');
+    const card = document.getElementById('home-resume-card');
+    if (!section || !card) return;
+
+    const track = (state.history && state.history[0]) || null;
+    if (!track) {
+        section.classList.add('hidden');
+        card.innerHTML = '';
+        return;
+    }
+
+    section.classList.remove('hidden');
+    card.innerHTML = `
+        <img class="resume-cover" src="${escapeHtml(track.thumbnail || FALLBACK_COVER)}" alt="" onerror="this.src='${FALLBACK_COVER}'">
+        <div class="resume-info">
+            <div class="resume-title truncate">${escapeHtml(track.title || 'Senza Titolo')}</div>
+            <div class="resume-artist truncate">${escapeHtml(track.artist || 'Artista Sconosciuto')}</div>
+            <div class="resume-source" style="color: ${SOURCE_COLOR_VARS[track.source] || 'var(--text-muted)'};">
+                ${escapeHtml(SOURCE_LABELS[track.source] || 'Web')}
+            </div>
+        </div>
+        <button class="resume-play" title="Riprendi"><i class="fa-solid fa-play"></i></button>
+    `;
+
+    card.addEventListener('click', () => playTrackImmediately(track));
 }
 
 // --- Top Home Search Bar Handler ---
@@ -150,7 +198,6 @@ function renderForYouCard(item) {
 export async function loadForYou() {
     const grid = document.getElementById('home-for-you-list');
     if (!grid) return;
-    const forgetBtn = document.getElementById('home-for-you-forget');
     try {
         const res = await fetch('/api/recommendations?limit=12');
         const data = await res.json();
@@ -158,13 +205,7 @@ export async function loadForYou() {
 
         if (items.length === 0) {
             grid.innerHTML = '<div class="empty-state-text" style="grid-column: 1/-1; padding: 14px;">Ascolta qualche brano: qui compariranno i suggerimenti personalizzati.</div>';
-            if (forgetBtn) forgetBtn.classList.add('hidden');
             return;
-        }
-
-        if (forgetBtn) {
-            forgetBtn.classList.remove('hidden');
-            forgetBtn.onclick = clearForYou;
         }
 
         grid.innerHTML = '';
@@ -175,7 +216,7 @@ export async function loadForYou() {
     }
 }
 
-async function clearForYou() {
+export async function clearForYou() {
     if (!confirm('Azzerare la cronologia di ascolto e i suggerimenti "Per te"?')) return;
     try {
         await fetch('/api/recommendations/forget', { method: 'POST' });

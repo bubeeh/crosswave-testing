@@ -1,6 +1,4 @@
-<!-- Mobile Bottom Tab Bar + "Altro" Sheet (visible only on <=768px) -->
-<div class="mobile-sheet-backdrop hidden" id="mobile-sheet-backdrop"></div>
-
+<!-- Mobile Bottom Tab Bar (visible only on <=768px) -->
 <nav class="mobile-tabbar" aria-label="Navigazione principale">
     <button class="nav-btn mtab-btn" data-tab="home" id="mtab-home">
         <i class="fa-solid fa-house"></i>
@@ -8,27 +6,18 @@
     </button>
     <button class="nav-btn mtab-btn" data-tab="search" id="mtab-search">
         <i class="fa-solid fa-magnifying-glass"></i>
-        <span>Ricerca</span>
+        <span>Cerca</span>
     </button>
     <button class="nav-btn mtab-btn" data-tab="web-radio" id="mtab-web-radio">
         <i class="fa-solid fa-radio"></i>
         <span>Radio</span>
     </button>
-    <button class="mtab-btn mtab-more" data-sheet="more" id="mtab-more">
-        <i class="fa-solid fa-ellipsis"></i>
-        <span>Altro</span>
-    </button>
-</nav>
-
-<div class="mobile-sheet hidden" id="mobile-more-sheet" role="dialog" aria-label="Altre sezioni">
-    <div class="mobile-sheet-handle"></div>
-    <div class="mobile-sheet-title">Altre sezioni</div>
-    <button class="nav-btn mobile-sheet-item" data-tab="playlists">
+    <button class="nav-btn mtab-btn" data-tab="playlists" id="mtab-playlists">
         <i class="fa-solid fa-compact-disc"></i>
         <span>Playlist</span>
     </button>
-    <button class="nav-btn mobile-sheet-item" data-tab="queue-history">
+    <button class="nav-btn mtab-btn" data-tab="queue-history" id="mtab-queue-history">
         <i class="fa-solid fa-list-ol"></i>
-        <span>Coda &amp; Cronologia</span>
+        <span>Coda</span>
     </button>
-</div>
+</nav>

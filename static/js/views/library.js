@@ -329,7 +329,18 @@ export function removeTrackFromPlaylist(playlistName, index) {
 
 export function openAddToPlaylistModal(track) {
     state.pendingTrackToPlaylist = track;
+    state.pendingTracksToPlaylist = null;
+    renderAddToPlaylistOptions();
+}
 
+// Aggiunge una raccolta (album/playlist/set) intera a una playlist.
+export function openAddTracksToPlaylistModal(tracks) {
+    state.pendingTrackToPlaylist = null;
+    state.pendingTracksToPlaylist = Array.isArray(tracks) ? tracks : [];
+    renderAddToPlaylistOptions();
+}
+
+function renderAddToPlaylistOptions() {
     const container = document.getElementById('modal-playlists-list');
     if (!container) return;
     container.innerHTML = '';
@@ -339,7 +350,7 @@ export function openAddToPlaylistModal(track) {
 
     const playlistNames = Object.keys(state.playlists);
     if (playlistNames.length === 0) {
-        container.innerHTML = '<p>Non hai ancora creato nessuna playlist. Crea una playlist nella barra laterale.</p>';
+        container.innerHTML = '<p>Non hai ancora creato nessuna playlist. Crea una playlist dalla sezione Playlist.</p>';
         return;
     }
 
@@ -358,16 +369,36 @@ export function openAddToPlaylistModal(track) {
 }
 
 export function addTrackToPlaylist(playlistName) {
+    if (!state.playlists[playlistName]) {
+        state.playlists[playlistName] = [];
+    }
+
+    // Raccolta intera: aggiunge tutte le tracce, saltando i duplicati.
+    if (state.pendingTracksToPlaylist && state.pendingTracksToPlaylist.length > 0) {
+        let added = 0;
+        state.pendingTracksToPlaylist.forEach(track => {
+            const dup = state.playlists[playlistName].some(t => t.id === track.id);
+            if (!dup) {
+                state.playlists[playlistName].push(track);
+                added++;
+            }
+        });
+        savePlaylistsToStorage();
+        if (added > 0) {
+            showToast(`Aggiunti ${added} brani a "${playlistName}"`, 'success');
+        } else {
+            showToast('I brani sono già presenti in questa playlist.', 'error');
+        }
+        state.pendingTracksToPlaylist = null;
+        return;
+    }
+
     if (!state.pendingTrackToPlaylist) return;
 
     const exists = state.playlists[playlistName] && state.playlists[playlistName].some(t => t.id === state.pendingTrackToPlaylist.id);
     if (exists) {
         showToast('Il brano è già presente in questa playlist.', 'error');
         return;
-    }
-
-    if (!state.playlists[playlistName]) {
-        state.playlists[playlistName] = [];
     }
 
     state.playlists[playlistName].push(state.pendingTrackToPlaylist);

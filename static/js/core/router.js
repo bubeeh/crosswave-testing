@@ -100,7 +100,7 @@ export function initRouter() {
             }
         }
 
-        const headerLogo = e.target.closest('#header-logo-home');
+        const headerLogo = e.target.closest('[data-home]');
         if (headerLogo) {
             e.preventDefault();
             navigate('home');

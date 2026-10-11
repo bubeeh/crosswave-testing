@@ -2,43 +2,89 @@
 import { showToast, escapeHtml } from '../core/utils.js';
 import { playTrack } from '../player/player.js';
 
+const DEFAULT_RADIO_LOGO = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150';
+
+function stationInitials(name) {
+    const words = String(name || '').replace(/[^\p{L}\p{N}\s]/gu, ' ').trim().split(/\s+/).filter(Boolean);
+    if (words.length === 0) return 'RD';
+    if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+    return (words[0][0] + words[1][0]).toUpperCase();
+}
+
+function escapeAttr(text) {
+    return String(text == null ? '' : text).replace(/"/g, '&quot;');
+}
+
+async function loadRadioProgram(radio, programEl) {
+    if (!programEl) return;
+    try {
+        const response = await fetch(`/api/radios/now_playing?url=${encodeURIComponent(radio.stream_url)}&name=${encodeURIComponent(radio.name)}`);
+        const data = await response.json();
+        const title = (data && data.now_playing) ? data.now_playing : '';
+        programEl.innerText = title || 'Trasmissione live in corso';
+    } catch (e) {
+        programEl.innerText = 'Trasmissione live in corso';
+    }
+}
+
 export async function loadWebRadios() {
     const grid = document.getElementById('web-radios-grid');
+    const subtitle = document.getElementById('web-radios-subtitle');
     if (!grid) return;
     try {
         const response = await fetch('/api/radios');
         const data = await response.json();
         const radios = data.radios || [];
         grid.innerHTML = '';
+
+        if (subtitle) {
+            subtitle.innerText = `${radios.length} ${radios.length === 1 ? 'stazione' : 'stazioni'} in streaming live`;
+        }
+
         if (radios.length === 0) {
             grid.innerHTML = '<div class="empty-state-text" style="grid-column: 1/-1;">Nessuna stazione web radio presente.</div>';
             return;
         }
+
         radios.forEach(radio => {
             const card = document.createElement('div');
-            card.className = 'radio-card glassmorphic-card';
-            card.style.padding = '12px 20px';
-            card.style.borderRadius = '16px';
-            card.style.display = 'flex';
-            card.style.flexDirection = 'row';
-            card.style.alignItems = 'center';
-            card.style.justifyContent = 'space-between';
-            card.style.background = 'var(--bg-glass)';
+            card.className = 'radio-card';
+            card.dataset.radioId = radio.id;
+
+            const initials = stationInitials(radio.name);
+            const logoUrl = radio.logo || DEFAULT_RADIO_LOGO;
+            const logoFailed = !radio.logo;
+            const deleteBtn = radio.id > 10
+                ? `<button class="btn btn-secondary btn-sm btn-del-radio" title="Elimina"><i class="fa-solid fa-trash"></i></button>`
+                : '';
 
             card.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 16px; flex: 1; min-width: 0;">
-                    <img src="${radio.logo || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150'}" alt="${escapeHtml(radio.name)}" style="width: 50px; height: 50px; border-radius: 12px; object-fit: cover; border: 2px solid var(--accent-cyan); flex-shrink: 0;">
-                    <div style="flex: 1; min-width: 0; text-align: left;">
-                        <div style="font-weight: 700; font-size: 1rem; margin-bottom: 2px;" class="truncate">${escapeHtml(radio.name)}</div>
-                        <div style="font-size: 0.82rem; color: var(--accent-cyan);" class="truncate">${escapeHtml(radio.genre || 'Web Radio')}</div>
+                <div class="radio-card-top">
+                    <div class="radio-logo ${logoFailed ? 'logo-failed' : ''}">
+                        <img class="radio-logo-img" src="${escapeAttr(logoUrl)}" alt="${escapeAttr(radio.name)}" loading="lazy">
+                        <div class="radio-logo-fallback" aria-hidden="true">${escapeHtml(initials)}</div>
+                    </div>
+                    <div class="radio-card-head">
+                        <div class="radio-name truncate">${escapeHtml(radio.name)}</div>
+                        <div class="radio-genre truncate">${escapeHtml(radio.genre || 'Web Radio')}</div>
                     </div>
                 </div>
-                <div style="display: flex; gap: 10px; align-items: center; flex-shrink: 0;">
-                    <button class="btn btn-secondary btn-sm btn-info-radio" title="Info & Palinsesto" style="padding: 8px 12px;"><i class="fa-solid fa-circle-info"></i> Info</button>
-                    <button class="btn btn-cyan btn-sm btn-play-radio" style="padding: 8px 16px;"><i class="fa-solid fa-play"></i> Ascolta Live</button>
-                    ${radio.id > 10 ? `<button class="btn btn-secondary btn-sm btn-del-radio" title="Elimina" style="padding: 8px 12px;"><i class="fa-solid fa-trash"></i></button>` : ''}
+                <div class="radio-onair">
+                    <span class="radio-live"><i class="fa-solid fa-circle blink"></i> IN ONDA</span>
+                    <span class="radio-program truncate">Caricamento...</span>
+                </div>
+                <div class="radio-card-actions">
+                    <button class="btn btn-secondary btn-info-radio" title="Info & Palinsesto"><i class="fa-solid fa-circle-info"></i> Info</button>
+                    <button class="btn btn-cyan btn-play-radio"><i class="fa-solid fa-play"></i> Ascolta live</button>
+                    ${deleteBtn}
                 </div>
             `;
+
+            const logoImg = card.querySelector('.radio-logo-img');
+            const logoBox = card.querySelector('.radio-logo');
+            if (logoImg) {
+                logoImg.addEventListener('error', () => logoBox.classList.add('logo-failed'));
+            }
 
             card.querySelector('.btn-info-radio').addEventListener('click', () => {
                 openRadioDetailModal(radio.id);
@@ -76,6 +122,7 @@ export async function loadWebRadios() {
             }
 
             grid.appendChild(card);
+            loadRadioProgram(radio, card.querySelector('.radio-program'));
         });
     } catch (err) {
         console.error('Failed to load web radios', err);

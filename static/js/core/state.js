@@ -24,5 +24,6 @@ export const state = {
     radioMetadataInterval: null,
     preMuteVolume: 80,
     pendingTrackToPlaylist: null,
+    pendingTracksToPlaylist: null,
     currentRandomMixTrack: null,
 };

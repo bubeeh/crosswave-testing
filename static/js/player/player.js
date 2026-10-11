@@ -427,6 +427,11 @@ export function updateActiveQueueItemRow() {
             }
         }
     });
+
+    // Righe risultato (ricerca, album, ecc.) marcate per id traccia
+    document.querySelectorAll('.track-row[data-track-id]').forEach(row => {
+        row.classList.toggle('active', !!state.currentTrack && row.dataset.trackId === state.currentTrack.id);
+    });
 }
 
 export function handleTrackFinished() {
