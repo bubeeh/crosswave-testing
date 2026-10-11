@@ -10,11 +10,75 @@ let currentSearchResults = [];
 let currentPage = 1;
 const RESULTS_PER_PAGE = 10;
 
+// Riconosce un URL di piattaforma incollato nel campo di ricerca.
+function parsePlatformUrl(query) {
+    const url = query.trim();
+    if (!/^https?:\/\//i.test(url)) return null;
+    const lower = url.toLowerCase();
+    if (lower.includes('youtube.com') || lower.includes('youtu.be')) return { platform: 'youtube', url };
+    if (lower.includes('bandcamp.com')) return { platform: 'bandcamp', url };
+    if (lower.includes('soundcloud.com')) return { platform: 'soundcloud', url };
+    if (lower.includes('mixcloud.com')) return { platform: 'mixcloud', url };
+    return null;
+}
+
+function isCollectionUrl(platform, url) {
+    const u = String(url || '');
+    if (platform === 'bandcamp') return u.includes('/album/');
+    if (platform === 'youtube') return u.includes('/playlist');
+    if (platform === 'soundcloud') return u.includes('/sets/');
+    return false;
+}
+
+function youtubeVideoId(url) {
+    const m = String(url || '').match(/[?&]v=([\w-]+)/);
+    return m ? m[1] : '';
+}
+
+// Un URL incollato apre la vista giusta invece di essere cercato come testo:
+// raccolta → vista album; canale/profilo → catalogo; traccia → riproduzione.
+function handleUrlQuery({ platform, url }) {
+    if (isCollectionUrl(platform, url)) {
+        showToast('Apertura raccolta...');
+        openCollectionDetailView({ url, source: platform });
+        return true;
+    }
+    if (platform === 'youtube' && /youtube\.com\/(channel\/|c\/|@)/i.test(url)) {
+        showToast('Apertura catalogo...');
+        openCatalogView({ url, platform, name: '' });
+        return true;
+    }
+    if (platform === 'bandcamp' && !/\/(album|track)\//i.test(url)) {
+        showToast('Apertura catalogo...');
+        openCatalogView({ url, platform, name: '' });
+        return true;
+    }
+    // Traccia singola: riproduci subito.
+    const native = platform === 'youtube' ? youtubeVideoId(url) : '';
+    playTrackImmediately({
+        id: native ? `yt_${native}` : url,
+        title: 'Riproduzione da URL',
+        artist: '',
+        source: platform,
+        url,
+        thumbnail: '',
+        duration: 0,
+        type: 'track',
+    });
+    return true;
+}
+
 export async function executeSearch() {
     const queryEl = document.getElementById('search-input');
     if (!queryEl) return;
     const query = queryEl.value.trim();
     if (!query) return;
+
+    const urlQuery = parsePlatformUrl(query);
+    if (urlQuery) {
+        handleUrlQuery(urlQuery);
+        return;
+    }
 
     const placeholder = document.getElementById('search-placeholder');
     const loader = document.getElementById('search-loader');

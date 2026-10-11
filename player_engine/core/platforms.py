@@ -42,7 +42,8 @@ class PlatformSpec:
 
 _PATTERNS: dict[str, str] = {
     # playlist?list=... è una raccolta; channel/c/@ sono cataloghi (vista esplora)
-    "youtube": r"https?://(www\.|m\.)?(youtube\.com/(watch\?v=|shorts/|live/|embed/|playlist\?|channel/|c/|@)|youtu\.be/)",
+    # ([a-z0-9-]+\.)? copre anche music.youtube.com
+    "youtube": r"https?://([a-z0-9-]+\.)?(youtube\.com/(watch\?v=|shorts/|live/|embed/|playlist\?|channel/|c/|@)|youtu\.be/)",
     # matcha album/track ma anche la pagina /music e la root del profilo (label/artista)
     "bandcamp": r"https?://([a-z0-9-]+\.)?bandcamp\.com(/|$)",
     # api.soundcloud.com/tracks/... è l'URL che restituisce la ricerca flat
