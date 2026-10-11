@@ -13,6 +13,25 @@ export function imgFallback(el) {
     }
 }
 
+// Carica uno script esterno una sola volta (SDK lazy) e ne attende il load.
+const _scriptPromises = {};
+export function loadScriptOnce(url, globalName) {
+    if (globalName && window[globalName]) return Promise.resolve();
+    if (_scriptPromises[url]) return _scriptPromises[url];
+    _scriptPromises[url] = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = url;
+        s.async = true;
+        s.onload = () => resolve();
+        s.onerror = () => {
+            delete _scriptPromises[url];
+            reject(new Error('Impossibile caricare ' + url));
+        };
+        document.head.appendChild(s);
+    });
+    return _scriptPromises[url];
+}
+
 export function escapeHtml(text) {
     if (!text) return '';
     return text

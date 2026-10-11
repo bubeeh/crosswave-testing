@@ -322,7 +322,11 @@ export function createResultRow(track, index, options = {}) {
 
     row.innerHTML = `
         <button class="result-play" title="Riproduci"><i class="fa-solid fa-play"></i></button>
-        <img class="result-cover" src="${coverSrc}" alt="" loading="lazy">
+        <img class="result-cover"
+             src="${coverSrc}"
+             alt=""
+             loading="lazy"
+             onerror="this.onerror=null;this.src='${PLACEHOLDER_COVER}'">
         <div class="result-main">
             <div class="result-title truncate">${escapeHtml(track.title)} ${typeBadge}${topicBadge}</div>
             <div class="result-artist truncate">${artistHtml} ${verifiedBadge}${durationLabel ? `<span class="result-artist-meta"> &middot; ${durationLabel}</span>` : ''}</div>

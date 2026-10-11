@@ -21,7 +21,7 @@
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20261013_placeholder1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20261013_lazysdk1">
 
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='icons/icon-192.png') }}">
 </head>
@@ -371,12 +371,9 @@
 
     </div>
 
-    <!-- SDKs and API Wrappers (defer: scaricati senza bloccare il rendering) -->
-    <script src="https://w.soundcloud.com/player/api.js" defer></script>
-    <script src="https://widget.mixcloud.com/media/js/widgetApi.js" defer></script>
-
+    <!-- SDK di terze parti (Mixcloud) caricati LAZY al primo utilizzo, non a ogni load -->
     <!-- Modular ES SPA Application -->
-    <script type="module" src="{{ url_for('static', filename='js/app.js') }}?v=20261013_placeholder1"></script>
+    <script type="module" src="{{ url_for('static', filename='js/app.js') }}?v=20261013_lazysdk1"></script>
 
 </body>
 

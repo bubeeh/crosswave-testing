@@ -34,6 +34,7 @@ from ..core.schema import (
     StreamInfo,
     compute_canonical_id,
     derive_tags,
+    normalize_thumbnail,
 )
 
 # Formati che non sono stream diretti (m3u8/liste) — il player streama via URL diretto.
@@ -43,10 +44,10 @@ _SKIP_EXTS = {"m3u8", "mpd"}
 def _pick_thumbnail(raw: dict[str, Any]) -> str:
     thumbs = raw.get("thumbnails") or []
     if not thumbs:
-        return str(raw.get("thumbnail") or "")
+        return normalize_thumbnail(str(raw.get("thumbnail") or ""))
     # Preferisci la più grande tra quelle disponibili
     best = max(thumbs, key=lambda t: (t.get("width") or 0) * (t.get("height") or 0))
-    return str(best.get("url") or "")
+    return normalize_thumbnail(str(best.get("url") or ""))
 
 
 def _format_streams(raw: dict[str, Any]) -> list[StreamInfo]:

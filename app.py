@@ -73,6 +73,31 @@ app.secret_key = os.environ.get("SECRET_KEY", "crosswave_hybrid_secret_key_2026"
 # ------------------------------------------------------------------
 _GZIP_MIN_BYTES = 500
 
+# Content-Security-Policy: hardening pragmatico. `'unsafe-inline'` è necessario
+# perché l'app usa handler inline (onerror/onload) e stili inline; il resto è
+# ristretto (object/base/form/frame/connect). Le estensioni del browser però
+# possono comunque iniettare script (non eliminabili via CSP).
+_CSP = (
+    "default-src 'self'; "
+    "base-uri 'self'; "
+    "object-src 'none'; "
+    "form-action 'self'; "
+    "frame-ancestors 'self'; "
+    "script-src 'self' 'unsafe-inline' "
+    "https://www.youtube.com https://s.ytimg.com https://www.gstatic.com "
+    "https://w.soundcloud.com https://widget.mixcloud.com "
+    "https://cdnjs.cloudflare.com; "
+    "style-src 'self' 'unsafe-inline' "
+    "https://fonts.googleapis.com https://cdnjs.cloudflare.com; "
+    "font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; "
+    "img-src 'self' data: blob: https:; "
+    "media-src 'self' blob: https:; "
+    "connect-src 'self'; "
+    "frame-src https://www.youtube.com https://www.youtube-nocookie.com "
+    "https://w.soundcloud.com https://www.mixcloud.com "
+    "https://player-widget.mixcloud.com"
+)
+
 
 def _should_gzip(response) -> bool:
     """Comprime solo risposte in memoria (mai streaming audio) di tipo testo."""
@@ -101,6 +126,7 @@ def add_perf_headers(response):
     # ma anche l'HTTP cache del browser eviterebbe l'aggiornamento dei token ?v=)
     if response.mimetype == 'text/html':
         response.headers['Cache-Control'] = 'no-cache, must-revalidate'
+        response.headers['Content-Security-Policy'] = _CSP
 
     # Compressione gzip per HTML/CSS/JS/JSON, se il client la supporta
     if _should_gzip(response) and 'gzip' in request.headers.get('Accept-Encoding', ''):

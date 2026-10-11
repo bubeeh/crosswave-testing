@@ -20,7 +20,7 @@
         <!-- Track info centered above controls (Hidden when no track is playing) -->
         <div class="player-track-info-header hidden" id="player-track-info-header" style="display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%;">
             <div class="track-thumbnail-wrapper" style="width: 30px; height: 30px; flex-shrink: 0;">
-                <img src="" alt="Album Cover" class="track-thumbnail" id="player-track-art" style="border-radius: 6px;">
+                <img src="" alt="Album Cover" class="track-thumbnail" id="player-track-art" style="border-radius: 6px;" onerror="this.onerror=null;this.src='/static/icons/placeholder.svg'">
                 <div class="track-glow-effect" id="player-track-art-glow"></div>
             </div>
             <div class="track-details-inline" style="display: flex; align-items: center; gap: 8px; overflow: hidden; max-width: 450px;">

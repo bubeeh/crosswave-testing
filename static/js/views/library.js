@@ -39,7 +39,7 @@ export function renderHistory() {
 
         row.innerHTML = `
             <div class="track-row-index">${index + 1}</div>
-            <img class="track-row-thumbnail" src="${track.thumbnail || PLACEHOLDER_COVER}" alt="Thumb">
+            <img class="track-row-thumbnail" src="${track.thumbnail || PLACEHOLDER_COVER}" alt="Thumb" onerror="this.onerror=null;this.src='${PLACEHOLDER_COVER}'">
             <div class="track-row-details">
                 <div class="track-row-title truncate">${escapeHtml(track.title)}</div>
                 <div class="track-row-artist truncate">${escapeHtml(track.artist)}</div>
@@ -168,7 +168,7 @@ export function renderPlaylists() {
 
                 card.innerHTML = `
                     <div class="d-flex align-items-center gap-3" style="min-width: 0;">
-                        <img src="${coverArt}" alt="${escapeHtml(name)}" style="width: 56px; height: 56px; border-radius: 12px; object-fit: cover; border: 1px solid var(--accent-purple); flex-shrink: 0;">
+                        <img src="${coverArt}" alt="${escapeHtml(name)}" style="width: 56px; height: 56px; border-radius: 12px; object-fit: cover; border: 1px solid var(--accent-purple); flex-shrink: 0;" onerror="this.onerror=null;this.src='${PLACEHOLDER_COVER}'">
                         <div style="min-width: 0;">
                             <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 2px;" class="truncate">${escapeHtml(name)}</h3>
                             <span style="font-size: 0.8rem; color: var(--text-secondary);">${tracks.length} brani &bull; ${calculateTotalDuration(tracks)}</span>
@@ -280,7 +280,7 @@ export function renderPlaylistSongs(playlistName) {
 
         row.innerHTML = `
             <div class="track-row-index">${index + 1}</div>
-            <img class="track-row-thumbnail" src="${track.thumbnail || PLACEHOLDER_COVER}" alt="Thumb">
+            <img class="track-row-thumbnail" src="${track.thumbnail || PLACEHOLDER_COVER}" alt="Thumb" onerror="this.onerror=null;this.src='${PLACEHOLDER_COVER}'">
             <div class="track-row-details">
                 <div class="track-row-title truncate">${escapeHtml(track.title)}</div>
                 <div class="track-row-artist truncate">${escapeHtml(track.artist)}</div>

@@ -218,6 +218,18 @@ class SearchResult(BaseModel):
     catalog_url: str = ""
 
 
+def normalize_thumbnail(url: str | None) -> str:
+    """Preferisce la thumbnail YouTube `hqdefault` (esiste sempre) alla
+    `maxresdefault`/`sddefault`, che per molti video rispondono 404."""
+    if not url:
+        return ""
+    if ("i.ytimg.com" in url or "img.youtube.com" in url) and (
+        "maxresdefault" in url or "sddefault" in url
+    ):
+        return url.replace("maxresdefault", "hqdefault").replace("sddefault", "hqdefault")
+    return url
+
+
 def derive_tags(raw: dict[str, Any]) -> list[str]:
     """Tag normalizzati e deduplicati derivati dai metadati yt-dlp grezzi."""
     tags: list[str] = []

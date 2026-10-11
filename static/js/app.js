@@ -9,7 +9,6 @@ import {
 import './player/youtube.js';
 import './player/bandcamp.js';
 import './player/mixcloud.js';
-import './player/soundcloud.js';
 import './player/radio.js';
 import { loadHomeDashboard, clearForYou } from './views/home.js';
 import './views/search.js';

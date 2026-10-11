@@ -5,7 +5,6 @@ import { switchTab } from '../core/router.js';
 import { initYoutubeAdapter, startYoutubeProgressPolling, stopYoutubeProgressPolling } from './youtube.js';
 import { initBcAudio, playBcStream, pauseBc, resumeBc, seekBc, setBcVolume } from './bandcamp.js';
 import { initMixcloud, renderMixcloudView, pauseMc, resumeMc, seekMc, setMcVolume } from './mixcloud.js';
-import { ensureSCPlayer } from './soundcloud.js';
 import { startRadioMetadataPolling, stopRadioMetadataPolling } from './radio.js';
 
 // --- Tracciamento ascolti per "Per te" (invio a /api/play) ---
@@ -371,7 +370,7 @@ export function renderQueue() {
 
         row.innerHTML = `
             <div class="track-row-index">${isActive ? '<i class="fa-solid fa-volume-high spinner-slow"></i>' : index + 1}</div>
-            <img class="track-row-thumbnail" src="${track.thumbnail || PLACEHOLDER_COVER}" alt="Thumb">
+            <img class="track-row-thumbnail" src="${track.thumbnail || PLACEHOLDER_COVER}" alt="Thumb" onerror="this.onerror=null;this.src='${PLACEHOLDER_COVER}'">
             <div class="track-row-details">
                 <div class="track-row-title truncate">${escapeHtml(track.title)}</div>
                 <div class="track-row-artist truncate">${escapeHtml(track.artist)}</div>
@@ -633,7 +632,7 @@ export async function playTrack(track) {
                 handleTrackFinished();
             }
         } else if (track.source === 'mixcloud') {
-            renderMixcloudView(track, setPlayingState);
+            await renderMixcloudView(track, setPlayingState);
         } else if (track.source === 'radio') {
             playBcStream(track.url);
             startRadioMetadataPolling(track);

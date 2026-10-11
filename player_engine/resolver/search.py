@@ -29,7 +29,7 @@ from urllib.parse import quote, urlparse
 
 import httpx
 
-from ..core.schema import SearchResult, compute_canonical_id
+from ..core.schema import SearchResult, compute_canonical_id, normalize_thumbnail
 from ..storage.repos import RateLimitRepo, SearchCacheRepo
 from . import soundcloud_api
 from .rate_limit import RateLimiter
@@ -493,9 +493,9 @@ def _interleave(primary: list[SearchResult], secondary: list[SearchResult], ever
 
 def _flat_thumb(entry: dict[str, Any]) -> str:
     if entry.get("thumbnail"):
-        return str(entry["thumbnail"])
+        return normalize_thumbnail(str(entry["thumbnail"]))
     thumbs = entry.get("thumbnails") or []
     if thumbs:
         best = max(thumbs, key=lambda t: (t.get("width") or 0) * (t.get("height") or 0))
-        return str(best.get("url") or "")
+        return normalize_thumbnail(str(best.get("url") or ""))
     return ""

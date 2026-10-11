@@ -1,45 +1,52 @@
-// Mixcloud Player Adapter for CrossWave Hybrid
+// Mixcloud Player Adapter for CrossWave Hybrid (SDK caricato LAZY)
 import { state } from '../core/state.js';
 import { switchTab } from '../core/router.js';
+import { loadScriptOnce } from '../core/utils.js';
 
+const MIXCLOUD_SDK_URL = 'https://widget.mixcloud.com/media/js/widgetApi.js';
+let _callbacks = { onState: null, onFinish: null, onProgress: null };
+
+// Registra i callback globali; NON carica l'SDK (avviene al primo play).
 export function initMixcloud(setPlayingStateCallback, handleTrackFinishedCallback, updateProgressBarCallback) {
+    _callbacks = {
+        onState: setPlayingStateCallback,
+        onFinish: handleTrackFinishedCallback,
+        onProgress: updateProgressBarCallback,
+    };
+    if (window.Mixcloud && typeof Mixcloud.PlayerWidget === 'function') {
+        _createWidget();
+    }
+}
+
+function _createWidget() {
     try {
         const mcIframe = document.getElementById('mc-player-iframe');
-        if (mcIframe && window.Mixcloud && typeof Mixcloud.PlayerWidget === 'function') {
-            state.mcWidget = Mixcloud.PlayerWidget(mcIframe);
-            if (state.mcWidget && state.mcWidget.ready) {
-                state.mcWidget.ready.then(() => {
-                    console.log('Mixcloud Player Pronto');
-                    if (state.mcWidget && typeof state.mcWidget.setVolume === 'function') {
-                        state.mcWidget.setVolume(state.currentVolume / 100);
-                    }
-                    if (state.mcWidget.events) {
-                        if (state.mcWidget.events.play && setPlayingStateCallback) {
-                            state.mcWidget.events.play.on(() => setPlayingStateCallback(true));
-                        }
-                        if (state.mcWidget.events.pause && setPlayingStateCallback) {
-                            state.mcWidget.events.pause.on(() => setPlayingStateCallback(false));
-                        }
-                        if (state.mcWidget.events.ended && handleTrackFinishedCallback) {
-                            state.mcWidget.events.ended.on(() => handleTrackFinishedCallback());
-                        }
-                        if (state.mcWidget.events.progress && updateProgressBarCallback) {
-                            state.mcWidget.events.progress.on((seconds, duration) => {
-                                if (state.activePlayer === 'mixcloud') {
-                                    updateProgressBarCallback(seconds, duration);
-                                }
-                            });
-                        }
-                    }
-                }).catch(e => console.error('Mixcloud ready error', e));
-            }
+        if (!mcIframe || !window.Mixcloud || typeof Mixcloud.PlayerWidget !== 'function') return;
+        if (state.mcWidget) return;
+        state.mcWidget = Mixcloud.PlayerWidget(mcIframe);
+        if (state.mcWidget && state.mcWidget.ready) {
+            state.mcWidget.ready.then(() => {
+                if (typeof state.mcWidget.setVolume === 'function') {
+                    state.mcWidget.setVolume(state.currentVolume / 100);
+                }
+                const ev = state.mcWidget.events;
+                if (!ev) return;
+                if (ev.play && _callbacks.onState) ev.play.on(() => _callbacks.onState(true));
+                if (ev.pause && _callbacks.onState) ev.pause.on(() => _callbacks.onState(false));
+                if (ev.ended && _callbacks.onFinish) ev.ended.on(() => _callbacks.onFinish());
+                if (ev.progress && _callbacks.onProgress) {
+                    ev.progress.on((seconds, duration) => {
+                        if (state.activePlayer === 'mixcloud') _callbacks.onProgress(seconds, duration);
+                    });
+                }
+            }).catch(e => console.error('Mixcloud ready error', e));
         }
     } catch (e) {
         console.warn('Mixcloud SDK unavailable or restricted', e);
     }
 }
 
-export function renderMixcloudView(track, setPlayingStateCallback) {
+export async function renderMixcloudView(track, setPlayingStateCallback) {
     let path = track.url || '';
     if (path.includes('mixcloud.com')) {
         const parts = path.split('mixcloud.com');
@@ -63,6 +70,13 @@ export function renderMixcloudView(track, setPlayingStateCallback) {
     switchTab('mixcloud-view');
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     if (setPlayingStateCallback) setPlayingStateCallback(true);
+
+    try {
+        await loadScriptOnce(MIXCLOUD_SDK_URL, 'Mixcloud');
+        _createWidget();
+    } catch (e) {
+        console.warn('Mixcloud SDK non caricato', e);
+    }
 }
 
 export function pauseMc() {
