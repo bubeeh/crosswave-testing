@@ -1,0 +1,7 @@
+# File che non devono finire nel deploy serverless
+tests/
+.github/
+requirements-dev.txt
+pytest.ini
+ruff.toml
+*.md
