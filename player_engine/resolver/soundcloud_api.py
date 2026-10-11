@@ -164,6 +164,24 @@ def search_playlists(query: str, limit: int = 25) -> list[dict[str, Any]]:
     return [item for item in (data.get("collection") or []) if isinstance(item, dict)]
 
 
+def search_tracks(query: str, limit: int = 20) -> list[dict[str, Any]]:
+    """Tracce pubbliche che matchano la query (oggetti API v2 grezzi)."""
+    data = _api_get(
+        "/search/tracks",
+        {"q": query, "limit": min(limit, 200), "linked_partitioning": 1, "offset": 0},
+    )
+    return [item for item in (data.get("collection") or []) if isinstance(item, dict)]
+
+
+def related_tracks(track_id: str | int, limit: int = 20) -> list[dict[str, Any]]:
+    """Tracce correlate a una traccia SoundCloud (API v2 /tracks/<id>/related)."""
+    data = _api_get(
+        f"/tracks/{track_id}/related",
+        {"limit": min(limit, 50), "linked_partitioning": 1, "offset": 0},
+    )
+    return [item for item in (data.get("collection") or []) if isinstance(item, dict)]
+
+
 def _fetch_tracks_by_ids(ids: list[str]) -> list[dict[str, Any]]:
     """Idrata in batch (max 50 per chiamata) le tracce "stub" di un set.
 

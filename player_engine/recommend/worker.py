@@ -179,10 +179,13 @@ class RecommendationEngine:
         seed_weight_norm = {s["name_norm"]: s["weight"] / max_weight for s in seeds}
 
         grouped: dict[str, dict[str, list]] = {}
-        for seed in seeds:
+        for seed_index, seed in enumerate(seeds):
             ref = ArtistRef(name=seed["name"], name_norm=seed["name_norm"], mbid=seed.get("mbid"))
             per_source: dict[str, list] = {}
             for src in sources or []:
+                cap = getattr(src, "max_seeds", None)
+                if cap is not None and seed_index >= cap:
+                    continue  # fonte costosa: solo i primi seed
                 try:
                     if not src.enabled():
                         continue

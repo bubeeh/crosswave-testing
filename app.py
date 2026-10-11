@@ -44,8 +44,14 @@ from player_engine.core.schema import MediaObject, MediaType, compute_canonical_
 from player_engine.recommend import config as rec_config
 from player_engine.recommend import identity
 from player_engine.recommend.events import infer_event_type
-from player_engine.recommend.sources.lastfm import LastFmSource
-from player_engine.recommend.sources.musicbrainz import MusicBrainzSource
+from player_engine.recommend.sources import (
+    BandcampSource,
+    DiscogsSource,
+    LastFmSource,
+    MusicBrainzSource,
+    SoundCloudSource,
+    YouTubeSource,
+)
 from player_engine.recommend.worker import RecommendationEngine
 from player_engine.resolver.rate_limit import RateLimiter
 from player_engine.resolver.search import SEARCHABLE_PLATFORMS
@@ -164,6 +170,16 @@ rec_sources = [
         cache=_source_cache,
         limiter=RateLimiter(RateLimitRepo(user_conn), interval=1.0),
         user_agent=os.environ.get("MB_USER_AGENT"),
+    ),
+    # Fase 2 — fonti di nicchia (degradano silenziosamente se non disponibili)
+    SoundCloudSource(),
+    BandcampSource(),
+    YouTubeSource(resolver_service),
+    DiscogsSource(
+        _source_http,
+        cache=_source_cache,
+        limiter=RateLimiter(RateLimitRepo(user_conn), interval=1.0),
+        token=os.environ.get("DISCOGS_TOKEN"),
     ),
 ]
 

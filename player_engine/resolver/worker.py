@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -26,10 +27,11 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from ..core.platforms import detect_platform
-from ..core.schema import MediaObject
+from ..core.schema import MediaObject, SearchResult, compute_canonical_id
 from .cache import ResolutionCache
 from .normalizer import Normalizer
 from .rate_limit import RateLimiter
+from .search import YTDLP_SEARCH_TIMEOUT, SearchOutcome, _flat_thumb
 
 YTDLP_BIN = os.environ.get("PLAYER_YTDLP_BIN", "yt-dlp")
 RESOLVE_TIMEOUT = 45.0
@@ -252,6 +254,61 @@ class ResolverWorker:
         self.cache.put_alias(url, album.canonical_id, album.resolved_at)
         return ResolveOutcome(media=album, tracks=tracks)
 
+    def related(self, video_id: str, limit: int = 25) -> SearchOutcome:
+        """Tracce correlate di un video YouTube (Mix automatico list=RD<id>)."""
+        if not video_id:
+            return SearchOutcome(error_kind="bad_request", message="video_id mancante")
+        url = f"https://www.youtube.com/playlist?list=RD{video_id}"
+        try:
+            proc = subprocess.run(
+                _ytdlp_cmd(["-J", "--flat-playlist", "--playlist-end", str(limit),
+                            "--no-warnings", url]),
+                capture_output=True, text=True, encoding="utf-8", errors="replace",
+                timeout=YTDLP_SEARCH_TIMEOUT,
+            )
+        except subprocess.TimeoutExpired:
+            return SearchOutcome(error_kind="timeout", message="timeout related youtube")
+        except FileNotFoundError:
+            return SearchOutcome(error_kind="search_failed", message="binario yt-dlp non trovato")
+        if proc.returncode != 0:
+            return SearchOutcome(
+                error_kind="search_failed",
+                message=proc.stderr.strip()[:300] or "yt-dlp fallito (related)",
+            )
+        try:
+            data = json.loads(proc.stdout)
+        except json.JSONDecodeError:
+            return SearchOutcome(error_kind="search_failed", message="output non valido (related)")
+
+        results: list[SearchResult] = []
+        for entry in data.get("entries") or []:
+            if not isinstance(entry, dict):
+                continue
+            entry_url = str(entry.get("webpage_url") or entry.get("url") or "")
+            title = str(entry.get("title") or "").strip()
+            if not entry_url or not title:
+                continue
+            channel = str(entry.get("channel") or entry.get("uploader") or "")
+            results.append(
+                SearchResult(
+                    platform="youtube",
+                    url=entry_url,
+                    title=title[:300],
+                    uploader=channel,
+                    duration=float(entry.get("duration") or 0.0),
+                    thumbnail=_flat_thumb(entry),
+                    canonical_id=compute_canonical_id("youtube", entry.get("id"), entry_url),
+                    channel_is_verified=bool(entry.get("channel_is_verified")),
+                    is_topic=bool(re.search(r"[-–—]\s*topic$", channel.strip(), re.IGNORECASE)),
+                    catalog_url=str(entry.get("channel_url") or ""),
+                )
+            )
+            if len(results) >= limit:
+                break
+        if not results:
+            return SearchOutcome(error_kind="no_results", message="nessun correlato")
+        return SearchOutcome(results=results)
+
     @staticmethod
     def _soundcloud_playlist_raw(url: str) -> dict[str, Any] | None:
         """Tracklist di un set SoundCloud via API v2 pubblica (o None)."""
@@ -414,6 +471,16 @@ class ResolverWorker:
             error: dict[str, Any] = {"kind": outcome.error_kind, "message": outcome.message}
             if outcome.retry_after:
                 error["retry_after"] = round(outcome.retry_after, 1)
+            return {"id": rid, "ok": False, "error": error}
+        if op == "related":
+            outcome = self.related(request.get("video_id", ""), int(request.get("limit") or 25))
+            if outcome.results is not None:
+                return {
+                    "id": rid,
+                    "ok": True,
+                    "results": [r.model_dump(mode="json") for r in outcome.results],
+                }
+            error: dict[str, Any] = {"kind": outcome.error_kind, "message": outcome.message}
             return {"id": rid, "ok": False, "error": error}
         if op == "album":
             outcome = self.resolve_album(request.get("url", ""))

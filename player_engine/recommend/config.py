@@ -40,10 +40,20 @@ SEED_MIN_WEIGHT = 0.0
 
 # --- Fusione delle fonti (Reciprocal Rank Fusion) ---
 RRF_K = 60
+# Pesi per fonte e modalità. Le fonti assenti da un dizionario vengono ignorate.
 SOURCE_WEIGHTS: dict[str, dict[str, float]] = {
-    "close": {"lastfm": 1.0, "musicbrainz": 0.4},
-    "scene": {"lastfm": 0.4, "musicbrainz": 1.0},
-    "mixed": {"lastfm": 0.7, "musicbrainz": 0.7},
+    "close": {
+        "lastfm": 1.0, "soundcloud": 0.5, "youtube": 0.4,
+        "musicbrainz": 0.4, "bandcamp": 0.3, "discogs": 0.3,
+    },
+    "scene": {
+        "musicbrainz": 1.0, "bandcamp": 0.8, "discogs": 0.8,
+        "lastfm": 0.4, "soundcloud": 0.4, "youtube": 0.4,
+    },
+    "mixed": {
+        "lastfm": 0.7, "musicbrainz": 0.7, "soundcloud": 0.5,
+        "bandcamp": 0.5, "youtube": 0.5, "discogs": 0.5,
+    },
 }
 
 # --- Diversificazione ---

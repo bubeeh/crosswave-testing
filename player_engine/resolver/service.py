@@ -213,6 +213,19 @@ class ResolverService:
             raise SearchUnsupportedError(platform)
         raise SearchError(platform, error.get("message", "errore di ricerca"))
 
+    def related(self, video_id: str, limit: int = 25) -> list[SearchResult]:
+        """Tracce correlate di un video YouTube (Mix automatico). Op del worker."""
+        try:
+            response = self._request({"op": "related", "video_id": video_id, "limit": limit})
+        except ResolverUnavailableError:
+            raise ResolverUnavailableError(video_id, "processo Media Resolver non attivo") from None
+
+        if response.get("ok"):
+            return [SearchResult.model_validate(r) for r in response.get("results", [])]
+
+        error = response.get("error", {})
+        raise SearchError("youtube", error.get("message", "errore related"))
+
     def album(self, url: str) -> tuple[MediaObject, list[MediaObject]]:
         """Tracklist completa di un album (meta + tracce già in cache)."""
         try:
