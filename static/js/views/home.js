@@ -1,6 +1,6 @@
 // Home Dashboard View Module for CrossWave Hybrid
 import { state } from '../core/state.js';
-import { showToast, escapeHtml } from '../core/utils.js';
+import { showToast, escapeHtml, PLACEHOLDER_COVER } from '../core/utils.js';
 import { navigate } from '../core/router.js';
 import { executeSearch } from './search.js';
 import { playTrackImmediately } from '../player/player.js';
@@ -30,7 +30,7 @@ const SOURCE_COLOR_VARS = {
     radio: 'var(--accent-cyan)',
 };
 
-const FALLBACK_COVER = 'https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=150';
+const FALLBACK_COVER = PLACEHOLDER_COVER;
 
 // --- "Riprendi": ultimo ascolto dalla cronologia ---
 function renderHomeResume() {
@@ -47,7 +47,7 @@ function renderHomeResume() {
 
     section.classList.remove('hidden');
     card.innerHTML = `
-        <img class="resume-cover" src="${escapeHtml(track.thumbnail || FALLBACK_COVER)}" alt="" onerror="this.src='${FALLBACK_COVER}'">
+        <img class="resume-cover" src="${escapeHtml(track.thumbnail || FALLBACK_COVER)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_COVER}'">
         <div class="resume-info">
             <div class="resume-title truncate">${escapeHtml(track.title || 'Senza Titolo')}</div>
             <div class="resume-artist truncate">${escapeHtml(track.artist || 'Artista Sconosciuto')}</div>
@@ -145,7 +145,7 @@ async function updateHomeBadges() {
 
 // --- "Per te": raccomandazioni per ARTISTI (close/scene/mixed) ---
 const REC_MODE_KEY = 'cw_rec_mode';
-const FALLBACK_ART = 'https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=300';
+const FALLBACK_ART = PLACEHOLDER_COVER;
 
 function getRecMode() {
     const m = localStorage.getItem(REC_MODE_KEY);
@@ -198,7 +198,7 @@ function renderForYouCard(item) {
     card.className = 'for-you-card glassmorphic-card';
     card.innerHTML = `
         <div class="for-you-cover">
-            <img src="${FALLBACK_ART}" alt="${escapeHtml(item.name || '')}" onerror="this.src='${FALLBACK_ART}'">
+            <img src="${FALLBACK_ART}" alt="${escapeHtml(item.name || '')}" onerror="this.onerror=null;this.src='${FALLBACK_ART}'">
             <span class="for-you-source"><i class="fa-solid fa-user-music"></i></span>
         </div>
         <div class="for-you-info">

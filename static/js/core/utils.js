@@ -1,5 +1,18 @@
 // Helper Utilities for CrossWave Hybrid
 
+// Placeholder LOCALE (servito dall'app, cacheato dal Service Worker).
+// Mai usare un URL remoto come fallback di sé stesso: se il fallback fallisce,
+// l'onerror si riattiverebbe in loop generando richieste infinite.
+export const PLACEHOLDER_COVER = '/static/icons/placeholder.svg';
+
+// Handler "one-shot": disarma l'evento e ripiega sul placeholder locale.
+export function imgFallback(el) {
+    el.onerror = null;
+    if (el.src && !el.src.includes('placeholder.svg')) {
+        el.src = PLACEHOLDER_COVER;
+    }
+}
+
 export function escapeHtml(text) {
     if (!text) return '';
     return text

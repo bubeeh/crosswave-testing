@@ -1,5 +1,5 @@
 import { state } from '../core/state.js';
-import { showToast, formatTime, calculateTotalDuration, escapeHtml } from '../core/utils.js';
+import { showToast, formatTime, calculateTotalDuration, escapeHtml, PLACEHOLDER_COVER } from '../core/utils.js';
 import { switchTab } from '../core/router.js';
 import { playTrackImmediately, renderQueue, removeTrackFromQueue, clearQueue, addToQueue, addPlaylistTracksToQueue } from '../player/player.js';
 import { createResultRow } from './search.js';
@@ -39,7 +39,7 @@ export function renderHistory() {
 
         row.innerHTML = `
             <div class="track-row-index">${index + 1}</div>
-            <img class="track-row-thumbnail" src="${track.thumbnail || 'https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=80'}" alt="Thumb">
+            <img class="track-row-thumbnail" src="${track.thumbnail || PLACEHOLDER_COVER}" alt="Thumb">
             <div class="track-row-details">
                 <div class="track-row-title truncate">${escapeHtml(track.title)}</div>
                 <div class="track-row-artist truncate">${escapeHtml(track.artist)}</div>
@@ -162,9 +162,9 @@ export function renderPlaylists() {
                 card.className = 'glassmorphic-card p-4 rounded-4 d-flex align-items-center justify-content-between gap-3';
                 card.style.cssText = 'background: rgba(18, 18, 26, 0.65); border: 1px solid rgba(255,255,255,0.08); cursor: pointer; transition: all 0.2s ease;';
 
-                const coverArt = tracks.length > 0 && tracks[0].thumbnail 
-                    ? tracks[0].thumbnail 
-                    : 'https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=150';
+                const coverArt = tracks.length > 0 && tracks[0].thumbnail
+                    ? tracks[0].thumbnail
+                    : PLACEHOLDER_COVER;
 
                 card.innerHTML = `
                     <div class="d-flex align-items-center gap-3" style="min-width: 0;">
@@ -280,7 +280,7 @@ export function renderPlaylistSongs(playlistName) {
 
         row.innerHTML = `
             <div class="track-row-index">${index + 1}</div>
-            <img class="track-row-thumbnail" src="${track.thumbnail || 'https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=80'}" alt="Thumb">
+            <img class="track-row-thumbnail" src="${track.thumbnail || PLACEHOLDER_COVER}" alt="Thumb">
             <div class="track-row-details">
                 <div class="track-row-title truncate">${escapeHtml(track.title)}</div>
                 <div class="track-row-artist truncate">${escapeHtml(track.artist)}</div>

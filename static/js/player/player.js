@@ -1,6 +1,6 @@
 // Orchestrator for Audio Playback, Player Controls & Queue for CrossWave Hybrid
 import { state } from '../core/state.js';
-import { showToast, formatTime, getPlatformGradient, escapeHtml } from '../core/utils.js';
+import { showToast, formatTime, getPlatformGradient, escapeHtml, PLACEHOLDER_COVER } from '../core/utils.js';
 import { switchTab } from '../core/router.js';
 import { initYoutubeAdapter, startYoutubeProgressPolling, stopYoutubeProgressPolling } from './youtube.js';
 import { initBcAudio, playBcStream, pauseBc, resumeBc, seekBc, setBcVolume } from './bandcamp.js';
@@ -371,7 +371,7 @@ export function renderQueue() {
 
         row.innerHTML = `
             <div class="track-row-index">${isActive ? '<i class="fa-solid fa-volume-high spinner-slow"></i>' : index + 1}</div>
-            <img class="track-row-thumbnail" src="${track.thumbnail || 'https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=80'}" alt="Thumb">
+            <img class="track-row-thumbnail" src="${track.thumbnail || PLACEHOLDER_COVER}" alt="Thumb">
             <div class="track-row-details">
                 <div class="track-row-title truncate">${escapeHtml(track.title)}</div>
                 <div class="track-row-artist truncate">${escapeHtml(track.artist)}</div>
@@ -544,7 +544,7 @@ export async function playTrack(track) {
 
     if (title) title.innerText = track.title || 'Senza Titolo';
     if (artist) artist.innerText = track.artist || 'Artista Sconosciuto';
-    if (art) art.src = track.thumbnail || 'https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=80';
+    if (art) art.src = track.thumbnail || PLACEHOLDER_COVER;
     if (artGlow) artGlow.style.background = getPlatformGradient(track.source);
 
     if (badge) {
@@ -569,7 +569,7 @@ export async function playTrack(track) {
     const sidebarArtist = document.getElementById('sidebar-card-artist');
 
     if (sidebarCard) sidebarCard.classList.remove('hidden');
-    if (sidebarArt) sidebarArt.src = track.thumbnail || 'https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=80';
+    if (sidebarArt) sidebarArt.src = track.thumbnail || PLACEHOLDER_COVER;
     if (sidebarTitle) sidebarTitle.innerText = track.title || 'Senza Titolo';
     if (sidebarArtist) sidebarArtist.innerText = track.artist || 'Artista Sconosciuto';
 

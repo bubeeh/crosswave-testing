@@ -1,6 +1,6 @@
 // Desktop Now Playing / Player View: fonte, album, suggeriti.
 import { state } from '../core/state.js';
-import { showToast, escapeHtml, formatTime } from '../core/utils.js';
+import { showToast, escapeHtml, formatTime, PLACEHOLDER_COVER } from '../core/utils.js';
 import { togglePlayPause, prevTrack, nextTrack, playTrackImmediately, addToQueue } from '../player/player.js';
 import { openCollectionDetailView } from './album.js';
 
@@ -22,7 +22,7 @@ const SOURCE_ICONS = {
     local: 'fa-solid fa-hard-drive',
 };
 
-const FALLBACK_COVER = 'https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=400';
+const FALLBACK_COVER = PLACEHOLDER_COVER;
 let lastSuggestionKey = null;
 
 export function initPlayerView() {
@@ -147,7 +147,7 @@ function renderSuggestions(items) {
         row.className = 'np-sugg-row';
         const platform = track.source || '';
         row.innerHTML = `
-            <img class="np-sugg-thumb" src="${escapeHtml(track.thumbnail || FALLBACK_COVER)}" alt="" onerror="this.src='${FALLBACK_COVER}'">
+            <img class="np-sugg-thumb" src="${escapeHtml(track.thumbnail || FALLBACK_COVER)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_COVER}'">
             <div class="np-sugg-info">
                 <div class="np-sugg-name truncate">${escapeHtml(track.title || 'Senza Titolo')}</div>
                 <div class="np-sugg-sub truncate">

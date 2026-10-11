@@ -1,12 +1,13 @@
 // CrossWave Player - minimal service worker (app shell + static asset cache)
-const CACHE_VERSION = 'crosswave-v9';
+const CACHE_VERSION = 'crosswave-v10';
 const SHELL_ASSETS = [
     '/',
     '/static/css/style.css',
     '/static/js/app.js',
     '/static/manifest.webmanifest',
     '/static/icons/icon-192.png',
-    '/static/icons/icon-512.png'
+    '/static/icons/icon-512.png',
+    '/static/icons/placeholder.svg'
 ];
 
 self.addEventListener('install', (event) => {

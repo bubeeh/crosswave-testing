@@ -268,9 +268,9 @@ def init_db():
         cursor.execute("SELECT COUNT(*) as count FROM web_radios")
         if cursor.fetchone()['count'] == 0:
             default_radios = [
-                ("NTS Radio 1 (London)", "https://stream-relay-geo.ntslive.net/stream", "Underground & Experimental", "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=150"),
-                ("Fango Radio", "https://pantano.ovh:8444/pantano", "Experimental & Independent", "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150"),
-                ("Oolong Radio (Berlin)", "https://stream.oolongradio.com:8443/live", "Experimental & Sound Art", "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=150"),
+                ("NTS Radio 1 (London)", "https://stream-relay-geo.ntslive.net/stream", "Underground & Experimental", "/static/icons/placeholder.svg"),
+                ("Fango Radio", "https://pantano.ovh:8444/pantano", "Experimental & Independent", "/static/icons/placeholder.svg"),
+                ("Oolong Radio (Berlin)", "https://stream.oolongradio.com:8443/live", "Experimental & Sound Art", "/static/icons/placeholder.svg"),
                 ("Noods Radio (Bristol)", "https://noods-radio.radiocult.fm/stream", "Underground & Experimental", "https://noodsradio.com/images/og-meta-default-image.jpg"),
                 ("Radio Firenze Viola", "https://stream.tmwradio.com/rfviola.aac", "Sport & News ACF Fiorentina", "https://www.radiofirenzeviola.it/template/radiofirenzeviola.it/img/1280x720.jpg")
             ]
@@ -278,6 +278,13 @@ def init_db():
                 "INSERT INTO web_radios (name, stream_url, genre, logo) VALUES (?, ?, ?, ?)",
                 default_radios
             )
+
+        # Migrazione: sostituisci i vecchi logo placeholder remoti (Unsplash)
+        # con il placeholder locale (niente dipendenze esterne / niente loop).
+        cursor.execute(
+            "UPDATE web_radios SET logo='/static/icons/placeholder.svg' "
+            "WHERE logo LIKE '%images.unsplash.com%'"
+        )
 
         conn.commit()
         conn.close()
@@ -849,7 +856,7 @@ def api_radios():
     name = data.get('name', '').strip()
     stream_url = data.get('stream_url', '').strip()
     genre = data.get('genre', 'Web Radio').strip()
-    logo = data.get('logo', '').strip() or 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150'
+    logo = data.get('logo', '').strip() or '/static/icons/placeholder.svg'
 
     if not name or not stream_url:
         return jsonify({'error': 'Nome e URL dello streaming sono obbligatori'}), 400

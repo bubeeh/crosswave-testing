@@ -1,5 +1,5 @@
 // Catalog / Artist-Label Exploration View Module (Bandcamp + YouTube)
-import { showToast, escapeHtml } from '../core/utils.js';
+import { showToast, escapeHtml, PLACEHOLDER_COVER } from '../core/utils.js';
 import { switchTab } from '../core/router.js';
 import { playTrackImmediately } from '../player/player.js';
 import { openCollectionDetailView } from './album.js';
@@ -68,7 +68,7 @@ export async function openCatalogView({ url, platform, name, isTopic } = {}) {
     if (badge) badge.innerHTML = `<i class="${icon}"></i> ${pLabel}`;
     if (title) title.innerText = name || 'Caricamento catalogo...';
     if (meta) meta.innerText = 'Caricamento uscite...';
-    if (cover) cover.src = 'https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=300';
+    if (cover) cover.src = PLACEHOLDER_COVER;
     if (relatedBox) relatedBox.innerHTML = '';
     if (sectionsBox) {
         sectionsBox.innerHTML = '<div class="loader-spinner"><div class="double-bounce1"></div><div class="double-bounce2"></div></div>';
@@ -166,10 +166,10 @@ function renderCard(item) {
 
     card.innerHTML = `
         <div style="position: relative; aspect-ratio: 1; overflow: hidden;">
-            <img src="${escapeHtml(track.thumbnail || 'https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=300')}"
+            <img src="${escapeHtml(track.thumbnail || PLACEHOLDER_COVER)}"
                  alt="${escapeHtml(track.title)}"
                  style="width: 100%; height: 100%; object-fit: cover; display: block;"
-                 onerror="this.src='https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=300'">
+                 onerror="this.onerror=null;this.src='${PLACEHOLDER_COVER}'">
             ${typeTag}
         </div>
         <div style="padding: 10px;">

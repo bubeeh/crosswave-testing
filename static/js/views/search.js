@@ -1,5 +1,5 @@
 // Search View Module for CrossWave Hybrid
-import { showToast, formatTime, escapeHtml } from '../core/utils.js';
+import { showToast, formatTime, escapeHtml, PLACEHOLDER_COVER } from '../core/utils.js';
 import { playTrackImmediately, addToQueue, playTrackWithVideo, addPlaylistTracksToQueue } from '../player/player.js';
 import { openAddToPlaylistModal } from './library.js';
 import { loadAndAddAlbumToQueue, openCollectionDetailView } from './album.js';
@@ -314,7 +314,7 @@ export function createResultRow(track, index, options = {}) {
 
     const coverSrc = track.thumbnail
         ? escapeHtml(track.thumbnail)
-        : 'https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=120';
+        : PLACEHOLDER_COVER;
 
     // Durata: mostrata solo se valida, altrimenti il campo è omesso (niente "--:--").
     const hasDuration = typeof track.duration === 'number' && isFinite(track.duration) && track.duration > 0;

@@ -1,5 +1,5 @@
 // Collection (album / playlist / set) Detail View Module for CrossWave Hybrid
-import { showToast, calculateTotalDuration, formatTime, escapeHtml } from '../core/utils.js';
+import { showToast, calculateTotalDuration, formatTime, escapeHtml, PLACEHOLDER_COVER } from '../core/utils.js';
 import { switchTab } from '../core/router.js';
 import { openAddTracksToPlaylistModal } from './library.js';
 import { addPlaylistTracksToQueue, playTrackImmediately } from '../player/player.js';
@@ -170,7 +170,7 @@ export async function openCollectionDetailView(collection) {
         badgeEl.className = `album-source-label album-badge-${source}`;
         badgeEl.innerHTML = `<i class="${badge.icon}"></i> ${badge.label}`;
     }
-    if (cover) cover.src = collection.thumbnail || 'https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=300';
+    if (cover) cover.src = collection.thumbnail || PLACEHOLDER_COVER;
     if (title) title.innerText = collection.title || 'Caricamento raccolta...';
     if (artist) artist.innerText = collection.artist || 'Caricamento artista...';
     if (countText) countText.innerText = 'Caricamento tracce...';

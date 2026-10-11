@@ -1,8 +1,8 @@
 // Web Radio View Module for CrossWave Hybrid
-import { showToast, escapeHtml } from '../core/utils.js';
+import { showToast, escapeHtml, PLACEHOLDER_COVER } from '../core/utils.js';
 import { playTrack } from '../player/player.js';
 
-const DEFAULT_RADIO_LOGO = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150';
+const DEFAULT_RADIO_LOGO = PLACEHOLDER_COVER;
 
 function stationInitials(name) {
     const words = String(name || '').replace(/[^\p{L}\p{N}\s]/gu, ' ').trim().split(/\s+/).filter(Boolean);
@@ -139,7 +139,7 @@ export async function openRadioDetailModal(radioId) {
     const nowEl = document.getElementById('radio-detail-now-playing');
     const scheduleList = document.getElementById('radio-detail-schedule-list');
 
-    if (logoEl) logoEl.src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150';
+    if (logoEl) logoEl.src = DEFAULT_RADIO_LOGO;
     if (nameEl) nameEl.innerText = 'Caricamento...';
     if (genreEl) genreEl.innerText = '--';
     if (nowEl) nowEl.innerText = 'Lettura metadati live in corso...';
@@ -154,7 +154,7 @@ export async function openRadioDetailModal(radioId) {
 
         if (!radio) return;
 
-        if (logoEl) logoEl.src = radio.logo || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150';
+        if (logoEl) logoEl.src = radio.logo || DEFAULT_RADIO_LOGO;
         if (nameEl) nameEl.innerText = radio.name;
         if (genreEl) genreEl.innerText = radio.genre || 'Web Radio';
         if (nowEl) nowEl.innerText = radio.now_playing || 'Trasmissione Live in corso';
