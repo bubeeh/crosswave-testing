@@ -16,6 +16,7 @@ import { openAddToPlaylistModal, renderPlaylists, renderHistory } from './views/
 import './views/album.js';
 import { initPlayerView, renderNowPlaying } from './views/player.js';
 import { loadWebRadios } from './views/radios.js';
+import { loadDigging, loadHomeDigging } from './views/digging.js';
 
 function onDOMReady(fn) {
     if (document.readyState !== 'loading') {
@@ -27,10 +28,11 @@ function onDOMReady(fn) {
 
 onDOMReady(() => {
     // 1. Register Tab Lifecycle Handlers in Router
-    registerTab('home', { onEnter: loadHomeDashboard });
+    registerTab('home', { onEnter: () => { loadHomeDashboard(); loadHomeDigging(); } });
     registerTab('web-radio', { onEnter: loadWebRadios });
     registerTab('playlists', { onEnter: renderPlaylists });
     registerTab('player', { onEnter: renderNowPlaying });
+    registerTab('digging', { onEnter: loadDigging });
     registerTab('queue-history', {
         onEnter: () => {
             renderQueue();

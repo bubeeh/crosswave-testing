@@ -9,6 +9,7 @@ export function registerTab(tabId, handlers) {
 const HASH_MAP = {
     'home': '#/home',
     'search': '#/search',
+    'digging': '#/digging',
     'web-radio': '#/web-radio',
     'playlists': '#/playlists',
     'player': '#/player',

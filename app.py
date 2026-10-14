@@ -62,6 +62,7 @@ from player_engine.storage.repos import (
     RateLimitRepo,
     SourceCacheRepo,
 )
+from web import digging
 from web.radio_meta import fetch_real_radio_metadata, radio_schedule
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
@@ -310,6 +311,27 @@ def init_db():
             "UPDATE web_radios SET logo='/static/icons/placeholder.svg' "
             "WHERE logo LIKE '%images.unsplash.com%'"
         )
+
+        # Fonti della sezione "Digging" (feed RSS/Atom editoriali).
+        # Come per le web radio: seed di default + aggiunta/rimozione da UI.
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS digging_feeds (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                url TEXT NOT NULL UNIQUE,
+                category TEXT,
+                icon TEXT,
+                enabled INTEGER NOT NULL DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        cursor.execute("SELECT COUNT(*) as count FROM digging_feeds")
+        if cursor.fetchone()['count'] == 0:
+            cursor.executemany(
+                "INSERT INTO digging_feeds (name, url, category, icon) VALUES (?, ?, ?, ?)",
+                [(f["name"], f["url"], f.get("category", ""), f.get("icon", ""))
+                 for f in digging.DEFAULT_FEEDS],
+            )
 
         conn.commit()
         conn.close()
@@ -894,6 +916,105 @@ def api_radio_details(radio_id):
     radio_dict['schedule'] = radio_schedule(radio_dict['name'], now_playing)
 
     return jsonify({'radio': radio_dict})
+
+
+# ------------------------------------------------------------------
+# Digging: aggregatore di feed editoriali (RSS/Atom)
+# ------------------------------------------------------------------
+def _digging_feeds():
+    """Legge le fonti Digging dal DB (fallback ai default se la tabella è vuota)."""
+    try:
+        conn = get_db()
+        rows = conn.execute(
+            "SELECT id, name, url, category, icon, enabled FROM digging_feeds ORDER BY id ASC"
+        ).fetchall()
+        conn.close()
+        feeds = [dict(r) for r in rows]
+    except Exception:
+        feeds = []
+    if not feeds:
+        feeds = [dict(f, id=None, enabled=1) for f in digging.DEFAULT_FEEDS]
+    return feeds
+
+
+@app.route('/api/digging/feeds', methods=['GET', 'POST'])
+def api_digging_feeds():
+    if request.method == 'GET':
+        return jsonify({'feeds': _digging_feeds()})
+
+    data = request.json or {}
+    name = (data.get('name') or '').strip()
+    url = (data.get('url') or '').strip()
+    category = (data.get('category') or 'Editoriale').strip()
+    icon = (data.get('icon') or '').strip()
+    if not name or not url:
+        return jsonify({'error': 'Nome e URL del feed sono obbligatori'}), 400
+    if not url.startswith(('http://', 'https://')):
+        return jsonify({'error': "L'URL deve iniziare con http:// o https://"}), 400
+
+    conn = get_db()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO digging_feeds (name, url, category, icon) VALUES (?, ?, ?, ?)",
+            (name, url, category, icon),
+        )
+        feed_id = cursor.lastrowid
+        conn.commit()
+        return jsonify({'message': f"Fonte '{name}' aggiunta", 'id': feed_id})
+    except sqlite3.IntegrityError:
+        return jsonify({'error': 'URL feed già esistente'}), 400
+    except sqlite3.Error as exc:
+        return jsonify({'error': f'Impossibile salvare la fonte: {exc}'}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/digging/feeds/<int:feed_id>', methods=['DELETE'])
+def api_delete_digging_feed(feed_id):
+    conn = get_db()
+    try:
+        conn.execute("DELETE FROM digging_feeds WHERE id = ?", (feed_id,))
+        conn.commit()
+    finally:
+        conn.close()
+    return jsonify({'message': 'Fonte rimossa'})
+
+
+@app.route('/api/digging')
+def api_digging():
+    """Aggrega gli articoli delle fonti abilitate, con filtri opzionali."""
+    category = (request.args.get('category') or '').strip()
+    feeds_param = (request.args.get('feeds') or '').strip()
+    try:
+        limit = min(120, max(1, int(request.args.get('limit', 60))))
+    except (TypeError, ValueError):
+        limit = 60
+
+    feeds = [f for f in _digging_feeds() if f.get('enabled', 1)]
+
+    if feeds_param:
+        wanted = {s.strip().lower() for s in feeds_param.split(',') if s.strip()}
+        feeds = [f for f in feeds
+                 if str(f.get('name', '')).lower() in wanted
+                 or str(f.get('id')) in wanted]
+    if category:
+        feeds = [f for f in feeds
+                 if str(f.get('category') or '').lower() == category.lower()]
+
+    allowed = [
+        {'id': f.get('id'), 'name': f.get('name'), 'url': f.get('url'),
+         'category': f.get('category') or '', 'icon': f.get('icon') or ''}
+        for f in feeds
+    ]
+    items, errors = digging.fetch_all(allowed, limit=limit)
+    return jsonify({
+        'items': items,
+        'feeds': [{'id': f.get('id'), 'name': f['name'],
+                   'category': f.get('category') or '', 'icon': f.get('icon') or ''}
+                  for f in allowed],
+        'errors': errors,
+    })
 
 
 @app.route('/api/system')

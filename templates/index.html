@@ -46,6 +46,10 @@
                     <i class="fa-solid fa-magnifying-glass"></i>
                     <span>Cerca</span>
                 </button>
+                <button class="nav-btn sidebar-nav-btn" data-tab="digging" id="nav-btn-digging">
+                    <i class="fa-solid fa-compass"></i>
+                    <span>Digging</span>
+                </button>
                 <button class="nav-btn sidebar-nav-btn" data-tab="web-radio" id="nav-btn-web-radio">
                     <i class="fa-solid fa-radio"></i>
                     <span>Web Radio</span>
@@ -199,6 +203,21 @@
                                 <!-- Card raccomandazioni iniettate da JS -->
                             </div>
                         </div>
+
+                        <!-- Ultime dal Digging: le 3 notizie più recenti -->
+                        <section class="home-digging-section" id="home-digging-section">
+                            <div class="home-for-you-header">
+                                <h2 class="home-section-title">
+                                    <i class="fa-solid fa-compass accent-cyan"></i> Ultime dal Digging
+                                </h2>
+                                <button class="btn btn-secondary btn-sm" data-target="digging">
+                                    <i class="fa-solid fa-arrow-right"></i> Apri Digging
+                                </button>
+                            </div>
+                            <div id="home-digging-list" class="home-digging-list">
+                                <!-- Card Digging iniettate da JS -->
+                            </div>
+                        </section>
                     </div>
                 </section>
 
@@ -261,6 +280,32 @@
                         <div class="search-results-list" id="search-results-list">
                             <!-- Results items will be dynamically loaded here -->
                         </div>
+                    </div>
+                </section>
+
+                <!-- Digging: aggregatore feed editoriali -->
+                <section class="tab-content" id="tab-digging">
+                    <div class="page-header">
+                        <div class="page-header-text">
+                            <h1 class="page-title">Digging</h1>
+                            <p class="page-subtitle" id="digging-subtitle">Editoriali e riviste musicali</p>
+                        </div>
+                        <button class="btn btn-cyan" id="open-add-feed-btn">
+                            <i class="fa-solid fa-plus"></i> Aggiungi fonte
+                        </button>
+                    </div>
+
+                    <div class="digging-filters" id="digging-filters">
+                        <!-- Chip categorie/fonti iniettate da JS -->
+                    </div>
+
+                    <div class="digging-grid" id="digging-grid">
+                        <!-- Card Digging iniettate da JS -->
+                    </div>
+
+                    <div class="search-placeholder-state hidden" id="digging-placeholder">
+                        <i class="fa-solid fa-compass placeholder-icon"></i>
+                        <p>Caricamento delle fonti in corso...</p>
                     </div>
                 </section>
 

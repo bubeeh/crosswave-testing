@@ -61,6 +61,33 @@
     </div>
 </div>
 
+<!-- Add Custom RSS Feed Modal (Digging) -->
+<div class="modal-overlay hidden" id="add-feed-modal">
+    <div class="modal-card glassmorphic-card" style="max-width: 460px;">
+        <div class="modal-header">
+            <h2><i class="fa-solid fa-compass accent-cyan"></i> Aggiungi Fonte (Digging)</h2>
+            <button class="close-modal-btn" id="close-add-feed-modal"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="padding: 20px;">
+            <form id="add-feed-form" onsubmit="return false;">
+                <div style="margin-bottom: 12px;">
+                    <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 4px;">Nome Fonte</label>
+                    <input type="text" id="feed-name-input" class="search-input" style="width: 100%; border-radius: 8px; padding: 10px;" placeholder="es. Boomkat" required>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 4px;">URL feed RSS / Atom</label>
+                    <input type="url" id="feed-url-input" class="search-input" style="width: 100%; border-radius: 8px; padding: 10px;" placeholder="https://esempio.com/feed" required>
+                </div>
+                <div style="margin-bottom: 18px;">
+                    <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 4px;">Categoria</label>
+                    <input type="text" id="feed-category-input" class="search-input" style="width: 100%; border-radius: 8px; padding: 10px;" placeholder="es. Editoriale / Elettronica / Riviste">
+                </div>
+                <button class="btn btn-cyan" id="save-feed-btn" style="width: 100%;"><i class="fa-solid fa-plus"></i> Salva Fonte</button>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Radio Detail & Schedule Modal -->
 <div class="modal-overlay hidden" id="radio-detail-modal">
     <div class="modal-card glassmorphic-card" style="max-width: 500px; width: 90%;">
