@@ -1,5 +1,5 @@
 // Search View Module for CrossWave Hybrid
-import { showToast, formatTime, escapeHtml, PLACEHOLDER_COVER } from '../core/utils.js';
+import { showToast, formatTime, escapeHtml, PLACEHOLDER_COVER, isCollectionUrl, youtubeVideoId } from '../core/utils.js';
 import { playTrackImmediately, addToQueue, playTrackWithVideo, addPlaylistTracksToQueue } from '../player/player.js';
 import { openAddToPlaylistModal } from './library.js';
 import { loadAndAddAlbumToQueue, openCollectionDetailView } from './album.js';
@@ -33,19 +33,6 @@ function parsePlatformUrl(query) {
     if (lower.includes('soundcloud.com')) return { platform: 'soundcloud', url };
     if (lower.includes('mixcloud.com')) return { platform: 'mixcloud', url };
     return null;
-}
-
-function isCollectionUrl(platform, url) {
-    const u = String(url || '');
-    if (platform === 'bandcamp') return u.includes('/album/');
-    if (platform === 'youtube') return u.includes('/playlist');
-    if (platform === 'soundcloud') return u.includes('/sets/');
-    return false;
-}
-
-function youtubeVideoId(url) {
-    const m = String(url || '').match(/[?&]v=([\w-]+)/);
-    return m ? m[1] : '';
 }
 
 // Un URL incollato apre la vista giusta invece di essere cercato come testo:
@@ -137,13 +124,23 @@ export async function executeSearch() {
         const perSource = (data.results && typeof data.results === 'object') ? data.results : {};
         Object.keys(perSource).forEach(src => {
             const entry = perSource[src] || {};
-            if (Array.isArray(entry.results)) {
-                results = results.concat(entry.results);
-            }
             if (entry.error && entry.error !== 'no_results') {
                 errors.push(entry.message || `Errore durante la ricerca su ${src}`);
             }
         });
+
+        // Lista unificata cross-platform (fusa per rilevanza dal backend).
+        // Fallback retrocompatibile: concatenazione dei blocchi per sorgente.
+        if (Array.isArray(data.items)) {
+            results = data.items;
+        } else {
+            Object.keys(perSource).forEach(src => {
+                const entry = perSource[src] || {};
+                if (Array.isArray(entry.results)) {
+                    results = results.concat(entry.results);
+                }
+            });
+        }
 
         currentSearchResults = results;
         updateSourceChips(perSource);

@@ -62,7 +62,7 @@ self.addEventListener('fetch', (event) => {
                     }
                     return res;
                 })
-                .catch(() => caches.match(req))
+                .catch(() => caches.match(req, { ignoreSearch: true }))
         );
     }
 });

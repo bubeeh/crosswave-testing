@@ -8,18 +8,10 @@ Gerarchia:
     │   ├── RateLimitedError
     │   ├── SourceForbiddenError
     │   └── ResolveTimeoutError
-    ├── StreamingError
-    │   ├── StreamNotFoundError
-    │   └── RangeNotSupportedError
-    ├── DownloadError
-    │   ├── LicenseBlockedError
-    │   ├── WatermarkError
-    │   └── DownloadFailedError
     ├── SearchError
     │   ├── SearchUnsupportedError
     │   └── SearchRateLimitedError
     ├── StorageError
-    ├── ComplianceError
     └── RecommendationError
 """
 
@@ -71,42 +63,6 @@ class ResolveTimeoutError(ResolveError):
 
 
 # --------------------------------------------------------------------------
-# Streaming layer
-# --------------------------------------------------------------------------
-class StreamingError(PlayerError):
-    """Errore generico durante lo streaming."""
-
-
-class StreamNotFoundError(StreamingError):
-    """Nessuno stream disponibile per il media richiesto (degradazione 'solo link')."""
-
-
-class RangeNotSupportedError(StreamingError):
-    """La sorgente non supporta richieste con Range header."""
-
-
-# --------------------------------------------------------------------------
-# Download layer
-# --------------------------------------------------------------------------
-class DownloadError(PlayerError):
-    """Errore generico durante il download."""
-
-
-class LicenseBlockedError(DownloadError):
-    """Download bloccato: `rights.download_license` assente o
-    `terms_violation_risk == high`. Condizione non negoziabile del go-live.
-    """
-
-
-class WatermarkError(DownloadError):
-    """Impossibile applicare il watermark ID3 al file scaricato."""
-
-
-class DownloadFailedError(DownloadError):
-    """Il worker di download ha fallito (yt-dlp/ffmpeg errore)."""
-
-
-# --------------------------------------------------------------------------
 # Search layer
 # --------------------------------------------------------------------------
 class SearchError(PlayerError):
@@ -133,10 +89,6 @@ class SearchRateLimitedError(SearchError):
         super().__init__(platform, f"Sorgente occupata — riprovo tra {retry_after:.0f}s")
 class StorageError(PlayerError):
     """Errore generico di persistenza SQLite."""
-
-
-class ComplianceError(PlayerError):
-    """Violazione delle regole di conformità (log 24 mesi, retention, export)."""
 
 
 class RecommendationError(PlayerError):

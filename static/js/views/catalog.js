@@ -1,5 +1,5 @@
 // Catalog / Artist-Label Exploration View Module (Bandcamp + YouTube)
-import { showToast, escapeHtml, PLACEHOLDER_COVER } from '../core/utils.js';
+import { showToast, escapeHtml, PLACEHOLDER_COVER, isCollectionUrl, youtubeVideoId } from '../core/utils.js';
 import { switchTab } from '../core/router.js';
 import { playTrackImmediately } from '../player/player.js';
 import { openCollectionDetailView } from './album.js';
@@ -14,24 +14,11 @@ const PLATFORM_ICONS = {
     youtube: 'fa-brands fa-youtube',
 };
 
-function isCollectionUrl(platform, url) {
-    if (!url) return false;
-    if (platform === 'bandcamp') return url.includes('/album/');
-    if (platform === 'youtube') return url.includes('/playlist');
-    if (platform === 'soundcloud') return url.includes('/sets/');
-    return false;
-}
-
-function nativeYoutubeId(url) {
-    const m = String(url || '').match(/[?&]v=([\w-]+)/);
-    return m ? m[1] : '';
-}
-
 // Converte un SearchResult canonico (payload /api/catalog) nella forma UI.
 function toUiTrack(item) {
     const platform = item.platform;
     const isAlbum = isCollectionUrl(platform, item.url);
-    const native = platform === 'youtube' ? nativeYoutubeId(item.url) : '';
+    const native = platform === 'youtube' ? youtubeVideoId(item.url) : '';
     return {
         id: (platform === 'youtube' && native) ? `yt_${native}` : item.canonical_id,
         canonical_id: item.canonical_id,

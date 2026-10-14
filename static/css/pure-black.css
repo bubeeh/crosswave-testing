@@ -1,0 +1,135 @@
+/* ==========================================================================
+   PURE BLACK MINIMALIST OVERRIDE (NO ANIMATIONS, CLEAN FLAT THEME)
+   ========================================================================== */
+
+*, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+}
+
+body, .app-container {
+    background-color: var(--bg-color) !important;
+    background: var(--bg-color) !important;
+    color: var(--text-primary) !important;
+}
+
+.ambient-glow, .bg-glow-1, .bg-glow-2, .bg-glow-3, .link-card-glow-bg {
+    display: none !important;
+}
+
+.glassmorphic, .glassmorphic-card {
+    background: var(--surface-1) !important;
+    border: 1px solid var(--border-color) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+}
+
+.app-header {
+    background: var(--sidebar-bg) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+}
+
+.header-nav .nav-btn {
+    border-radius: 8px !important;
+    border: 1px solid transparent !important;
+    background: transparent !important;
+    color: var(--text-secondary) !important;
+}
+
+.header-nav .nav-btn:hover {
+    background: var(--surface-3) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-3) !important;
+}
+
+.header-nav .nav-btn.active {
+    background: var(--surface-3) !important;
+    border-color: transparent !important;
+    color: var(--text-primary) !important;
+    box-shadow: none !important;
+}
+
+.home-hero-search-section {
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 12px 0 20px 0 !important;
+    margin-bottom: 24px !important;
+}
+
+.home-search-box, .search-box-wrapper {
+    background: var(--surface-1) !important;
+    border: 1px solid var(--border-2) !important;
+    box-shadow: none !important;
+}
+
+.home-search-box input, .search-box-wrapper input {
+    color: var(--text-primary) !important;
+}
+
+.home-search-box .search-action-btn, .search-action-btn {
+    background: var(--accent-cyan) !important;
+    color: var(--accent-on) !important;
+    font-weight: 700 !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.filter-pill.active, .filter-pill.checked {
+    background: #1a1530 !important;
+    border-color: #7c5cff !important;
+    color: var(--mc-color) !important;
+}
+
+.nav-link-card {
+    background: var(--surface-1) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: var(--radius-card) !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+.nav-link-card:hover {
+    background: var(--surface-2) !important;
+    border-color: var(--border-3) !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.player-bar {
+    background: var(--player-bg) !important;
+    border-top: 1px solid var(--border-color) !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+}
+
+.track-row {
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    border-radius: var(--radius-row) !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+.track-row:hover {
+    background: var(--surface-2) !important;
+    border-color: var(--border-color) !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.modal-content, .modal-dialog {
+    background: var(--surface-1) !important;
+    border: 1px solid var(--border-3) !important;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.9) !important;
+}
+
+.spinner-slow, .blink, .pulse, .double-bounce1, .double-bounce2 {
+    animation: none !important;
+}
+

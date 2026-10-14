@@ -48,7 +48,9 @@ class ResolverService:
     def __init__(self, db_path: str | None = None, autostart: bool = True) -> None:
         self.db_path = db_path or os.environ.get("PLAYER_DB_PATH")
         self._proc: subprocess.Popen[str] | None = None
-        self._lock = threading.Lock()
+        # RLock: i rami di fallback in _request riacquisiscono il lock mentre
+        # lo detengono già (evita il deadlock quando il worker è morto).
+        self._lock = threading.RLock()
         self._responses: dict[int, dict[str, Any]] = {}
         self._events: dict[int, threading.Event] = {}
         self._reader: threading.Thread | None = None
@@ -106,9 +108,10 @@ class ResolverService:
             except json.JSONDecodeError:
                 continue
             rid = response.get("id")
-            if rid in self._events:
-                self._responses[rid] = response
-                self._events[rid].set()
+            with self._lock:
+                if rid in self._events:
+                    self._responses[rid] = response
+                    self._events[rid].set()
 
     # ------------------------------------------------------------------
     def _request(self, payload: dict[str, Any], timeout: float = RESPONSE_TIMEOUT) -> dict[str, Any]:

@@ -145,44 +145,6 @@ class MediaObject(BaseModel):
     def can_stream(self) -> bool:
         return bool(self.streams)
 
-    def best_stream(self, prefer_audio: bool = False) -> StreamInfo | None:
-        """Selezione dello stream migliore per la riproduzione diretta.
-
-        Priorità (verificata dal vivo su YouTube senza cookie):
-          1. muxed progressivi (vcodec+acodec, URL diretto) — supportano i
-             range su più connessioni; un <audio> estrae la traccia audio
-          2. audio-only (per le piattaforme audio: Bandcamp/SoundCloud/Mixcloud)
-          3. altrimenti il più alto in qualità
-        I manifest (HLS/DASH) sono già esclusi dal normalizer.
-        """
-        if not self.streams:
-            return None
-        direct = [s for s in self.streams if s.url and not s.is_manifest]
-        if not direct:
-            return None
-        if prefer_audio or self.media_type == MediaType.AUDIO:
-            muxed = [s for s in direct if s.vcodec and s.acodec]
-            if muxed:
-                return max(muxed, key=lambda s: (s.height or 0, s.abr or 0))
-            audio_only = [s for s in direct if s.is_audio_only]
-            if audio_only:
-                return max(audio_only, key=lambda s: (s.abr or 0))
-        return max(direct, key=lambda s: (s.height or 0, s.abr or 0))
-
-    def downgrade_to_link(self, resolver_version: str, resolved_at: str) -> "MediaObject":
-        """Degradazione a 'solo link': streams svuotati, flag degraded."""
-        return self.model_copy(
-            update={
-                "streams": [],
-                "degraded": True,
-                "resolver_version": resolver_version,
-                "resolved_at": resolved_at,
-            }
-        )
-
-    def model_dump_json(self, *args: Any, **kwargs: Any) -> str:  # noqa: D102
-        return super().model_dump_json(*args, **kwargs)
-
 
 # --------------------------------------------------------------------------
 # Helpers

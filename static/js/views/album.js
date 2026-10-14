@@ -295,9 +295,6 @@ export async function openCollectionDetailView(collection) {
     }
 }
 
-// Retro-compatibilità: il vecchio nome puntava solo agli album Bandcamp.
-export const openBandcampAlbumDetailView = openCollectionDetailView;
-
 export async function loadAndAddAlbumToQueue(collection, playImmediately = false) {
     const url = collectionUrl(collection);
     if (!url) {
@@ -314,29 +311,6 @@ export async function loadAndAddAlbumToQueue(collection, playImmediately = false
             showToast(`Aggiunta la raccolta "${data.album_title}" alla coda.`, 'success');
         } else {
             showToast('Nessuna traccia trovata nella raccolta.', 'error');
-        }
-    } catch (err) {
-        console.error(err);
-        showToast('Errore nel caricamento della raccolta.', 'error');
-    }
-}
-
-export async function playAllAlbumTracks() {
-    const modal = document.getElementById('album-tracks-modal');
-    if (!modal) return;
-    const url = modal.getAttribute('data-album-url');
-    if (!url) return;
-
-    modal.classList.add('hidden');
-    showToast('Caricamento raccolta...');
-
-    try {
-        const data = await fetchCollection(url);
-        const tracks = cleanTracks(data.tracks, albumMeta(url, data));
-        if (tracks.length > 0) {
-            addPlaylistTracksToQueue(tracks, true);
-        } else {
-            showToast('Nessuna traccia da riprodurre.', 'error');
         }
     } catch (err) {
         console.error(err);

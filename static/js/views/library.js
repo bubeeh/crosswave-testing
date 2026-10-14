@@ -13,7 +13,6 @@ export function addToHistory(track) {
 
     saveHistoryToStorage();
     renderHistory();
-    renderRecentTracksList();
 }
 window.addToHistory = addToHistory;
 
@@ -67,56 +66,10 @@ export function renderHistory() {
     });
 }
 
-export function renderRecentTracksList() {
-    const list = document.getElementById('recent-tracks-list');
-    if (!list) return;
-    list.innerHTML = '';
-
-    if (state.history.length === 0) {
-        list.innerHTML = '<div class="empty-state-text">Nessun brano riprodotto di recente.</div>';
-        return;
-    }
-
-    state.history.slice(0, 5).forEach(track => {
-        const item = document.createElement('div');
-        item.className = 'playlist-item';
-        item.style.padding = '8px 10px';
-
-        let sourceIcon = 'fa-solid fa-music';
-        if (track.source === 'youtube') sourceIcon = 'fa-brands fa-youtube';
-        if (track.source === 'soundcloud') sourceIcon = 'fa-brands fa-soundcloud';
-        if (track.source === 'bandcamp') sourceIcon = 'fa-brands fa-bandcamp';
-        if (track.source === 'mixcloud') sourceIcon = 'fa-brands fa-mixcloud';
-
-        item.innerHTML = `
-            <div class="playlist-item-name" style="gap: 12px; flex: 1;">
-                <i class="${sourceIcon}" style="font-size: 14px;"></i>
-                <div style="text-align: left; overflow: hidden; width: 85%;">
-                    <div class="truncate" style="font-size: 12.5px; font-weight:600; color:var(--text-primary);">${escapeHtml(track.title)}</div>
-                    <div class="truncate" style="font-size: 10.5px; color:var(--text-secondary);">${escapeHtml(track.artist)}</div>
-                </div>
-            </div>
-            <button class="track-row-action-btn" style="width:24px; height:24px;" title="Riproduci"><i class="fa-solid fa-play"></i></button>
-        `;
-
-        item.querySelector('button').addEventListener('click', (e) => {
-            e.stopPropagation();
-            playTrackImmediately(track);
-        });
-
-        item.addEventListener('click', () => {
-            playTrackImmediately(track);
-        });
-
-        list.appendChild(item);
-    });
-}
-
 export function clearHistory() {
     state.history = [];
     saveHistoryToStorage();
     renderHistory();
-    renderRecentTracksList();
     showToast('Cronologia cancellata');
 }
 
@@ -432,7 +385,6 @@ export function loadHistoryFromStorage() {
         try {
             state.history = JSON.parse(raw);
             renderHistory();
-            renderRecentTracksList();
         } catch (e) {
             console.error('Failed to parse history from storage', e);
             state.history = [];
@@ -497,14 +449,6 @@ export function initLibraryView() {
     if (closeAddBtn) {
         closeAddBtn.addEventListener('click', () => {
             const modal = document.getElementById('add-to-playlist-modal');
-            if (modal) modal.classList.add('hidden');
-        });
-    }
-
-    const closeAlbumModalBtn = document.getElementById('close-album-modal');
-    if (closeAlbumModalBtn) {
-        closeAlbumModalBtn.addEventListener('click', () => {
-            const modal = document.getElementById('album-tracks-modal');
             if (modal) modal.classList.add('hidden');
         });
     }

@@ -25,7 +25,6 @@ from . import config, scoring
 from .identity import ArtistRef
 
 TOP_N = 20
-HALF_LIFE_DAYS = 30.0
 
 
 def _now() -> datetime:
@@ -40,11 +39,6 @@ class RecommendationEngine:
         self._history = HistoryRepo(conn)
 
     # ------------------------------------------------------------------
-    def record_play(self, media: MediaObject, play_seconds: float) -> None:
-        """Registra un ascolto/visione e aggiorna le raccomandazioni."""
-        self._history.record_play(media, play_seconds)
-        self.recompute()
-
     def recompute(self, limit: int = TOP_N) -> int:
         """Ricalcola la tabella recommendations dallo stato aggregato."""
         now = _now()
@@ -60,7 +54,7 @@ class RecommendationEngine:
         for agg in aggregates:
             last = datetime.fromisoformat(agg["last_played"])
             age_days = max(0.0, (now - last).total_seconds() / 86400.0)
-            decay = math.exp(-age_days / HALF_LIFE_DAYS)
+            decay = math.exp(-age_days / config.HALF_LIFE_DAYS)
             base = math.log1p((agg["total_seconds"] or 0) / 60.0)
             own = base * (1 + 0.1 * agg["play_count"]) * decay
             own_weight[agg["media_id"]] = own
@@ -87,6 +81,13 @@ class RecommendationEngine:
         with transaction(self._conn):
             self._conn.execute("DELETE FROM recommendations")
             for rank, (score, agg, reasons) in enumerate(scored, start=1):
+                title = agg.get("title")
+                thumbnail = agg.get("thumbnail")
+                if not title or not thumbnail:
+                    stored = self._stored_media(agg["media_id"])
+                    if stored is not None:
+                        title = title or stored.title
+                        thumbnail = thumbnail or stored.thumbnail
                 self._conn.execute(
                     "INSERT INTO recommendations(rank, media_id, score, platform, title, "
                     "thumbnail, duration, reason_tags, source_url, uploader, computed_at) "
@@ -96,8 +97,8 @@ class RecommendationEngine:
                         agg["media_id"],
                         round(score, 4),
                         agg["platform"],
-                        agg.get("title") or self._title_for(agg["media_id"], agg["platform"]),
-                        agg.get("thumbnail") or self._thumb_for(agg["media_id"]),
+                        title or f"{agg['platform']} · {agg['media_id'][:12]}",
+                        thumbnail or "",
                         agg["total_seconds"],
                         dumps(reasons),
                         agg.get("source_url", ""),
@@ -107,31 +108,19 @@ class RecommendationEngine:
                 )
         return len(scored)
 
-    def _title_for(self, media_id: str, platform: str) -> str:
+    def _stored_media(self, media_id: str) -> MediaObject | None:
+        """MediaObject salvato (preferiti/playlist), per titolo/thumbnail di riserva."""
         row = self._conn.execute(
             "SELECT media_json FROM favorites WHERE media_id=? "
             "UNION ALL SELECT media_json FROM playlist_items WHERE media_id=? LIMIT 1",
             (media_id, media_id),
         ).fetchone()
-        if row:
-            try:
-                return MediaObject.model_validate(loads(row["media_json"])).title
-            except Exception:
-                pass
-        return f"{platform} · {media_id[:12]}"
-
-    def _thumb_for(self, media_id: str) -> str:
-        row = self._conn.execute(
-            "SELECT media_json FROM favorites WHERE media_id=? "
-            "UNION ALL SELECT media_json FROM playlist_items WHERE media_id=? LIMIT 1",
-            (media_id, media_id),
-        ).fetchone()
-        if row:
-            try:
-                return MediaObject.model_validate(loads(row["media_json"])).thumbnail
-            except Exception:
-                pass
-        return ""
+        if not row:
+            return None
+        try:
+            return MediaObject.model_validate(loads(row["media_json"]))
+        except Exception:
+            return None
 
     # ------------------------------------------------------------------
     def home(self, limit: int = TOP_N) -> list[dict[str, Any]]:

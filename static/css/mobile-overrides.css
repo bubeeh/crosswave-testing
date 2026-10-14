@@ -1,0 +1,46 @@
+/* ==========================================================================
+   REDESIGN 2026 — MOBILE OVERRIDES (<= 768px)
+   ========================================================================== */
+@media (max-width: 768px) {
+    .app-sidebar { display: none !important; }
+    .app-header { display: flex !important; }
+    .header-right { display: flex !important; }
+    .app-main { height: auto; }
+
+    .dashboard-link-cards-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 12px !important;
+    }
+    .nav-link-card { padding: 16px !important; }
+    .link-card-content { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .link-card-icon-badge { width: 44px; height: 44px; font-size: 1.2rem; }
+    .link-card-desc { display: none; }
+    .link-card-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+
+    .home-resume-card { padding: 12px; gap: 12px; }
+    .resume-cover { width: 64px; height: 64px; }
+
+    .web-radios-grid { grid-template-columns: 1fr !important; }
+    .radio-card-actions .btn-cyan { flex: 1; }
+
+    .album-detail-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 18px !important;
+        padding: 0 0 20px 0 !important;
+    }
+    .album-cover-wrapper { width: 160px !important; height: 160px !important; }
+    .album-title-text { font-size: 26px !important; }
+    .album-detail-body { grid-template-columns: 1fr !important; }
+    .album-actions-row { gap: 10px; }
+
+    .result-source { display: none !important; }
+    .result-actions { opacity: 1 !important; }
+    .result-play { opacity: 1 !important; }
+    .result-cover { width: 44px; height: 44px; border-radius: 8px; }
+
+    .results-count { font-size: 20px; }
+    .settings-row { flex-direction: column; align-items: flex-start; }
+    .settings-row .btn { align-self: stretch; }
+}
+

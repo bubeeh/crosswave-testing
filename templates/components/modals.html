@@ -34,35 +34,6 @@
     </div>
 </div>
 
-<!-- Album Tracks Modal (For Bandcamp Albums) -->
-<div class="modal-overlay hidden" id="album-tracks-modal">
-    <div class="modal-content glassmorphic album-modal animate-zoom">
-        <div class="modal-header">
-            <h3 id="album-modal-title">Tracce dell'Album</h3>
-            <button class="close-modal-btn" id="close-album-modal"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <div class="modal-body">
-            <div class="album-details-row">
-                <img src="" alt="Album Cover" class="album-modal-cover" id="album-modal-cover">
-                <div class="album-modal-meta">
-                    <h2 id="album-modal-name">Nome Album</h2>
-                    <p id="album-modal-artist">Artista</p>
-                    <button class="btn btn-cyan btn-sm" id="album-modal-play-all">
-                        <i class="fa-solid fa-play"></i> Riproduci Album
-                    </button>
-                </div>
-            </div>
-            <div class="loader-spinner" id="album-modal-loader">
-                <div class="double-bounce1"></div>
-                <div class="double-bounce2"></div>
-            </div>
-            <div class="album-tracks-list" id="album-tracks-list-container">
-                <!-- Tracks injected here -->
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- Add Custom Web Radio Modal -->
 <div class="modal-overlay hidden" id="add-radio-modal">
     <div class="modal-card glassmorphic-card" style="max-width: 440px;">
@@ -123,22 +94,6 @@
             </div>
 
             <button class="btn btn-cyan" id="radio-detail-play-btn" style="width: 100%;"><i class="fa-solid fa-play"></i> Ascolta Ora in Diretta</button>
-        </div>
-    </div>
-</div>
-
-<!-- Add Home Widget Modal -->
-<div class="modal-overlay hidden" id="add-home-widget-modal">
-    <div class="modal-card glassmorphic-card" style="max-width: 480px; width: 90%;">
-        <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-            <h3 style="font-size: 1.1rem; font-weight: 700;"><i class="fa-solid fa-square-plus accent-cyan"></i> Personalizza Home - Aggiungi Widget</h3>
-            <button class="close-modal-btn" id="close-add-home-widget-modal"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <div class="modal-body">
-            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 16px;">Seleziona i widget da aggiungere alla tua Home Dashboard:</p>
-            <div id="add-home-widget-list" style="display: flex; flex-direction: column; gap: 10px;">
-                <!-- Widget options injected dynamically -->
-            </div>
         </div>
     </div>
 </div>

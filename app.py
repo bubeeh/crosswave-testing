@@ -7,14 +7,11 @@ Combines CrossWave UX with test2's isolated Media Resolver Engine (yt-dlp subpro
 loudnorm audio normalization, ID3 watermarking, and 5-platform support (YouTube, Bandcamp, SoundCloud, Mixcloud, Vimeo).
 """
 
-import datetime
 import gzip
 import html
-import json
 import os
 import re
 import sqlite3
-import ssl
 import sys
 import threading
 import time
@@ -53,6 +50,7 @@ from player_engine.recommend.sources import (
     YouTubeSource,
 )
 from player_engine.recommend.worker import RecommendationEngine
+from player_engine.resolver.ranking import rank_results
 from player_engine.resolver.rate_limit import RateLimiter
 from player_engine.resolver.search import SEARCHABLE_PLATFORMS
 from player_engine.resolver.service import ResolverService
@@ -64,6 +62,7 @@ from player_engine.storage.repos import (
     RateLimitRepo,
     SourceCacheRepo,
 )
+from web.radio_meta import fetch_real_radio_metadata, radio_schedule
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 app.secret_key = os.environ.get("SECRET_KEY", "crosswave_hybrid_secret_key_2026")
@@ -355,6 +354,25 @@ def _ui_media_type(platform, url):
     return 'album' if is_collection_url(platform, url) else 'track'
 
 
+def _track_payload(platform, url, canonical_id, title, uploader, thumbnail, duration):
+    """Campi comuni del contratto UI per un brano (SearchResult e MediaObject)."""
+    duration = duration or 0
+    return {
+        'id': _ui_track_id(platform, url, canonical_id),
+        'canonical_id': canonical_id,
+        'title': title or 'Senza Titolo',
+        'artist': uploader or 'Artista Sconosciuto',
+        'uploader': uploader,
+        'source': platform,
+        'url': url,
+        'thumbnail': thumbnail or '',
+        'duration': duration,
+        'duration_string': f"{int(duration // 60)}:{int(duration % 60):02d}" if duration else "N/D",
+        'type': _ui_media_type(platform, url),
+        'catalog_name': uploader or '',
+    }
+
+
 def _search_result_to_track(result):
     """Mappa un SearchResult (contratto canonico) alla forma attesa dalla UI.
 
@@ -363,26 +381,16 @@ def _search_result_to_track(result):
     playlist, SoundCloud set) sono marcate type='album' e si aprono nella
     vista dettaglio con tracklist e play-all.
     """
-    url = result.url
-    platform = result.platform
-    duration = result.duration or 0
-    return {
-        'id': _ui_track_id(platform, url, result.canonical_id),
-        'canonical_id': result.canonical_id,
-        'title': result.title or 'Senza Titolo',
-        'artist': result.uploader or 'Artista Sconosciuto',
-        'uploader': result.uploader,
-        'source': platform,
-        'url': url,
-        'thumbnail': result.thumbnail or '',
-        'duration': duration,
-        'duration_string': f"{int(duration // 60)}:{int(duration % 60):02d}" if duration else "N/D",
-        'type': _ui_media_type(platform, url),
+    track = _track_payload(
+        result.platform, result.url, result.canonical_id, result.title,
+        result.uploader, result.thumbnail, result.duration,
+    )
+    track.update({
         'verified': bool(getattr(result, 'channel_is_verified', False)),
         'is_topic': bool(getattr(result, 'is_topic', False)),
         'catalog_url': getattr(result, 'catalog_url', '') or '',
-        'catalog_name': (getattr(result, 'uploader', '') or ''),
-    }
+    })
+    return track
 
 
 def execute_platform_search(source: str, query: str, max_results: int = 50) -> dict:
@@ -426,7 +434,9 @@ def execute_platform_search(source: str, query: str, max_results: int = 50) -> d
         return {'results': [], 'error': None,
                 'message': f'Nessun risultato per "{query}" su {label}.',
                 'retry_after': 0}
-    return {'results': [_search_result_to_track(r) for r in results[:max_results]],
+    results = results[:max_results]
+    return {'results': [_search_result_to_track(r) for r in results],
+            'raw_results': results,  # consumato da api_search per il ranking
             'error': None, 'message': '', 'retry_after': 0}
 
 
@@ -458,7 +468,20 @@ def api_search():
                 results[src] = {'results': [], 'error': 'internal',
                                 'message': 'Errore interno della ricerca', 'retry_after': 0}
 
-    return jsonify({'query': query, 'results': results})
+    # Lista unificata cross-platform: i risultati delle varie piattaforme
+    # vengono fusi per rilevanza (RRF + match testuale), deduplicati e
+    # bilanciati tra sorgenti. Il dict `results` per-sorgente resta per i
+    # chip/conteggi e per gli errori tipizzati lato UI.
+    # Le sorgenti sono passate a rank_results in ordine canonico (non di
+    # completamento) così l'ordinamento è deterministico a parità di punteggio.
+    raw_by_source = {
+        src: results.get(src, {}).pop('raw_results', [])
+        for src in selected_sources
+    }
+    ranked = rank_results(raw_by_source, query)
+    items = [_search_result_to_track(r) for r in ranked]
+
+    return jsonify({'query': query, 'items': items, 'results': results})
 
 
 # ------------------------------------------------------------------
@@ -616,22 +639,12 @@ def _media_catalog_url(media):
 def _media_to_track(media):
     """Converte un MediaObject nel formato UI (stesso contratto di
     _search_result_to_track: source/artist/id/type...)."""
-    duration = media.duration or 0
-    return {
-        'id': _ui_track_id(media.platform, media.source_url, media.canonical_id),
-        'canonical_id': media.canonical_id,
-        'title': media.title or 'Senza Titolo',
-        'artist': media.uploader or 'Artista Sconosciuto',
-        'uploader': media.uploader,
-        'source': media.platform,
-        'url': media.source_url,
-        'thumbnail': media.thumbnail or '',
-        'duration': duration,
-        'duration_string': f"{int(duration // 60)}:{int(duration % 60):02d}" if duration else "N/D",
-        'type': _ui_media_type(media.platform, media.source_url),
-        'catalog_url': _media_catalog_url(media),
-        'catalog_name': media.uploader or '',
-    }
+    track = _track_payload(
+        media.platform, media.source_url, media.canonical_id, media.title,
+        media.uploader, media.thumbnail, media.duration,
+    )
+    track['catalog_url'] = _media_catalog_url(media)
+    return track
 
 
 def _fetch_bandcamp_extra_info(url):
@@ -664,37 +677,20 @@ def _fetch_bandcamp_extra_info(url):
         return "", ""
 
 
-@app.route('/api/bandcamp/album')
-def api_bandcamp_album():
-    url = request.args.get('url', '').strip()
-    if not url:
-        return jsonify({'error': 'URL album mancante'}), 400
+def _rate_limit_retry_result(exc, call):
+    """Ritenta una risoluzione dopo un rate limit breve (<=3s).
+
+    Ritorna (valore, None) in caso di successo oppure (None, (risposta, stato))
+    da restituire alla UI. Comportamento identico ai blocchi try/except storici:
+    retry solo se `retry_after` è valorizzato e non supera i 3s.
+    """
+    if not (exc.retry_after and exc.retry_after <= 3.0):
+        return None, (jsonify({'error': str(exc), 'retry_after': exc.retry_after}), 429)
+    time.sleep(exc.retry_after + 0.1)
     try:
-        album, tracks = resolver_service.album(url)
-    except ResolverUnavailableError:
-        return jsonify({'error': 'Motore di risoluzione non disponibile — riprova tra poco.'}), 503
-    except RateLimitedError as exc:
-        if exc.retry_after and exc.retry_after <= 3.0:
-            time.sleep(exc.retry_after + 0.1)
-            try:
-                album, tracks = resolver_service.album(url)
-            except Exception as e:
-                return jsonify({'error': str(e)}), 500
-        else:
-            return jsonify({'error': str(exc), 'retry_after': exc.retry_after}), 429
-    except Exception as exc:
-        return jsonify({'error': f'Errore album Bandcamp: {exc}'}), 500
-
-    about_text, credits_text = _fetch_bandcamp_extra_info(url)
-
-    return jsonify({
-        'album_title': album.title or 'Album senza titolo',
-        'artist': album.uploader or 'Artista Sconosciuto',
-        'thumbnail': album.thumbnail or '',
-        'description': about_text or album.description or '',
-        'credits': credits_text or '',
-        'tracks': [_media_to_track(t) for t in tracks],
-    })
+        return call(), None
+    except Exception as e:
+        return None, (jsonify({'error': str(e)}), 500)
 
 
 @app.route('/api/bandcamp/track')
@@ -707,14 +703,9 @@ def api_bandcamp_track():
     except ResolverUnavailableError:
         return jsonify({'error': 'Motore di risoluzione non disponibile — riprova tra poco.'}), 503
     except RateLimitedError as exc:
-        if exc.retry_after and exc.retry_after <= 3.0:
-            time.sleep(exc.retry_after + 0.1)
-            try:
-                media = resolver_service.resolve(url)
-            except Exception as e:
-                return jsonify({'error': str(e)}), 500
-        else:
-            return jsonify({'error': str(exc), 'retry_after': exc.retry_after}), 429
+        media, err = _rate_limit_retry_result(exc, lambda: resolver_service.resolve(url))
+        if err:
+            return err
     except Exception as exc:
         return jsonify({'error': f'Errore traccia Bandcamp: {exc}'}), 500
     stream_url = media.streams[0].url if media.streams else ''
@@ -745,14 +736,10 @@ def api_collection():
     except ResolverUnavailableError:
         return jsonify({'error': 'Motore di risoluzione non disponibile — riprova tra poco.'}), 503
     except RateLimitedError as exc:
-        if exc.retry_after and exc.retry_after <= 3.0:
-            time.sleep(exc.retry_after + 0.1)
-            try:
-                album, tracks = resolver_service.album(url)
-            except Exception as e:
-                return jsonify({'error': str(e)}), 500
-        else:
-            return jsonify({'error': str(exc), 'retry_after': exc.retry_after}), 429
+        album_tracks, err = _rate_limit_retry_result(exc, lambda: resolver_service.album(url))
+        if err:
+            return err
+        album, tracks = album_tracks
     except Exception as exc:
         return jsonify({'error': f'Errore nel caricamento della raccolta: {exc}'}), 500
 
@@ -836,35 +823,6 @@ def api_related():
 
 
 # ------------------------------------------------------------------
-# Favorites & Playlists REST API
-# ------------------------------------------------------------------
-@app.route('/api/playlists', methods=['GET', 'POST'])
-def api_playlists():
-    conn = get_db()
-    cursor = conn.cursor()
-
-    if request.method == 'GET':
-        cursor.execute("SELECT * FROM playlists ORDER BY created_at DESC")
-        playlists = [dict(p) for p in cursor.fetchall()]
-        for p in playlists:
-            cursor.execute("SELECT COUNT(*) as count FROM playlist_tracks WHERE playlist_id = ?", (p['id'],))
-            p['tracks_count'] = cursor.fetchone()['count']
-        conn.close()
-        return jsonify({'playlists': playlists})
-
-    data = request.json or {}
-    name = data.get('name', '').strip()
-    if not name:
-        return jsonify({'error': 'Nome playlist obbligatorio'}), 400
-
-    cursor.execute("INSERT INTO playlists (name) VALUES (?)", (name,))
-    playlist_id = cursor.lastrowid
-    conn.commit()
-    conn.close()
-    return jsonify({'message': f"Playlist '{name}' creata", 'id': playlist_id, 'name': name})
-
-
-# ------------------------------------------------------------------
 # Web Radios REST API
 # ------------------------------------------------------------------
 @app.route('/api/radios', methods=['GET', 'POST'])
@@ -885,6 +843,7 @@ def api_radios():
     logo = data.get('logo', '').strip() or '/static/icons/placeholder.svg'
 
     if not name or not stream_url:
+        conn.close()
         return jsonify({'error': 'Nome e URL dello streaming sono obbligatori'}), 400
 
     try:
@@ -909,107 +868,6 @@ def api_delete_radio(radio_id):
     conn.close()
     return jsonify({'message': 'Stazione radio rimossa'})
 
-# Web Radio ICY Metadata TTL Cache (45 seconds)
-_RADIO_META_CACHE = {}
-_RADIO_META_LOCK = threading.Lock()
-_RADIO_META_TTL = 45.0  # seconds
-
-def fetch_real_radio_metadata(url, station_name=None):
-    cache_key = f"{url}||{station_name or ''}"
-    now_ts = time.time()
-    with _RADIO_META_LOCK:
-        cached = _RADIO_META_CACHE.get(cache_key)
-        if cached and (now_ts - cached['ts'] < _RADIO_META_TTL):
-            return cached['title']
-
-    result = _fetch_real_radio_metadata_uncached(url, station_name)
-
-    if result:
-        with _RADIO_META_LOCK:
-            _RADIO_META_CACHE[cache_key] = {'title': result, 'ts': now_ts}
-
-    return result
-
-def _fetch_real_radio_metadata_uncached(url, station_name=None):
-    # 1. Special handling for NTS Live API
-    if (station_name and 'NTS' in station_name) or ('ntslive' in url):
-        try:
-            ctx = ssl.create_default_context()
-            ctx.check_hostname = False
-            ctx.verify_mode = ssl.CERT_NONE
-            req = urllib.request.Request('https://www.nts.live/api/v2/live', headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
-            with urllib.request.urlopen(req, context=ctx, timeout=8) as resp:
-                data = json.loads(resp.read().decode('utf-8'))
-                ch1 = data['results'][0]
-                now = ch1['now']['embeds']['details']
-                name = now.get('name')
-                title = now.get('title')
-                desc = now.get('description', '')
-                loc = now.get('location_long', '')
-                show_title = name or title or desc or "NTS Live Broadcast"
-                return f"{show_title} ({loc})" if loc else show_title
-        except Exception:
-            pass
-
-    # 2. Special handling for Fango Radio status JSON
-    if (station_name and 'Fango' in station_name) or ('pantano.ovh' in url):
-        try:
-            ctx = ssl.create_default_context()
-            ctx.check_hostname = False
-            ctx.verify_mode = ssl.CERT_NONE
-            req = urllib.request.Request('https://pantano.ovh:8444/status-json.xsl', headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req, context=ctx, timeout=8) as resp:
-                data = json.loads(resp.read().decode('utf-8'))
-                src = data.get('icestats', {}).get('source')
-                if isinstance(src, list): src = src[0]
-                raw_title = src.get('title', '')
-                if raw_title:
-                    parts = raw_title.split(' --- ')
-                    return parts[0].strip()
-        except Exception:
-            pass
-
-    # 3. Special handling for Radio Firenze Viola daily time-based schedule
-    if (station_name and 'Firenze Viola' in station_name) or ('rfviola' in url):
-        now = datetime.datetime.now()
-        hour = now.hour
-        if 7 <= hour < 9: return "Buongiorno Firenze (Rassegna Stampa)"
-        elif 9 <= hour < 10: return "C'è polemica (Il dibattito quotidiano)"
-        elif 10 <= hour < 12: return "Chi si compra? (Calciomercato Viola)"
-        elif 12 <= hour < 14: return "Viola amore mio (Notizie e Interviste)"
-        elif 14 <= hour < 16: return "Palla al centro (Approfondimento RFV)"
-        elif 16 <= hour < 17: return "Nik & Nik (Calciomercato in diretta)"
-        elif 17 <= hour < 19: return "Garrisca al vento (Community Viola)"
-        elif 19 <= hour < 21: return "Stadio Viola (Diretta Serale)"
-        else: return "Repliche & Musica Viola"
-
-    # 4. Standard ICY Stream Title Extraction for NTS, Oolong, etc.
-    try:
-        ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-
-        req = urllib.request.Request(url, headers={'Icy-MetaData': '1', 'User-Agent': 'VLC/3.0.18 LibVLC/3.0.18'})
-        with urllib.request.urlopen(req, context=ctx, timeout=8) as resp:
-            metaint_hdr = resp.headers.get('icy-metaint')
-            if metaint_hdr:
-                metaint = int(metaint_hdr)
-                resp.read(metaint)
-                meta_byte = resp.read(1)
-                if meta_byte:
-                    meta_len = ord(meta_byte) * 16
-                    if meta_len > 0:
-                        meta_raw = resp.read(meta_len).decode('utf-8', errors='ignore')
-                        m = re.search(r"StreamTitle='([^']*)';", meta_raw)
-                        if m and m.group(1).strip():
-                            val = m.group(1).strip()
-                            if 'NTS 1 - ' in val: val = val.replace('NTS 1 - ', '')
-                            return val
-    except Exception:
-        pass
-
-    return None
-
 @app.route('/api/radios/now_playing', methods=['GET'])
 def api_radio_now_playing():
     url = request.args.get('url')
@@ -1033,50 +891,8 @@ def api_radio_details(radio_id):
     radio_dict = dict(radio)
     now_playing = fetch_real_radio_metadata(radio_dict['stream_url'], radio_dict['name'])
     radio_dict['now_playing'] = now_playing or "Trasmissione Live in corso"
-    
-    rfv_schedule = [
-        {'time': 'Sito Ufficiale', 'title': 'https://www.radiofirenzeviola.it'},
-        {'time': 'In Onda Ora', 'title': now_playing or 'Diretta Viola Talk & News'},
-        {'time': '07:00 - 09:00', 'title': 'Buongiorno Firenze (Rassegna Stampa)'},
-        {'time': '09:00 - 10:00', 'title': 'C\'è polemica (Il dibattito quotidiano)'},
-        {'time': '10:00 - 12:00', 'title': 'Chi si compra? (Calciomercato Viola)'},
-        {'time': '12:00 - 14:00', 'title': 'Viola amore mio (Notizie e Interviste)'},
-        {'time': '14:00 - 16:00', 'title': 'Palla al centro (Approfondimento RFV)'},
-        {'time': '16:00 - 17:00', 'title': 'Nik & Nik (Calciomercato in diretta)'},
-        {'time': '17:00 - 19:00', 'title': 'Garrisca al vento (Community Viola)'},
-        {'time': '19:00 - 21:00', 'title': 'Stadio Viola (Diretta Serale)'},
-        {'time': '21:00 - 07:00', 'title': 'Repliche & Musica Viola'}
-    ]
+    radio_dict['schedule'] = radio_schedule(radio_dict['name'], now_playing)
 
-    fango_schedule = [
-        {'time': 'Sito Ufficiale', 'title': 'https://www.fangoradio.com'},
-        {'time': 'In Onda Ora', 'title': now_playing or 'Trasmissione Fango Radio'},
-        {'time': 'Archivio Shows', 'title': 'https://www.fangoradio.com/shows/'}
-    ]
-
-    nts_schedule = [
-        {'time': 'Sito Ufficiale', 'title': 'https://www.nts.live'},
-        {'time': 'In Onda Ora', 'title': now_playing or 'NTS Live London Broadcast'},
-        {'time': 'Guida Palinsesto', 'title': 'https://www.nts.live/schedule'}
-    ]
-
-    oolong_schedule = [
-        {'time': 'Sito Ufficiale', 'title': 'https://oolongradio.com'},
-        {'time': 'In Onda Ora', 'title': now_playing or 'Oolong Radio Berlin Live'}
-    ]
-
-    schedules = {
-        'NTS Radio 1 (London)': nts_schedule,
-        'Fango Radio': fango_schedule,
-        'Oolong Radio (Berlin)': oolong_schedule,
-        'Radio Firenze Viola': rfv_schedule
-    }
-
-    radio_dict['schedule'] = schedules.get(radio_dict['name'], [
-        {'time': 'In Onda Ora', 'title': now_playing or 'Live Broadcast'},
-        {'time': 'Info', 'title': 'Web Radio Live Streaming'}
-    ])
-    
     return jsonify({'radio': radio_dict})
 
 

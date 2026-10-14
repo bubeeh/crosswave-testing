@@ -96,8 +96,9 @@ def _format_streams(raw: dict[str, Any]) -> list[StreamInfo]:
     return streams
 
 
-def _detect_media_type(raw: dict[str, Any], platform: str) -> MediaType:
-    streams = _format_streams(raw)
+def _detect_media_type(raw: dict[str, Any], platform: str,
+                       streams: list[StreamInfo] | None = None) -> MediaType:
+    streams = streams if streams is not None else _format_streams(raw)
     if streams and all(s.is_audio_only for s in streams):
         return MediaType.AUDIO
     if platform == "bandcamp" and raw.get("track"):
@@ -175,6 +176,7 @@ class Normalizer:
         title = str(raw.get("title") or webpage)
         uploader = str(raw.get("uploader") or raw.get("artist") or raw.get("channel") or "")
         license_, note, license_source = _license_policy(platform, raw)
+        streams = _format_streams(raw)
 
         media = MediaObject(
             canonical_id=canonical_id,
@@ -185,9 +187,9 @@ class Normalizer:
             duration=float(raw.get("duration") or 0.0),
             thumbnail=_pick_thumbnail(raw),
             description=str(raw.get("description") or "")[:2000],
-            media_type=_detect_media_type(raw, platform),
+            media_type=_detect_media_type(raw, platform, streams),
             tags=derive_tags(raw),
-            streams=_format_streams(raw),
+            streams=streams,
             rights=Rights(
                 download_license=license_,
                 terms_violation_risk=_availability_risk(raw),

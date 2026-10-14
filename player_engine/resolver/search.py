@@ -20,9 +20,7 @@ from __future__ import annotations
 import json
 import os
 import re
-import shutil
 import subprocess
-import sys
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import quote, urlparse
@@ -32,7 +30,9 @@ import httpx
 from ..core.schema import SearchResult, compute_canonical_id, normalize_thumbnail
 from ..storage.repos import RateLimitRepo, SearchCacheRepo
 from . import soundcloud_api
+from .ranking import _query_tokens
 from .rate_limit import RateLimiter
+from .ytdlp import ytdlp_bin, ytdlp_cmd
 
 # Piattaforme ricercabili (Vimeo escluso: nessun canale)
 SEARCHABLE_PLATFORMS: tuple[str, ...] = ("youtube", "soundcloud", "bandcamp", "mixcloud")
@@ -46,11 +46,6 @@ _PROMOTED_CAP = 15
 _ALBUM_CAP = 8
 # Quante voci (miste) leggere dalla pagina risultati YouTube
 _YOUTUBE_PAGE_FETCH = 60
-# Parole non significative per capire se un canale è pertinente alla query
-_STOPWORDS = {
-    "official", "video", "audio", "music", "lyrics", "topic", "feat",
-    "featuring", "hd", "hq", "full", "album", "live", "remix", "version", "edit",
-}
 
 UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -65,19 +60,6 @@ class SearchOutcome:
     message: str = ""
     retry_after: float = 0.0
     cache_hit: bool = False
-
-
-def _ytdlp_bin() -> str:
-    return os.environ.get("PLAYER_YTDLP_BIN", "yt-dlp")
-
-
-def _ytdlp_cmd(args: list[str]) -> list[str]:
-    bin_ = _ytdlp_bin()
-    if bin_.endswith(".py"):
-        return [sys.executable, bin_, *args]
-    if shutil.which(bin_):
-        return [bin_, *args]
-    return [sys.executable, "-m", "yt_dlp", *args]
 
 
 class Searcher:
@@ -141,7 +123,7 @@ class Searcher:
         url = f"{prefix}{limit}:{query}"
         try:
             proc = subprocess.run(
-                _ytdlp_cmd(["-J", "--flat-playlist", "--no-warnings", url]),
+                ytdlp_cmd(["-J", "--flat-playlist", "--no-warnings", url]),
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
@@ -153,7 +135,7 @@ class Searcher:
         except FileNotFoundError:
             return SearchOutcome(
                 error_kind="search_failed",
-                message=f"binario yt-dlp non trovato ('{_ytdlp_bin()}')",
+                message=f"binario yt-dlp non trovato ('{ytdlp_bin()}')",
             )
         if proc.returncode != 0:
             return SearchOutcome(
@@ -213,7 +195,7 @@ class Searcher:
         url = f"https://www.youtube.com/results?search_query={quote(query)}"
         try:
             proc = subprocess.run(
-                _ytdlp_cmd(["-J", "--flat-playlist", "--playlist-end",
+                ytdlp_cmd(["-J", "--flat-playlist", "--playlist-end",
                             str(max(limit, _YOUTUBE_PAGE_FETCH)), "--no-warnings", url]),
                 capture_output=True,
                 text=True,
@@ -226,7 +208,7 @@ class Searcher:
         except FileNotFoundError:
             return SearchOutcome(
                 error_kind="search_failed",
-                message=f"binario yt-dlp non trovato ('{_ytdlp_bin()}')",
+                message=f"binario yt-dlp non trovato ('{ytdlp_bin()}')",
             )
         if proc.returncode != 0:
             return SearchOutcome(
@@ -448,12 +430,6 @@ def _youtube_list_id(url: str) -> str:
     """Estrae l'id playlist da un URL YouTube (`...?list=OLAK5uy_...`)."""
     m = re.search(r"[?&]list=([\w-]+)", url)
     return m.group(1) if m else ""
-
-
-def _query_tokens(query: str) -> list[str]:
-    """Token significativi (>=3 char, senza stopword) per il match canale/query."""
-    tokens = re.findall(r"[a-z0-9]+", query.lower())
-    return [t for t in tokens if len(t) >= 3 and t not in _STOPWORDS]
 
 
 def _strip_topic_suffix(name: str) -> str:

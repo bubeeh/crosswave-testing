@@ -19,7 +19,6 @@ from __future__ import annotations
 import json
 import os
 import re
-import shutil
 import subprocess
 import sys
 import time
@@ -32,19 +31,10 @@ from .cache import ResolutionCache
 from .normalizer import Normalizer
 from .rate_limit import RateLimiter
 from .search import YTDLP_SEARCH_TIMEOUT, SearchOutcome, _flat_thumb
+from .ytdlp import ytdlp_bin, ytdlp_cmd
 
-YTDLP_BIN = os.environ.get("PLAYER_YTDLP_BIN", "yt-dlp")
 RESOLVE_TIMEOUT = 45.0
 YTDLP_TIMEOUT = 40.0
-
-
-def _ytdlp_cmd(args: list[str]) -> list[str]:
-    """Comando yt-dlp: se il binario è uno script .py o non nel PATH, usa python -m yt_dlp."""
-    if YTDLP_BIN.endswith(".py"):
-        return [sys.executable, YTDLP_BIN, *args]
-    if shutil.which(YTDLP_BIN):
-        return [YTDLP_BIN, *args]
-    return [sys.executable, "-m", "yt_dlp", *args]
 
 
 @dataclass
@@ -78,12 +68,51 @@ class ResolverWorker:
     def _resolver_version() -> str:
         try:
             out = subprocess.run(
-                _ytdlp_cmd(["--version"]), capture_output=True, text=True, timeout=10
+                ytdlp_cmd(["--version"]), capture_output=True, text=True, timeout=10
             )
             ver = out.stdout.strip().splitlines()[-1] if out.stdout.strip() else "unknown"
             return f"yt-dlp/{ver}"
         except Exception:
             return "yt-dlp/unknown"
+
+    # ------------------------------------------------------------------
+    def _cached_media(self, url: str, platform: str) -> MediaObject | None:
+        """Media in cache (id canonico derivabile dall'URL o alias urleq:<url>)."""
+        cached = self._fetch_cache(url, platform)
+        if cached is None:
+            # id nativo non derivabile dall'URL (bandcamp/soundcloud usano id
+            # numerici): si usa l'alias urleq:<url> salvato alla 1ª risoluzione
+            alias_cid = self.cache.get_alias(url)
+            if alias_cid:
+                cached = self.cache.get(alias_cid)
+        return cached
+
+    def _rate_gate(self, platform: str) -> ResolveOutcome | None:
+        """None se lo slot di rate è libero, altrimenti l'esito di errore."""
+        gate = self.rate.check(platform)
+        if not gate.allowed:
+            return ResolveOutcome(
+                error_kind="rate_limited",
+                message=f"Sorgente occupata — riprovo tra {gate.retry_after:.0f}s",
+                retry_after=gate.retry_after,
+            )
+        return None
+
+    def _normalize_tracks(self, platform: str, entries: Any, fallback_url: str,
+                          resolved_at: str) -> list[MediaObject]:
+        """Normalizza le entry di una raccolta e le mette in cache (play pronto)."""
+        tracks: list[MediaObject] = []
+        for entry in entries or []:
+            if not isinstance(entry, dict) or not entry.get("title"):
+                continue
+            entry_url = str(entry.get("webpage_url") or entry.get("url") or fallback_url)
+            track = self.normalizer.normalize(
+                platform, entry, source_url=entry_url, resolved_at=resolved_at
+            )
+            track.cache_hit = False
+            tracks.append(track)
+            self.cache.put(track)
+        return tracks
 
     # ------------------------------------------------------------------
     def resolve(self, url: str, refresh: bool = False) -> ResolveOutcome:
@@ -94,24 +123,14 @@ class ResolverWorker:
         # 1) cache TTL 72h (saltata se refresh=True: i token degli stream
         #    diretti scadono prima del TTL, es. Bandcamp)
         if not refresh:
-            cached = self._fetch_cache(url, platform)
-            if cached is None:
-                # id nativo non derivabile dall'URL (bandcamp/soundcloud usano id
-                # numerici): si usa l'alias urleq:<url> salvato alla 1ª risoluzione
-                alias_cid = self.cache.get_alias(url)
-                if alias_cid:
-                    cached = self.cache.get(alias_cid)
+            cached = self._cached_media(url, platform)
             if cached:
                 return ResolveOutcome(media=cached, cache_hit=True)
 
         # 2) rate limit 1/5s per piattaforma
-        gate = self.rate.check(platform)
-        if not gate.allowed:
-            return ResolveOutcome(
-                error_kind="rate_limited",
-                message=f"Sorgente occupata — riprovo tra {gate.retry_after:.0f}s",
-                retry_after=gate.retry_after,
-            )
+        gate_error = self._rate_gate(platform)
+        if gate_error:
+            return gate_error
 
         # 3) yt-dlp (subprocess) — il crash non tocca il processo principale.
         #    NB: niente --no-playlist: se l'URL è una raccolta (album), yt-dlp
@@ -132,16 +151,7 @@ class ResolverWorker:
         # raccolta → normalizza anche le tracce (già in cache per il play immediato)
         tracks: list[MediaObject] = []
         if media.is_collection:
-            for entry in raw.get("entries") or []:
-                if not isinstance(entry, dict) or not entry.get("title"):
-                    continue
-                entry_url = str(entry.get("webpage_url") or entry.get("url") or url)
-                track = self.normalizer.normalize(
-                    platform, entry, source_url=entry_url, resolved_at=resolved_at
-                )
-                track.cache_hit = False
-                tracks.append(track)
-                self.cache.put(track)
+            tracks = self._normalize_tracks(platform, raw.get("entries"), url, resolved_at)
             media.tags = media.tags or [f"album:{len(tracks)} tracce"]
         return ResolveOutcome(media=media, tracks=tracks)
 
@@ -159,11 +169,7 @@ class ResolverWorker:
         #    Per le raccolte l'id nativo di yt-dlp può non coincidere con lo
         #    slug dell'URL: si usa anche l'alias urleq:<url> salvato al primo
         #    accesso (nessun modo di derivarlo pre-yt-dlp).
-        cached = self._fetch_cache(url, platform)
-        if cached is None:
-            alias_cid = self.cache.get_alias(url)
-            if alias_cid:
-                cached = self.cache.get(alias_cid)
+        cached = self._cached_media(url, platform)
         if cached:
             tracklist = self.cache.get_tracklist(cached.canonical_id)
             if tracklist is not None:
@@ -172,13 +178,9 @@ class ResolverWorker:
             # album in cache ma tracklist assente (cache di versione vecchia):
             # riesegui l'estrazione completa
 
-        gate = self.rate.check(platform)
-        if not gate.allowed:
-            return ResolveOutcome(
-                error_kind="rate_limited",
-                message=f"Sorgente occupata — riprovo tra {gate.retry_after:.0f}s",
-                retry_after=gate.retry_after,
-            )
+        gate_error = self._rate_gate(platform)
+        if gate_error:
+            return gate_error
 
         # SoundCloud: l'API v2 pubblica restituisce l'intera tracklist (titoli,
         # durate, URL) in un'unica chiamata rapida → niente estrazione yt-dlp
@@ -196,7 +198,7 @@ class ResolverWorker:
                 args = ["-J", "--flat-playlist", "--no-warnings"]
             try:
                 proc = subprocess.run(
-                    _ytdlp_cmd([*args, url]),
+                    ytdlp_cmd([*args, url]),
                     capture_output=True,
                     text=True,
                     encoding="utf-8",
@@ -208,7 +210,7 @@ class ResolverWorker:
             except FileNotFoundError:
                 return ResolveOutcome(
                     error_kind="resolver_unavailable",
-                    message=f"Binario yt-dlp non trovato ('{YTDLP_BIN}').",
+                    message=f"Binario yt-dlp non trovato ('{ytdlp_bin()}').",
                 )
             if proc.returncode != 0:
                 return self._error_from_ytdlp(proc.stderr, url)
@@ -230,17 +232,7 @@ class ResolverWorker:
         album.cache_hit = False
         self.cache.put(album)
 
-        tracks: list[MediaObject] = []
-        for entry in entries:
-            if not isinstance(entry, dict) or not entry.get("title"):
-                continue
-            entry_url = str(entry.get("webpage_url") or entry.get("url") or url)
-            track = self.normalizer.normalize(
-                platform, entry, source_url=entry_url, resolved_at=resolved_at
-            )
-            track.cache_hit = False
-            tracks.append(track)
-            self.cache.put(track)
+        tracks = self._normalize_tracks(platform, entries, url, resolved_at)
 
         # tracklist in cache (chiave derivata): il secondo accesso all'album
         # è istantaneo e completo, senza consumare il rate limit
@@ -261,7 +253,7 @@ class ResolverWorker:
         url = f"https://www.youtube.com/playlist?list=RD{video_id}"
         try:
             proc = subprocess.run(
-                _ytdlp_cmd(["-J", "--flat-playlist", "--playlist-end", str(limit),
+                ytdlp_cmd(["-J", "--flat-playlist", "--playlist-end", str(limit),
                             "--no-warnings", url]),
                 capture_output=True, text=True, encoding="utf-8", errors="replace",
                 timeout=YTDLP_SEARCH_TIMEOUT,
@@ -367,7 +359,7 @@ class ResolverWorker:
         if not raw_info:
             try:
                 proc = subprocess.run(
-                    _ytdlp_cmd(["-J", "--no-warnings", url]),
+                    ytdlp_cmd(["-J", "--no-warnings", url]),
                     capture_output=True,
                     text=True,
                     encoding="utf-8",
@@ -458,7 +450,7 @@ class ResolverWorker:
         rid = request.get("id")
         op = request.get("op")
         if op == "ping":
-            return {"id": rid, "ok": True, "resolver_version": self._resolver_version()}
+            return {"id": rid, "ok": True, "resolver_version": self.normalizer.resolver_version}
         if op == "search":
             outcome = self.searcher.search(request.get("platform", ""), request.get("q", ""))
             if outcome.results is not None:

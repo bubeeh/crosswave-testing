@@ -1,6 +1,6 @@
 // Home Dashboard View Module for CrossWave Hybrid
 import { state } from '../core/state.js';
-import { showToast, escapeHtml, PLACEHOLDER_COVER } from '../core/utils.js';
+import { showToast, escapeHtml, PLACEHOLDER_COVER, youtubeVideoId } from '../core/utils.js';
 import { navigate } from '../core/router.js';
 import { executeSearch } from './search.js';
 import { playTrackImmediately } from '../player/player.js';
@@ -58,7 +58,7 @@ function renderHomeResume() {
         <button class="resume-play" title="Riprendi"><i class="fa-solid fa-play"></i></button>
     `;
 
-    card.addEventListener('click', () => playTrackImmediately(track));
+    card.onclick = () => playTrackImmediately(track);
 }
 
 // --- Top Home Search Bar Handler ---
@@ -157,11 +157,6 @@ function setRecMode(mode) {
     document.querySelectorAll('.for-you-mode').forEach(btn => {
         btn.classList.toggle('active', btn.getAttribute('data-mode') === mode);
     });
-}
-
-function youtubeVideoId(url) {
-    const m = String(url || '').match(/[?&]v=([\w-]+)/);
-    return m ? m[1] : '';
 }
 
 // Clicca una card: se c'è un elemento riproducibile suona, altrimenti cerca l'artista.

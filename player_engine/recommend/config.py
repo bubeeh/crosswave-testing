@@ -60,8 +60,5 @@ SOURCE_WEIGHTS: dict[str, dict[str, float]] = {
 MAX_PER_SEED_TOP = 3        # max candidati dallo stesso seed nei primi N
 MAX_PER_SEED_TOP_N = 20
 
-# --- Scene: peso label scalato per dimensione roster ---
-LABEL_ROSTER_FULL = 20.0    # oltre la soglia, peso ∝ 1/sqrt(roster)
-
 # --- Cache TTL (giorni) per la similarità delle fonti ---
 SIMILARITY_TTL_DAYS = 14.0

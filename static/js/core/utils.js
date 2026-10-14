@@ -5,14 +5,6 @@
 // l'onerror si riattiverebbe in loop generando richieste infinite.
 export const PLACEHOLDER_COVER = '/static/icons/placeholder.svg';
 
-// Handler "one-shot": disarma l'evento e ripiega sul placeholder locale.
-export function imgFallback(el) {
-    el.onerror = null;
-    if (el.src && !el.src.includes('placeholder.svg')) {
-        el.src = PLACEHOLDER_COVER;
-    }
-}
-
 // Carica uno script esterno una sola volta (SDK lazy) e ne attende il load.
 const _scriptPromises = {};
 export function loadScriptOnce(url, globalName) {
@@ -30,6 +22,21 @@ export function loadScriptOnce(url, globalName) {
         document.head.appendChild(s);
     });
     return _scriptPromises[url];
+}
+
+// Riconosce l'id nativo di un video YouTube dall'URL.
+export function youtubeVideoId(url) {
+    const m = String(url || '').match(/[?&]v=([\w-]+)/);
+    return m ? m[1] : '';
+}
+
+// True se l'URL è una raccolta (album Bandcamp, playlist YouTube, set SoundCloud).
+export function isCollectionUrl(platform, url) {
+    const u = String(url || '');
+    if (platform === 'bandcamp') return u.includes('/album/');
+    if (platform === 'youtube') return u.includes('/playlist');
+    if (platform === 'soundcloud') return u.includes('/sets/');
+    return false;
 }
 
 export function escapeHtml(text) {
