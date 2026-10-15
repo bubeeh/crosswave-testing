@@ -35,7 +35,8 @@
         min-width: 0 !important;
         width: auto !important;
         padding: 0 !important;
-        font-size: 15px !important;
+        /* 16px: evita lo zoom automatico di iOS Safari al focus */
+        font-size: 16px !important;
         overflow: hidden;
         text-overflow: ellipsis;
     }
@@ -212,5 +213,7 @@
         white-space: nowrap;
     }
     .player-bar #player-track-title { flex: 1 1 auto; }
-    .player-bar #player-track-artist { flex: 0 1 auto; max-width: 42%; }
+    /* L'artista non deve collassare al minimo quando il titolo è lungo:
+       niente shrink e una quota minima ragionevole. */
+    .player-bar #player-track-artist { flex: 0 0 auto; max-width: 48%; }
 }

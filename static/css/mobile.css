@@ -203,6 +203,8 @@
     .player-bar .control-buttons {
         gap: 6px !important;
         flex-shrink: 0;
+        /* A player vuoto resta allineato a destra (accanto al chevron) */
+        margin-left: auto;
     }
     .player-bar #ctrl-shuffle,
     .player-bar #ctrl-repeat {
@@ -297,11 +299,27 @@
         flex-direction: column !important;
         align-items: center !important;
         gap: 4px !important;
-        max-width: 90vw !important;
+        width: 100% !important;
+        max-width: 100% !important;
         text-align: center;
     }
-    .player-bar.expanded #player-track-title { font-size: 1.25rem !important; }
-    .player-bar.expanded #player-track-artist { font-size: 1rem !important; }
+    /* In colonna il titolo non deve crescere in verticale (flex del mini-player)
+       e deve andare a capo restando dentro lo schermo. */
+    .player-bar.expanded #player-track-title {
+        font-size: 1.25rem !important;
+        flex: 0 0 auto !important;
+        max-width: 100% !important;
+        white-space: normal;
+        overflow: visible;
+        line-height: 1.25;
+    }
+    .player-bar.expanded #player-track-artist {
+        font-size: 1rem !important;
+        flex: 0 0 auto !important;
+        max-width: 100% !important;
+        white-space: normal;
+        overflow: visible;
+    }
     .player-bar.expanded .track-details-inline > span:nth-child(2) { display: none !important; }
     .player-bar.expanded .control-buttons { gap: 22px !important; order: 2; }
     .player-bar.expanded #ctrl-shuffle,
@@ -359,6 +377,13 @@
         overflow-x: auto;
         padding-bottom: 4px;
         -webkit-overflow-scrolling: touch;
+        /* Il genitore .home-hero-search-section è align-items:center: senza
+           questi vincoli il contenitore si dimensiona sul contenuto (max-content)
+           e va in overflow tagliato su entrambi i lati invece di scorrere. */
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        align-self: stretch;
     }
     .home-search-filters .filter-pill,
     .filter-pill { flex-shrink: 0; }
