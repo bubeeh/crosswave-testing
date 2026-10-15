@@ -1,8 +1,6 @@
 // Orchestrator for Audio Playback, Player Controls & Queue for CrossWave Hybrid
 import { state } from '../core/state.js';
 import { showToast, formatTime, getPlatformGradient, escapeHtml, PLACEHOLDER_COVER } from '../core/utils.js';
-import { switchTab } from '../core/router.js';
-import { initYoutubeAdapter, startYoutubeProgressPolling, stopYoutubeProgressPolling } from './youtube.js';
 import { initBcAudio, playBcStream, pauseBc, resumeBc, seekBc, setBcVolume } from './bandcamp.js';
 import { initMixcloud, renderMixcloudView, pauseMc, resumeMc, seekMc, setMcVolume } from './mixcloud.js';
 import { startRadioMetadataPolling, stopRadioMetadataPolling } from './radio.js';
@@ -109,40 +107,14 @@ document.addEventListener('visibilitychange', () => {
 });
 
 export function initAudioPlayers() {
-    initYoutubeAdapter(onYoutubeStateChange);
     initMixcloud(setPlayingState, handleTrackFinished, updateProgressBar);
     initBcAudio(setPlayingState, handleTrackFinished, updateProgressBar);
-}
-
-function onYoutubeStateChange(event) {
-    if (typeof YT !== 'undefined') {
-        if (event.data === YT.PlayerState.PLAYING) {
-            setPlayingState(true);
-            startYoutubeProgressPolling(updateProgressBar);
-        } else if (event.data === YT.PlayerState.PAUSED) {
-            setPlayingState(false);
-            stopYoutubeProgressPolling();
-        } else if (event.data === YT.PlayerState.ENDED) {
-            stopYoutubeProgressPolling();
-            handleTrackFinished();
-        }
-    }
+    setupMediaSessionControls();
 }
 
 export function pauseAllPlayers() {
-    stopYoutubeProgressPolling();
     stopRadioMetadataPolling();
 
-    const mainIframe = document.getElementById('main-yt-iframe');
-    if (mainIframe && mainIframe.contentWindow) {
-        try {
-            mainIframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
-        } catch (e) {}
-    }
-
-    if (state.ytPlayer && typeof state.ytPlayer.pauseVideo === 'function') {
-        try { state.ytPlayer.pauseVideo(); } catch (e) {}
-    }
     if (state.scWidget && typeof state.scWidget.pause === 'function') {
         try { state.scWidget.pause(); } catch (e) {}
     }
@@ -163,19 +135,9 @@ export function togglePlayPause() {
 export function pauseActive() {
     if (!state.currentTrack) return;
 
-    if (state.activePlayer === 'youtube') {
-        const mainIframe = document.getElementById('main-yt-iframe');
-        if (mainIframe && mainIframe.contentWindow) {
-            mainIframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
-        }
-        if (state.ytPlayer && typeof state.ytPlayer.pauseVideo === 'function') {
-            state.ytPlayer.pauseVideo();
-        }
-    } else if (state.activePlayer === 'soundcloud') {
-        pauseBc();
-    } else if (state.activePlayer === 'mixcloud') {
+    if (state.activePlayer === 'mixcloud') {
         pauseMc();
-    } else if (state.activePlayer === 'bandcamp' || state.activePlayer === 'radio' || state.activePlayer === 'local') {
+    } else {
         pauseBc();
     }
     setPlayingState(false);
@@ -184,19 +146,9 @@ export function pauseActive() {
 export function resumeActive() {
     if (!state.currentTrack) return;
 
-    if (state.activePlayer === 'youtube') {
-        const mainIframe = document.getElementById('main-yt-iframe');
-        if (mainIframe && mainIframe.contentWindow) {
-            mainIframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
-        }
-        if (state.ytPlayer && typeof state.ytPlayer.playVideo === 'function') {
-            state.ytPlayer.playVideo();
-        }
-    } else if (state.activePlayer === 'soundcloud') {
-        resumeBc();
-    } else if (state.activePlayer === 'mixcloud') {
+    if (state.activePlayer === 'mixcloud') {
         resumeMc();
-    } else if (state.activePlayer === 'bandcamp' || state.activePlayer === 'radio' || state.activePlayer === 'local') {
+    } else {
         if (state.activePlayer === 'radio' && state.bcAudio && (!state.bcAudio.src || state.bcAudio.src === '')) {
             state.bcAudio.src = state.currentTrack.url;
         }
@@ -209,11 +161,7 @@ export function seekToPercent(percent) {
     if (!state.currentTrack) return;
 
     let duration = 0;
-    if (state.activePlayer === 'youtube' && state.ytPlayer && typeof state.ytPlayer.getDuration === 'function') {
-        duration = state.ytPlayer.getDuration() || 0;
-        const targetSeconds = (percent / 100) * duration;
-        state.ytPlayer.seekTo(targetSeconds, true);
-    } else if ((state.activePlayer === 'bandcamp' || state.activePlayer === 'soundcloud' || state.activePlayer === 'radio' || state.activePlayer === 'local') && state.bcAudio) {
+    if (state.activePlayer !== 'mixcloud' && state.bcAudio) {
         duration = state.bcAudio.duration || 0;
         const targetSeconds = (percent / 100) * duration;
         seekBc(targetSeconds);
@@ -244,9 +192,6 @@ export function setVolume(val) {
         }
     }
 
-    if (state.ytPlayer && typeof state.ytPlayer.setVolume === 'function') {
-        try { state.ytPlayer.setVolume(val); } catch (e) {}
-    }
     if (state.scWidget && typeof state.scWidget.setVolume === 'function') {
         try { state.scWidget.setVolume(val / 100); } catch (e) {}
     }
@@ -276,15 +221,54 @@ export function playTrackImmediately(track) {
     playTrack(track);
 }
 
-// Riproduzione con video: play immediato + apertura della vista video.
-// Usata dal bottone 🎬 sulle righe dei risultati YouTube e dal toggle video della player bar.
-export function playTrackWithVideo(track) {
-    playTrackImmediately(track);
-    switchTab('video-view');
+// --- Media Session: metadati e controlli lockscreen / background ---
+function setupMediaSessionControls() {
+    if (!('mediaSession' in navigator)) return;
+    const handlers = {
+        play: () => resumeActive(),
+        pause: () => pauseActive(),
+        previoustrack: () => prevTrack(),
+        nexttrack: () => nextTrack(),
+        seekbackward: () => seekRelative(-10),
+        seekforward: () => seekRelative(10),
+    };
+    for (const [action, handler] of Object.entries(handlers)) {
+        try { navigator.mediaSession.setActionHandler(action, handler); } catch (e) {}
+    }
+}
+
+function seekRelative(deltaSeconds) {
+    const duration = state.bcAudio ? (state.bcAudio.duration || 0) : 0;
+    if (duration > 0) {
+        const target = Math.min(Math.max(0, state.bcAudio.currentTime + deltaSeconds), duration);
+        seekBc(target);
+    }
+}
+
+function updateMediaSession(track) {
+    if (!('mediaSession' in navigator)) return;
+    if (!track) {
+        navigator.mediaSession.metadata = null;
+        return;
+    }
+    const artwork = track.thumbnail
+        ? [{ src: track.thumbnail, sizes: '512x512', type: 'image/jpeg' }]
+        : [];
+    try {
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: track.title || 'Senza Titolo',
+            artist: track.artist || 'Artista Sconosciuto',
+            album: track.album_title || '',
+            artwork,
+        });
+    } catch (e) {}
 }
 
 export function setPlayingState(playing) {
     state.isPlaying = playing;
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = playing ? 'playing' : 'paused';
+    }
     if (playing) {
         startListeningTimer();
     } else {
@@ -586,28 +570,24 @@ export async function playTrack(track) {
         window.updateNowPlayingView();
     }
 
+    updateMediaSession(track);
+
     try {
         if (track.source === 'youtube') {
-            const rawId = String(track.track_id || track.id || '');
-            const videoId = rawId.replace('yt_', '');
-
-            const mainIframe = document.getElementById('main-yt-iframe');
-            const placeholder = document.getElementById('video-placeholder');
-            const titleDisplay = document.getElementById('video-title-display');
-            const artistDisplay = document.getElementById('video-artist-display');
-
-            if (mainIframe) {
-                mainIframe.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1&rel=0`;
-                mainIframe.classList.remove('hidden');
-                if (placeholder) placeholder.classList.add('hidden');
+            // Audio-only via proxy: nessun iframe video → niente freeze e
+            // riproduzione in background affidabile (elemento <audio>).
+            showToast('Risoluzione streaming YouTube...');
+            try {
+                const res = await fetch(`/api/resolve_track?url=${encodeURIComponent(track.url)}`);
+                const data = await res.json();
+                if (data.error) throw new Error(data.error);
+                if (data.duration && !track.duration) track.duration = data.duration;
+                playBcStream(`/api/proxy_audio?url=${encodeURIComponent(track.url)}`);
+            } catch (e) {
+                console.error('YouTube resolve failed', e);
+                showToast('Errore di riproduzione audio.', 'error');
+                handleTrackFinished();
             }
-            if (titleDisplay) titleDisplay.innerText = track.title;
-            if (artistDisplay) artistDisplay.innerText = track.artist;
-
-            // NIENTE switch automatico a video-view: la riproduzione YT resta in background
-            // (audio). L'utente decide se aprire il player video con il bottone TV della
-            // player bar o col bottone 🎬 sulla riga (playTrackWithVideo).
-
         } else if (track.source === 'soundcloud') {
             showToast('Risoluzione streaming SoundCloud...');
             try {

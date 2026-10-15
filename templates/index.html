@@ -21,7 +21,7 @@
     <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20261013_lazysdk1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20261015_ytaudio1">
 
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='icons/icon-192.png') }}">
 </head>
@@ -400,7 +400,6 @@
                 {% include 'components/view_player.html' %}
                 {% include 'components/view_bandcamp.html' %}
                 {% include 'components/view_catalog.html' %}
-                {% include 'components/view_youtube.html' %}
                 {% include 'components/view_mixcloud.html' %}
 
 
@@ -417,7 +416,7 @@
 
     <!-- SDK di terze parti (Mixcloud) caricati LAZY al primo utilizzo, non a ogni load -->
     <!-- Modular ES SPA Application -->
-    <script type="module" src="{{ url_for('static', filename='js/app.js') }}?v=20261013_lazysdk1"></script>
+    <script type="module" src="{{ url_for('static', filename='js/app.js') }}?v=20261015_ytaudio1"></script>
 
 </body>
 

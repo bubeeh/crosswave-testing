@@ -806,12 +806,6 @@ h1, h2, h3, h4, h5, h6,
     background: rgba(0, 242, 254, 0.12);
 }
 
-.track-row-action-btn.vd-s:hover {
-    color: var(--yt-color);
-    background: rgba(255, 0, 0, 0.12);
-}
-
-
 /* Playlists and Queue Headers */
 .queue-section-header, .history-section-header {
     display: flex;
@@ -1454,80 +1448,6 @@ h1, h2, h3, h4, h5, h6,
     pointer-events: none;
     overflow: hidden;
     z-index: -100;
-}
-
-/* Video Theater Full Main Area Layout (100% Width & Height) */
-#tab-video-view {
-    padding: 0 !important;
-    height: 100%;
-    width: 100%;
-    overflow: hidden;
-}
-
-.video-full-wrapper {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    height: 100%;
-    background: #000;
-}
-
-.video-full-screen {
-    width: 100%;
-    flex: 1;
-    background: #000;
-    position: relative;
-}
-
-.video-full-screen iframe {
-    width: 100%;
-    height: 100%;
-    border: none;
-}
-
-.video-placeholder-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    color: var(--text-muted);
-}
-
-.video-placeholder-state .placeholder-icon {
-    font-size: 3.5rem;
-    margin-bottom: 14px;
-    opacity: 0.3;
-}
-
-.video-full-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 24px;
-    background: rgba(14, 18, 30, 0.95);
-    border-top: 1px solid var(--border-color);
-    height: 64px;
-    flex-shrink: 0;
-}
-
-.video-full-info h1 {
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin: 0;
-}
-
-.video-full-info p {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    margin: 2px 0 0 0;
-}
-
-.utility-btn.active#btn-toggle-video {
-    color: var(--accent-cyan);
-    background: rgba(0, 242, 254, 0.15);
-    box-shadow: 0 0 12px rgba(0, 242, 254, 0.4);
 }
 
 /* Dedicated Bandcamp-style Album Detail View */

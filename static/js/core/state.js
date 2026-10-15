@@ -8,7 +8,6 @@ export const state = {
     currentTrack: null,
 
     // Audio / Player Widget Instances
-    ytPlayer: null,
     scWidget: null,
     mcWidget: null,
     bcAudio: null,

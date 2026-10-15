@@ -21,7 +21,7 @@ export function initBcAudio(setPlayingStateCallback, handleTrackFinishedCallback
     });
 
     state.bcAudio.addEventListener('timeupdate', () => {
-        if (state.activePlayer === 'bandcamp' || state.activePlayer === 'soundcloud' || state.activePlayer === 'radio' || state.activePlayer === 'local') {
+        if (state.activePlayer === 'youtube' || state.activePlayer === 'bandcamp' || state.activePlayer === 'soundcloud' || state.activePlayer === 'radio' || state.activePlayer === 'local') {
             if (updateProgressBarCallback) {
                 updateProgressBarCallback(state.bcAudio.currentTime, state.bcAudio.duration || 0);
             }
@@ -30,7 +30,7 @@ export function initBcAudio(setPlayingStateCallback, handleTrackFinishedCallback
 
     state.bcAudio.addEventListener('error', (e) => {
         console.error('HTML5 audio error', e);
-        if (state.activePlayer === 'bandcamp' || state.activePlayer === 'soundcloud' || state.activePlayer === 'local') {
+        if (state.activePlayer === 'youtube' || state.activePlayer === 'bandcamp' || state.activePlayer === 'soundcloud' || state.activePlayer === 'local') {
             showToast('Errore di riproduzione audio. Salto al successivo.', 'error');
             if (handleTrackFinishedCallback) handleTrackFinishedCallback();
         }

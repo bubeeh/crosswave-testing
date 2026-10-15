@@ -1,12 +1,11 @@
 // Application Entry Point for CrossWave Hybrid (Modular ES SPA)
 import { state } from './core/state.js';
 import { showToast } from './core/utils.js';
-import { initRouter, registerTab, navigate, switchTab } from './core/router.js';
+import { initRouter, registerTab, navigate } from './core/router.js';
 import {
     initAudioPlayers, togglePlayPause, prevTrack, nextTrack,
     seekToPercent, setVolume, toggleMute, renderQueue, updateProgressFill
 } from './player/player.js';
-import './player/youtube.js';
 import './player/bandcamp.js';
 import './player/mixcloud.js';
 import './player/radio.js';
@@ -127,16 +126,6 @@ onDOMReady(() => {
                 return;
             }
             openAddToPlaylistModal(state.currentTrack);
-        });
-    }
-
-    const btnToggleVideo = document.getElementById('btn-toggle-video');
-    if (btnToggleVideo) {
-        btnToggleVideo.addEventListener('click', () => {
-            switchTab('video-view');
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            const navVid = document.getElementById('nav-btn-video');
-            if (navVid) navVid.classList.add('active');
         });
     }
 

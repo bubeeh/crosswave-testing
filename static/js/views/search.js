@@ -1,6 +1,6 @@
 // Search View Module for CrossWave Hybrid
 import { showToast, formatTime, escapeHtml, PLACEHOLDER_COVER, isCollectionUrl, youtubeVideoId } from '../core/utils.js';
-import { playTrackImmediately, addToQueue, playTrackWithVideo, addPlaylistTracksToQueue } from '../player/player.js';
+import { playTrackImmediately, addToQueue, addPlaylistTracksToQueue } from '../player/player.js';
 import { openAddToPlaylistModal } from './library.js';
 import { loadAndAddAlbumToQueue, openCollectionDetailView } from './album.js';
 import { openCatalogView } from './catalog.js';
@@ -300,10 +300,6 @@ export function createResultRow(track, index, options = {}) {
         ? `<a href="${escapeHtml(webUrl)}" target="_blank" rel="noopener noreferrer" class="result-action ext-link" title="Apri pagina fonte"><i class="fa-solid fa-arrow-up-right-from-square"></i><span class="result-action-label">Apri link</span></a>`
         : '';
 
-    const videoBtnHtml = (track.source === 'youtube' && track.type !== 'album')
-        ? `<button class="result-action vd-s" title="Riproduci con video"><i class="fa-solid fa-film"></i><span class="result-action-label">Video</span></button>`
-        : '';
-
     const sourceInner = `<i class="${sourceIcon}"></i> <span>${escapeHtml(sourceLabel)}</span>`;
     const sourceHtml = webUrl
         ? `<a href="${escapeHtml(webUrl)}" target="_blank" rel="noopener noreferrer" class="result-source ${track.source}" title="Apri pagina web originale">${sourceInner}</a>`
@@ -334,7 +330,6 @@ export function createResultRow(track, index, options = {}) {
         <div class="result-actions">
             <button class="result-action add-p" title="Aggiungi alla playlist"><i class="fa-solid fa-folder-plus"></i> Playlist</button>
             <button class="result-action add-q" title="Aggiungi alla coda"><i class="fa-solid fa-plus"></i> Coda</button>
-            ${videoBtnHtml}
             ${extLinkHtml}
         </div>
     `;
@@ -356,13 +351,6 @@ export function createResultRow(track, index, options = {}) {
     if (playBtn) {
         playBtn.addEventListener('click', () => {
             handlePlayAction(track);
-        });
-    }
-
-    const vdS = row.querySelector('.vd-s');
-    if (vdS) {
-        vdS.addEventListener('click', () => {
-            playTrackWithVideo(track);
         });
     }
 
